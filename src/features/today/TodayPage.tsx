@@ -6,7 +6,7 @@ import {
   getProductionPlansForWeek,
 } from '@/features/production/api';
 import { composeWithPlan, type ProductionWeekRowFull } from '@/features/production/planLayer';
-import { listTodayPendingOrders, type OrderRow } from '@/features/orders/api';
+import { listTodayPendingOrders, type OrderListItem } from '@/features/orders/api';
 import { listCustomersByIds } from '@/features/customers/api';
 import { weekStartFor } from '@/lib/week';
 import { todayInTz } from '@/lib/utils';
@@ -14,7 +14,7 @@ import { todayInTz } from '@/lib/utils';
 export function TodayPage() {
   const { user, isAdmin, signOut } = useAuth();
   const [productionRows, setProductionRows] = useState<ProductionWeekRowFull[]>([]);
-  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [orders, setOrders] = useState<OrderListItem[]>([]);
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 

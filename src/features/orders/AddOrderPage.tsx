@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listActiveCustomers, type CustomerRow } from '@/features/customers/api';
 import { listActiveProducts, type ProductRow } from '@/features/products/api';
-import { createOrder } from '@/features/orders/api';
+import { createOrderWithItems } from '@/features/orders/api';
+import { todayInTz } from '@/lib/utils';
 
 export function AddOrderPage() {
   const navigate = useNavigate();
@@ -32,7 +33,19 @@ export function AddOrderPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await createOrder({ customer_id: customerId, product_id: productId, qty: qtyNum });
+      // Sprint 4 Task 2 interim: AddOrderPage is fully rewritten as the §7
+      // accordion in Sprint 4 Task 3. Until then, this minimal adapter keeps
+      // the walking-skeleton form working against the new multi-item API.
+      const product = products.find((p) => p.id === productId);
+      if (!product) throw new Error('product not found');
+      await createOrderWithItems({
+        customer_id: customerId,
+        source: 'whatsapp',
+        target_fulfilment_date: todayInTz(),
+        payment_status: 'unpaid',
+        notes: null,
+        items: [{ product_id: productId, qty: qtyNum, unit_price: product.default_price }],
+      });
       navigate('/orders');
     } catch (err) {
       setError((err as Error).message);
