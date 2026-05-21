@@ -12,6 +12,7 @@ import { LogProductionPage } from '@/features/production/LogProductionPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { ProductsPage } from '@/features/products/ProductsPage';
 import { AddProductPage } from '@/features/products/AddProductPage';
+import { EditProductPage } from '@/features/products/EditProductPage';
 
 function Protected() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/products/new" element={<AddProductPage />} />
+          <Route path="/products/:id" element={<EditProductPage />} />
         </Route>
         <Route path="/" element={<Navigate to="/today" replace />} />
         <Route path="*" element={<Navigate to="/today" replace />} />
