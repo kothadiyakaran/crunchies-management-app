@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { listActiveProducts, type ProductRow } from '@/features/products/api';
 import { createProductionLog } from './api';
 
 export function LogProductionPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const prefilledId = searchParams.get('product_id');
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [productId, setProductId] = useState('');
   const [qty, setQty] = useState('1');
@@ -12,8 +14,15 @@ export function LogProductionPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    listActiveProducts().then(setProducts).catch((e: Error) => setError(e.message));
-  }, []);
+    listActiveProducts()
+      .then((ps) => {
+        setProducts(ps);
+        if (prefilledId && ps.some((p) => p.id === prefilledId)) {
+          setProductId(prefilledId);
+        }
+      })
+      .catch((e: Error) => setError(e.message));
+  }, [prefilledId]);
 
   const qtyNum = Number(qty);
   const canSubmit = !!productId && Number.isFinite(qtyNum) && qtyNum > 0 && !submitting;
