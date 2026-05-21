@@ -83,10 +83,17 @@ export function ProductionPage() {
         <ul className={`${!loading && rows.length > 0 ? 'mt-4' : ''} space-y-2`}>
           {notDone.map((r) => (
             <li key={r.product_id}>
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => setOpenProductId(r.product_id)}
-                className="block w-full rounded-card bg-paper-elevated p-3 text-left"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setOpenProductId(r.product_id);
+                  }
+                }}
+                className="block w-full cursor-pointer rounded-card bg-paper-elevated p-3 text-left"
               >
                 <div className="flex items-baseline justify-between">
                   <span className="text-body font-semibold text-ink-900">{r.name}</span>
@@ -95,13 +102,13 @@ export function ProductionPage() {
 
                 {r.needs_seed ? (
                   <div className="mt-2">
-                    <span
-                      role="button"
+                    <button
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); setSeedTarget(r); }}
                       className="text-body-sm text-brand-orange underline"
                     >
                       Add a seed estimate →
-                    </span>
+                    </button>
                   </div>
                 ) : (
                   <>
@@ -121,7 +128,7 @@ export function ProductionPage() {
                     )}
                   </>
                 )}
-              </button>
+              </div>
             </li>
           ))}
           {!loading && rows.length === 0 && !error && (
