@@ -3,15 +3,24 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const listCustomers = vi.fn();
-const listProducts = vi.fn();
 const createOrderWithItems = vi.fn();
+const listActiveProducts = vi.fn();
+const searchCustomersByName = vi.fn();
+const listChannels = vi.fn();
+const createCustomerQuick = vi.fn();
 
-vi.mock('@/features/customers/api', () => ({ listActiveCustomers: () => listCustomers() }));
-vi.mock('@/features/products/api', () => ({ listActiveProducts: () => listProducts() }));
 vi.mock('@/features/orders/api', () => ({
   createOrderWithItems: (i: unknown) => createOrderWithItems(i),
 }));
+vi.mock('@/features/products/api', () => ({
+  listActiveProducts: () => listActiveProducts(),
+}));
+vi.mock('@/features/customers/api', () => ({
+  searchCustomersByName: (q: string) => searchCustomersByName(q),
+  listChannels: () => listChannels(),
+  createCustomerQuick: (i: unknown) => createCustomerQuick(i),
+}));
+vi.mock('@/lib/utils', () => ({ todayInTz: () => '2026-05-20' }));
 
 import { AddOrderPage } from './AddOrderPage';
 
@@ -27,38 +36,58 @@ function renderPage() {
 }
 
 beforeEach(() => {
-  listCustomers.mockResolvedValue([{ id: 'c-1', name: 'Neighbour Auntie', phone: null, channel_id: 'ch-1' }]);
-  listProducts.mockResolvedValue([{ id: 'p-1', name: 'Chivda', unit: '250g', default_price: 120 }]);
-  createOrderWithItems.mockResolvedValue('order-new');
+  createOrderWithItems.mockReset();
+  listActiveProducts.mockReset();
+  searchCustomersByName.mockReset();
+  listChannels.mockReset();
+  createCustomerQuick.mockReset();
+  createOrderWithItems.mockResolvedValue('new-order-id');
+  listActiveProducts.mockResolvedValue([
+    { id: 'p1', name: 'Chivda', unit: '250g', default_price: 100 },
+    { id: 'p2', name: 'Laddu', unit: 'box', default_price: 200 },
+  ]);
+  searchCustomersByName.mockResolvedValue([
+    { id: 'c1', name: 'Sunita Patil', phone: '+91...', channel_id: 'ch1' },
+  ]);
+  listChannels.mockResolvedValue([{ id: 'ch1', name: 'Personal' }]);
 });
 
-// TODO: rewritten in Sprint 4 Task 5 — the walking-skeleton single-item form
-// is being replaced with the §7 7-step accordion (multi-item, mandatory
-// target_fulfilment_date, payment status picker, etc.). Skipping until then
-// rather than chasing a soon-to-be-deleted UI.
-describe.skip('AddOrderPage', () => {
-  it('submits createOrderWithItems with the selected fields and navigates to /orders', async () => {
+describe('AddOrderPage', () => {
+  it('full flow: pick customer, add item, save, navigate', async () => {
     const user = userEvent.setup();
     renderPage();
 
-    // Wait for dropdown options to populate
-    await waitFor(() => expect(screen.getByRole('option', { name: 'Neighbour Auntie' })).toBeInTheDocument());
+    const search = await screen.findByPlaceholderText('Search customer name');
+    await user.type(search, 'Sunita');
+    const customerRow = await screen.findByRole('button', { name: /Sunita Patil/ });
+    await user.click(customerRow);
 
-    await user.selectOptions(screen.getByLabelText('Customer'), 'c-1');
-    await user.selectOptions(screen.getByLabelText('Product'), 'p-1');
-    await user.clear(screen.getByLabelText('Quantity'));
-    await user.type(screen.getByLabelText('Quantity'), '3');
-    await user.click(screen.getByRole('button', { name: /save/i }));
+    const productSelect = await screen.findByRole('combobox');
+    await user.selectOptions(productSelect, 'p1');
 
-    await waitFor(() =>
-      expect(createOrderWithItems).toHaveBeenCalled(),
+    const qty = screen.getByLabelText('qty-0');
+    await user.type(qty, '2');
+
+    expect(screen.getByLabelText('price-0')).toHaveValue(100);
+
+    await user.click(screen.getByRole('button', { name: /^Save$/ }));
+
+    await waitFor(() => expect(createOrderWithItems).toHaveBeenCalledTimes(1));
+    expect(createOrderWithItems).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer_id: 'c1',
+        source: 'whatsapp',
+        target_fulfilment_date: '2026-05-20',
+        payment_status: 'unpaid',
+        items: [{ product_id: 'p1', qty: 2, unit_price: 100 }],
+      }),
     );
     expect(await screen.findByText('OrdersList')).toBeInTheDocument();
   });
 
-  it('disables Save until customer + product + positive qty are present', async () => {
+  it('save button is disabled until customer + valid item', async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByRole('option', { name: /Chivda/ })).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /save/i })).toBeDisabled();
+    const save = await screen.findByRole('button', { name: /^Save$/ });
+    expect(save).toBeDisabled();
   });
 });

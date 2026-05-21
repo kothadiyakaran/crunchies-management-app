@@ -1,102 +1,303 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { listActiveCustomers, type CustomerRow } from '@/features/customers/api';
+import { CustomerSearchPicker } from './CustomerSearchPicker';
+import { createOrderWithItems, type OrderItemInput, type OrderRow } from './api';
 import { listActiveProducts, type ProductRow } from '@/features/products/api';
-import { createOrderWithItems } from '@/features/orders/api';
 import { todayInTz } from '@/lib/utils';
+
+type Customer = { id: string; name: string; phone: string | null };
+type DraftItem = { product_id: string; qty: string; unit_price: string };
+
+type StepKey = 'customer' | 'source' | 'date' | 'target' | 'items' | 'payment' | 'notes';
+
+const SOURCES: OrderRow['source'][] = ['whatsapp', 'in_person', 'phone'];
+const PAYMENT_STATUSES: OrderRow['payment_status'][] = ['unpaid', 'paid', 'partial'];
 
 export function AddOrderPage() {
   const navigate = useNavigate();
-  const [customers, setCustomers] = useState<CustomerRow[]>([]);
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const [products, setProducts] = useState<ProductRow[]>([]);
-  const [customerId, setCustomerId] = useState('');
-  const [productId, setProductId] = useState('');
-  const [qty, setQty] = useState('1');
+  const [source, setSource] = useState<OrderRow['source']>('whatsapp');
+  const [orderedAt, setOrderedAt] = useState<string>(todayInTz());
+  const [targetDate, setTargetDate] = useState<string>(todayInTz());
+  const [items, setItems] = useState<DraftItem[]>([{ product_id: '', qty: '', unit_price: '' }]);
+  const [paymentStatus, setPaymentStatus] = useState<OrderRow['payment_status']>('unpaid');
+  const [notes, setNotes] = useState('');
+  const [expandedStep, setExpandedStep] = useState<StepKey>('customer');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([listActiveCustomers(), listActiveProducts()])
-      .then(([cs, ps]) => {
-        setCustomers(cs);
-        setProducts(ps);
-      })
-      .catch((e: Error) => setError(e.message));
+    listActiveProducts().then(setProducts).catch((e: Error) => setError(e.message));
   }, []);
 
-  const qtyNum = Number(qty);
-  const canSubmit = !!customerId && !!productId && Number.isFinite(qtyNum) && qtyNum > 0 && !submitting;
+  function handleCustomer(c: Customer) {
+    if (c.id === '') {
+      setCustomer(null);
+      setExpandedStep('customer');
+      return;
+    }
+    setCustomer(c);
+    setExpandedStep('items');
+  }
+
+  function setItemField(i: number, patch: Partial<DraftItem>) {
+    setItems((curr) => curr.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
+  }
+  function addItem() {
+    setItems((curr) => [...curr, { product_id: '', qty: '', unit_price: '' }]);
+  }
+  function removeItem(i: number) {
+    setItems((curr) => curr.filter((_, idx) => idx !== i));
+  }
+
+  const itemsValid: OrderItemInput[] = items
+    .map((it) => {
+      const qty = Number(it.qty);
+      const unit_price = Number(it.unit_price);
+      if (!it.product_id || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(unit_price) || unit_price < 0) {
+        return null;
+      }
+      return { product_id: it.product_id, qty, unit_price };
+    })
+    .filter((x): x is OrderItemInput => x !== null);
+
+  const canSubmit = customer !== null && itemsValid.length > 0 && targetDate.length === 10 && !submitting;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || !customer) return;
     setSubmitting(true);
     setError(null);
     try {
-      // Sprint 4 Task 2 interim: AddOrderPage is fully rewritten as the §7
-      // accordion in Sprint 4 Task 3. Until then, this minimal adapter keeps
-      // the walking-skeleton form working against the new multi-item API.
-      const product = products.find((p) => p.id === productId);
-      if (!product) throw new Error('product not found');
       await createOrderWithItems({
-        customer_id: customerId,
-        source: 'whatsapp',
-        target_fulfilment_date: todayInTz(),
-        payment_status: 'unpaid',
-        notes: null,
-        items: [{ product_id: productId, qty: qtyNum, unit_price: product.default_price }],
+        customer_id: customer.id,
+        source,
+        ordered_at: `${orderedAt}T12:00:00+05:30`,
+        target_fulfilment_date: targetDate,
+        payment_status: paymentStatus,
+        notes: notes.trim() || null,
+        items: itemsValid,
       });
       navigate('/orders');
-    } catch (err) {
-      setError((err as Error).message);
+    } catch (e) {
+      setError((e as Error).message);
       setSubmitting(false);
     }
   }
 
+  function StepHeader({ stepKey, n, label, summary, complete }: {
+    stepKey: StepKey; n: number; label: string; summary: string; complete: boolean;
+  }) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpandedStep(stepKey)}
+        className="flex w-full items-center justify-between p-3 text-left"
+      >
+        <span className="flex items-center gap-3">
+          <span
+            className={`flex h-6 w-6 items-center justify-center rounded-full text-label ${
+              complete ? 'bg-brand-orange text-white' : 'border border-ink-900/20 text-ink-500'
+            }`}
+          >
+            {complete ? '✓' : n}
+          </span>
+          <span className="text-body font-semibold text-ink-900">{label}</span>
+        </span>
+        {expandedStep !== stepKey && (
+          <span className="ml-2 truncate text-body-sm text-ink-500">{summary}</span>
+        )}
+      </button>
+    );
+  }
+
+  const inputClass = 'mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body';
+
   return (
     <div>
-      <h1 className="text-title text-ink-900">Add order</h1>
-      <form onSubmit={onSubmit} className="mt-6 space-y-4">
-        <label className="block">
-          <span className="text-label uppercase text-ink-500">Customer</span>
-          <select
-            className="mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
-            value={customerId}
-            onChange={(e) => setCustomerId(e.target.value)}
-          >
-            <option value="">— Select —</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="text-label uppercase text-ink-500">Product</span>
-          <select
-            className="mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
-            value={productId}
-            onChange={(e) => setProductId(e.target.value)}
-          >
-            <option value="">— Select —</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>{p.name} ({p.unit})</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="text-label uppercase text-ink-500">Quantity</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="any"
-            value={qty}
-            onChange={(e) => setQty(e.target.value)}
-            className="mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
+      <h1 className="text-title text-ink-900">Log new order</h1>
+      <form onSubmit={onSubmit} className="mt-6 space-y-2">
+        {/* Step 1: Customer */}
+        <div className="rounded-card bg-paper-elevated">
+          <StepHeader
+            stepKey="customer"
+            n={1}
+            label="Customer"
+            summary={customer ? customer.name : 'Select a customer'}
+            complete={customer !== null}
           />
-        </label>
+          {expandedStep === 'customer' && (
+            <div className="px-3 pb-3">
+              <CustomerSearchPicker selected={customer} onSelect={handleCustomer} />
+            </div>
+          )}
+        </div>
+
+        {/* Step 2: Source */}
+        <div className="rounded-card bg-paper-elevated">
+          <StepHeader stepKey="source" n={2} label="Source" summary={source} complete={true} />
+          {expandedStep === 'source' && (
+            <div className="flex flex-wrap gap-2 px-3 pb-3">
+              {SOURCES.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => { setSource(s); setExpandedStep('items'); }}
+                  className={`h-9 rounded-pill px-3 text-body-sm ${
+                    source === s ? 'bg-brand-orange text-white' : 'border border-ink-900/10 text-ink-900'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Step 3: Date */}
+        <div className="rounded-card bg-paper-elevated">
+          <StepHeader stepKey="date" n={3} label="Date" summary={orderedAt} complete={true} />
+          {expandedStep === 'date' && (
+            <div className="px-3 pb-3">
+              <input
+                type="date"
+                className={inputClass}
+                value={orderedAt}
+                onChange={(e) => setOrderedAt(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Step 4: Target fulfilment date */}
+        <div className="rounded-card bg-paper-elevated">
+          <StepHeader
+            stepKey="target"
+            n={4}
+            label="Target fulfilment date"
+            summary={targetDate}
+            complete={targetDate.length === 10}
+          />
+          {expandedStep === 'target' && (
+            <div className="px-3 pb-3">
+              <input
+                type="date"
+                className={inputClass}
+                value={targetDate}
+                onChange={(e) => setTargetDate(e.target.value)}
+              />
+              <p className="mt-1 text-body-sm text-ink-500">The week this falls in is the demand week.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Step 5: Items */}
+        <div className="rounded-card bg-paper-elevated">
+          <StepHeader
+            stepKey="items"
+            n={5}
+            label="Items"
+            summary={itemsValid.length > 0 ? `${itemsValid.length} item${itemsValid.length === 1 ? '' : 's'}` : 'Add at least one'}
+            complete={itemsValid.length > 0}
+          />
+          {expandedStep === 'items' && (
+            <div className="space-y-3 px-3 pb-3">
+              {items.map((it, i) => (
+                <div key={i} className="grid grid-cols-[1fr_60px_70px_24px] items-center gap-2">
+                  <select
+                    className="h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
+                    value={it.product_id}
+                    onChange={(e) => {
+                      const pid = e.target.value;
+                      const product = products.find((p) => p.id === pid);
+                      setItemField(i, { product_id: pid, unit_price: product ? String(product.default_price) : it.unit_price });
+                    }}
+                  >
+                    <option value="">— pick —</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.unit})</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    aria-label={`qty-${i}`}
+                    placeholder="qty"
+                    className="h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
+                    value={it.qty}
+                    onChange={(e) => setItemField(i, { qty: e.target.value })}
+                  />
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    aria-label={`price-${i}`}
+                    placeholder="₹"
+                    className="h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
+                    value={it.unit_price}
+                    onChange={(e) => setItemField(i, { unit_price: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeItem(i)}
+                    disabled={items.length === 1}
+                    aria-label={`Remove item ${i + 1}`}
+                    className="text-body text-ink-500 disabled:opacity-30"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addItem}
+                className="text-body-sm text-brand-orange underline"
+              >
+                + Add another item
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Step 6: Payment */}
+        <div className="rounded-card bg-paper-elevated">
+          <StepHeader stepKey="payment" n={6} label="Payment" summary={paymentStatus} complete={true} />
+          {expandedStep === 'payment' && (
+            <div className="flex gap-2 px-3 pb-3">
+              {PAYMENT_STATUSES.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => { setPaymentStatus(s); setExpandedStep('notes'); }}
+                  className={`h-9 rounded-pill px-3 text-body-sm ${
+                    paymentStatus === s ? 'bg-brand-orange text-white' : 'border border-ink-900/10 text-ink-900'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Step 7: Notes */}
+        <div className="rounded-card bg-paper-elevated">
+          <StepHeader stepKey="notes" n={7} label="Notes (optional)" summary={notes || '—'} complete={true} />
+          {expandedStep === 'notes' && (
+            <div className="px-3 pb-3">
+              <textarea
+                rows={3}
+                className="mt-1 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 py-2 text-body"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
 
         {error && <p className="text-body-sm text-status-danger-fg">{error}</p>}
 
