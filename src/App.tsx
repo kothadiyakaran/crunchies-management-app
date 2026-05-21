@@ -1,5 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
-import type { ReactNode } from 'react';
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
 import { AuthProvider } from '@/features/auth/AuthProvider';
@@ -10,10 +9,12 @@ import { CustomersPage } from '@/features/customers/CustomersPage';
 import { ProductionPage } from '@/features/production/ProductionPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 
-function Protected({ children }: { children: ReactNode }) {
+function Protected() {
   return (
     <ProtectedRoute>
-      <AppShell>{children}</AppShell>
+      <AppShell>
+        <Outlet />
+      </AppShell>
     </ProtectedRoute>
   );
 }
@@ -23,46 +24,13 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/today"
-          element={
-            <Protected>
-              <TodayPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/orders"
-          element={
-            <Protected>
-              <OrdersPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/customers"
-          element={
-            <Protected>
-              <CustomersPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/production"
-          element={
-            <Protected>
-              <ProductionPage />
-            </Protected>
-          }
-        />
-        <Route
-          path="/reports"
-          element={
-            <Protected>
-              <ReportsPage />
-            </Protected>
-          }
-        />
+        <Route element={<Protected />}>
+          <Route path="/today" element={<TodayPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/production" element={<ProductionPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+        </Route>
         <Route path="/" element={<Navigate to="/today" replace />} />
         <Route path="*" element={<Navigate to="/today" replace />} />
       </Routes>

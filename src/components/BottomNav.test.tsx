@@ -28,4 +28,12 @@ describe('BottomNav', () => {
       'aria-current',
     );
   });
+
+  it('keeps the Orders tab active on a nested orders route', () => {
+    renderAt('/orders/new');
+    expect(screen.getByRole('link', { name: 'Orders' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
 });
