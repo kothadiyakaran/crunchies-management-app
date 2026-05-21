@@ -7,7 +7,6 @@ import {
 } from '@/features/production/api';
 import { composeWithPlan, type ProductionWeekRowFull } from '@/features/production/planLayer';
 import { listTodayPendingOrders, type OrderListItem } from '@/features/orders/api';
-import { listCustomersByIds } from '@/features/customers/api';
 import { weekStartFor } from '@/lib/week';
 import { todayInTz } from '@/lib/utils';
 
@@ -15,7 +14,6 @@ export function TodayPage() {
   const { user, isAdmin, signOut } = useAuth();
   const [productionRows, setProductionRows] = useState<ProductionWeekRowFull[]>([]);
   const [orders, setOrders] = useState<OrderListItem[]>([]);
-  const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,8 +27,6 @@ export function TodayPage() {
         ]);
         setProductionRows(composeWithPlan(pr, plans));
         setOrders(os);
-        const cnames = await listCustomersByIds(os.map((o) => o.customer_id));
-        setCustomerNames(cnames);
       } catch (e) {
         setError((e as Error).message);
       }
@@ -92,22 +88,30 @@ export function TodayPage() {
         )}
       </section>
 
-      {/* Block 2 (lightweight — full pending logic lands in Sprint 4) */}
+      {/* Block 2 — Pending today (spec §4: up to 5 + see all →) */}
       <section className="mt-6">
-        <h2 className="text-subtitle text-ink-900">Pending today ({orders.length})</h2>
+        <header className="flex items-baseline justify-between">
+          <h2 className="text-subtitle text-ink-900">Pending today ({orders.length})</h2>
+          {orders.length > 5 && (
+            <Link to="/orders?filter=pending" className="text-body-sm text-ink-500 underline">
+              see all →
+            </Link>
+          )}
+        </header>
         <ul className="mt-2 space-y-2">
-          {orders.map((o) => (
-            <li key={o.id} className="rounded-card bg-paper-elevated p-3 text-body-sm">
-              <div className="font-semibold text-ink-900">
-                {customerNames[o.customer_id] ?? '(unknown customer)'}
-              </div>
-              <div className="text-ink-500">
-                ordered {o.ordered_at.slice(0, 10)} · {o.payment_status}
-              </div>
+          {orders.slice(0, 5).map((o) => (
+            <li key={o.id}>
+              <Link
+                to={`/orders/${o.id}`}
+                className="block rounded-card bg-paper-elevated p-3"
+              >
+                <div className="text-body font-semibold text-ink-900">{o.customer_name}</div>
+                <div className="mt-1 text-body-sm text-ink-500">{o.item_summary || '(no items)'}</div>
+              </Link>
             </li>
           ))}
           {orders.length === 0 && (
-            <li className="text-body-sm text-ink-500">All caught up.</li>
+            <li className="text-body-sm text-ink-500">All caught up. ✓</li>
           )}
         </ul>
       </section>
