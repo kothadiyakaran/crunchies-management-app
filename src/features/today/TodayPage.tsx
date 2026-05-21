@@ -1,41 +1,34 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { getProductionThisWeek, type ProductionWeekRow } from '@/features/production/api';
 import { listTodayPendingOrders, type OrderRow } from '@/features/orders/api';
-import { listRecentProduction, type ProductionLogRow } from '@/features/production/api';
 import { listCustomersByIds } from '@/features/customers/api';
-import { listProductsByIds } from '@/features/products/api';
-import { todayInTz } from '@/lib/utils';
 
 export function TodayPage() {
   const { user, isAdmin, signOut } = useAuth();
+  const [productionRows, setProductionRows] = useState<ProductionWeekRow[]>([]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
-  const [logs, setLogs] = useState<ProductionLogRow[]>([]);
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
-  const [productNames, setProductNames] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [os, ls] = await Promise.all([listTodayPendingOrders(), listRecentProduction()]);
+        const [pr, os] = await Promise.all([getProductionThisWeek(), listTodayPendingOrders()]);
+        setProductionRows(pr);
         setOrders(os);
-        setLogs(ls);
-        const today = todayInTz();
-        const todayLogs = ls.filter((l) => l.made_on === today);
-        const [cnames, pnames] = await Promise.all([
-          listCustomersByIds(os.map((o) => o.customer_id)),
-          listProductsByIds(todayLogs.map((l) => l.product_id)),
-        ]);
+        const cnames = await listCustomersByIds(os.map((o) => o.customer_id));
         setCustomerNames(cnames);
-        setProductNames(pnames);
       } catch (e) {
         setError((e as Error).message);
       }
     })();
   }, []);
 
-  const today = todayInTz();
-  const todayLogs = logs.filter((l) => l.made_on === today);
+  // Hide products where suggested === 0 AND produced === 0 (per spec §4)
+  const visibleProduction = productionRows.filter((r) => !(r.suggested === 0 && r.produced_qty === 0));
+  const allSeeded = visibleProduction.length > 0 && visibleProduction.every((r) => r.uses_seed);
 
   return (
     <>
@@ -48,6 +41,39 @@ export function TodayPage() {
 
       {error && <p className="mt-4 text-body-sm text-status-danger-fg">{error}</p>}
 
+      {/* Block 1 — This week, make */}
+      <section className="mt-6">
+        <h2 className="text-subtitle text-ink-900">This week, make</h2>
+        <ul className="mt-2 space-y-2">
+          {visibleProduction.map((r) => (
+            <li key={r.product_id}>
+              <Link
+                to={`/production/new?product_id=${r.product_id}`}
+                className="block rounded-card bg-paper-elevated p-3"
+              >
+                <div className="flex items-baseline justify-between">
+                  <span className="text-body font-semibold text-ink-900">{r.name}</span>
+                  <span className="text-body-sm text-ink-500">
+                    target {r.suggested} · made {r.produced_qty}
+                  </span>
+                </div>
+              </Link>
+            </li>
+          ))}
+          {visibleProduction.length === 0 && (
+            <li className="text-body-sm text-ink-500">
+              Nothing to make this week. <Link to="/products/new" className="underline">Add a product →</Link>
+            </li>
+          )}
+        </ul>
+        {allSeeded && (
+          <p className="mt-2 text-body-sm text-ink-500">
+            Based on your initial estimates. Will refine as real orders accumulate.
+          </p>
+        )}
+      </section>
+
+      {/* Block 2 (lightweight — full pending logic lands in Sprint 4) */}
       <section className="mt-6">
         <h2 className="text-subtitle text-ink-900">Pending today ({orders.length})</h2>
         <ul className="mt-2 space-y-2">
@@ -62,24 +88,7 @@ export function TodayPage() {
             </li>
           ))}
           {orders.length === 0 && (
-            <li className="text-body-sm text-ink-500">Nothing pending for today.</li>
-          )}
-        </ul>
-      </section>
-
-      <section className="mt-6">
-        <h2 className="text-subtitle text-ink-900">Production today ({todayLogs.length})</h2>
-        <ul className="mt-2 space-y-2">
-          {todayLogs.map((l) => (
-            <li key={l.id} className="rounded-card bg-paper-elevated p-3 text-body-sm">
-              <div className="font-semibold text-ink-900">
-                {productNames[l.product_id] ?? '(unknown product)'}
-              </div>
-              <div className="text-ink-500">qty {l.qty}</div>
-            </li>
-          ))}
-          {todayLogs.length === 0 && (
-            <li className="text-body-sm text-ink-500">Nothing logged yet.</li>
+            <li className="text-body-sm text-ink-500">All caught up.</li>
           )}
         </ul>
       </section>
