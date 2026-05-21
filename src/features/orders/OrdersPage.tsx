@@ -1,14 +1,39 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { listOrders, type OrderRow } from './api';
+import { Link, useSearchParams } from 'react-router-dom';
+import { listOrdersFiltered, type OrderFilter, type OrderListItem } from './api';
+import { formatDayHeader, formatINR, formatOrderTimestamp, groupOrdersByDay } from './orderFormatters';
+import { todayInTz } from '@/lib/utils';
+
+const FILTERS: { key: OrderFilter; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'pending', label: 'Pending fulfilment' },
+  { key: 'unpaid', label: 'Unpaid' },
+  { key: 'this_week', label: 'This week' },
+  { key: 'this_month', label: 'This month' },
+];
 
 export function OrdersPage() {
-  const [rows, setRows] = useState<OrderRow[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filter = (searchParams.get('filter') ?? 'all') as OrderFilter;
+  const [orders, setOrders] = useState<OrderListItem[]>([]);
+  const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    listOrders().then(setRows).catch((e: Error) => setError(e.message));
-  }, []);
+    setLoading(true);
+    listOrdersFiltered(filter)
+      .then((rs) => { setOrders(rs); setLoading(false); })
+      .catch((e: Error) => { setError(e.message); setLoading(false); });
+  }, [filter]);
+
+  const today = todayInTz();
+
+  const filtered = search.trim().length === 0
+    ? orders
+    : orders.filter((o) => o.customer_name.toLowerCase().includes(search.trim().toLowerCase()));
+
+  const groups = groupOrdersByDay(filtered);
 
   return (
     <div>
@@ -18,23 +43,94 @@ export function OrdersPage() {
           to="/orders/new"
           className="rounded-btn-sm bg-brand-orange px-3 py-2 text-body-sm font-semibold text-white"
         >
-          + Add order
+          + Log new order
         </Link>
       </header>
-      {error && <p className="mt-4 text-body-sm text-status-danger-fg">{error}</p>}
-      <ul className="mt-4 space-y-2">
-        {rows.map((o) => (
-          <li key={o.id} className="rounded-card bg-paper-elevated p-3 text-body-sm">
-            <div className="font-mono text-ink-700">{o.id.slice(0, 8)}</div>
-            <div className="text-ink-500">
-              {o.ordered_at.slice(0, 10)} · {o.payment_status} · {o.fulfilled_at ? 'fulfilled' : 'pending'}
-            </div>
-          </li>
+
+      <input
+        type="search"
+        placeholder="Search customer name"
+        className="mt-3 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            type="button"
+            onClick={() => setSearchParams(f.key === 'all' ? {} : { filter: f.key })}
+            className={`h-8 shrink-0 rounded-pill px-3 text-body-sm ${
+              filter === f.key
+                ? 'bg-brand-orange text-white'
+                : 'border border-ink-900/10 text-ink-900'
+            }`}
+          >
+            {f.label}
+          </button>
         ))}
-        {rows.length === 0 && !error && (
-          <li className="text-body-sm text-ink-500">No orders yet.</li>
-        )}
-      </ul>
+      </div>
+
+      {error && <p className="mt-4 text-body-sm text-status-danger-fg">{error}</p>}
+
+      {loading ? (
+        <p className="mt-6 text-body-sm text-ink-500">Loading…</p>
+      ) : groups.length === 0 ? (
+        <p className="mt-6 text-body-sm text-ink-500">
+          {search.trim().length > 0
+            ? 'No orders match this search.'
+            : filter === 'all'
+              ? 'No orders logged yet. Tap + to start.'
+              : (
+                <>
+                  No orders match this filter.{' '}
+                  <button type="button" onClick={() => setSearchParams({})} className="underline">
+                    Clear filter
+                  </button>
+                </>
+              )}
+        </p>
+      ) : (
+        <div className="mt-6 space-y-6">
+          {groups.map((g) => (
+            <section key={g.date}>
+              <h2 className="text-label uppercase text-ink-500">{formatDayHeader(g.date, today)}</h2>
+              <ul className="mt-2 space-y-2">
+                {g.orders.map((o) => {
+                  const time = formatOrderTimestamp(o.ordered_at, today);
+                  return (
+                    <li key={o.id}>
+                      <Link
+                        to={`/orders/${o.id}`}
+                        className="block rounded-card bg-paper-elevated p-3"
+                      >
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-body font-semibold text-ink-900">{o.customer_name}</span>
+                          <span className="text-body-sm text-ink-500">
+                            {time && `${time} · `}{formatINR(o.total)}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between">
+                          <span className="text-body-sm text-ink-700">{o.item_summary || '(no items)'}</span>
+                          <span className="flex gap-1 text-body-sm">
+                            <span className={`rounded-pill px-2 py-0.5 ${o.fulfilled_at ? 'bg-status-ok-bg' : 'bg-status-warn-bg'} text-ink-700`}>
+                              {o.fulfilled_at ? 'fulfilled' : 'pending'}
+                            </span>
+                            <span className={`rounded-pill px-2 py-0.5 ${o.payment_status === 'paid' ? 'bg-status-ok-bg' : 'bg-status-warn-bg'} text-ink-700`}>
+                              {o.payment_status}
+                            </span>
+                          </span>
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
