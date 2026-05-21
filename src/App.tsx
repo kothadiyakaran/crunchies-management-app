@@ -11,6 +11,7 @@ import { ProductionPage } from '@/features/production/ProductionPage';
 import { LogProductionPage } from '@/features/production/LogProductionPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { ProductsPage } from '@/features/products/ProductsPage';
+import { AddProductPage } from '@/features/products/AddProductPage';
 
 function Protected() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/production/new" element={<LogProductionPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/products" element={<ProductsPage />} />
+          <Route path="/products/new" element={<AddProductPage />} />
         </Route>
         <Route path="/" element={<Navigate to="/today" replace />} />
         <Route path="*" element={<Navigate to="/today" replace />} />
