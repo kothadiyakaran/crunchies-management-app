@@ -144,3 +144,65 @@ export async function getProductionThisWeek(): Promise<ProductionWeekRow[]> {
   };
   return computeProductionWeek(input);
 }
+
+export type WeekPlanRow = {
+  planned_qty: number;
+  original_planned_qty: number;
+  entered_at: string;
+};
+
+export async function getProductionPlansForWeek(weekStart: string): Promise<Record<string, WeekPlanRow>> {
+  const { data, error } = await supabase
+    .from('production_plans')
+    .select('product_id, planned_qty, original_planned_qty, entered_at')
+    .eq('week_start', weekStart);
+  if (error) throw new Error(error.message);
+  const out: Record<string, WeekPlanRow> = {};
+  for (const r of data ?? []) {
+    out[r.product_id] = {
+      planned_qty: Number(r.planned_qty),
+      original_planned_qty: Number(r.original_planned_qty),
+      entered_at: r.entered_at,
+    };
+  }
+  return out;
+}
+
+/**
+ * Upserts a production_plans row.
+ * - On first insert: original_planned_qty is set to qty (the calibration anchor — see §12).
+ * - On update: only planned_qty changes. original_planned_qty stays frozen.
+ *
+ * Implementation: SELECT first, then INSERT or UPDATE. Single-tenant (mom is sole writer),
+ * so a race here is impossible at v1 scale. If concurrency ever becomes a concern, migrate
+ * to a Postgres function with the same semantics.
+ */
+export async function upsertProductionPlan(
+  productId: string,
+  weekStart: string,
+  qty: number,
+): Promise<void> {
+  const { data: existing, error: selErr } = await supabase
+    .from('production_plans')
+    .select('product_id')
+    .eq('product_id', productId)
+    .eq('week_start', weekStart)
+    .maybeSingle();
+  if (selErr) throw new Error(selErr.message);
+  if (existing) {
+    const { error } = await supabase
+      .from('production_plans')
+      .update({ planned_qty: qty })
+      .eq('product_id', productId)
+      .eq('week_start', weekStart);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabase.from('production_plans').insert({
+      product_id: productId,
+      week_start: weekStart,
+      planned_qty: qty,
+      original_planned_qty: qty,
+    });
+    if (error) throw new Error(error.message);
+  }
+}
