@@ -68,6 +68,9 @@ test-results/
 playwright-report/
 playwright/.cache/
 
+# Local smoke-test outputs (the scripts are tracked, the captures aren't)
+scripts/screenshots/
+
 # TypeScript
 *.tsbuildinfo
 
