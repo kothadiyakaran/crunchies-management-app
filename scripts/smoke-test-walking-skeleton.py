@@ -7,11 +7,15 @@ Verifies the walking skeleton:
   3. Each tab is reachable and renders without console errors.
   4. (No mutating asserts — those stay manual until we have a dev DB.)
 
-Requires env: SMOKE_EMAIL, SMOKE_PASSWORD
+Credentials are read from (in order):
+  1. process env (SMOKE_EMAIL, SMOKE_PASSWORD)
+  2. .env.local in the project root — supports both `KEY=value` and
+     PowerShell's `$env:KEY = "value"` syntax
 """
 
 import os
 import pathlib
+import re
 import sys
 
 from playwright.sync_api import sync_playwright
@@ -22,11 +26,40 @@ BASE = "https://www.crunchies.app"
 TABS = ["Today", "Orders", "Customers", "Production", "Reports"]
 
 
+def _load_dotenv_local() -> dict[str, str]:
+    """Parse .env.local and return any SMOKE_* values found.
+
+    Accepts both Vite-style `KEY=value` and PowerShell-style
+    `$env:KEY = "value"` lines, so a single .env.local can host both.
+    """
+    out: dict[str, str] = {}
+    path = pathlib.Path(".env.local")
+    if not path.exists():
+        return out
+    pat_posh = re.compile(r'^\s*\$env:(\w+)\s*=\s*"?([^"\r\n]*)"?\s*$')
+    pat_kv = re.compile(r'^\s*(\w+)\s*=\s*"?([^"\r\n]*)"?\s*$')
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        m = pat_posh.match(line) or pat_kv.match(line)
+        if not m:
+            continue
+        key, value = m.group(1), m.group(2).strip()
+        if key.startswith("SMOKE_"):
+            out[key] = value
+    return out
+
+
 def main() -> int:
-    email = os.environ.get("SMOKE_EMAIL")
-    password = os.environ.get("SMOKE_PASSWORD")
+    creds = _load_dotenv_local()
+    email = os.environ.get("SMOKE_EMAIL") or creds.get("SMOKE_EMAIL")
+    password = os.environ.get("SMOKE_PASSWORD") or creds.get("SMOKE_PASSWORD")
     if not email or not password:
-        print("ERROR: set SMOKE_EMAIL and SMOKE_PASSWORD env vars", file=sys.stderr)
+        print(
+            "ERROR: set SMOKE_EMAIL and SMOKE_PASSWORD via env or .env.local",
+            file=sys.stderr,
+        )
         return 2
 
     pathlib.Path(OUT_DIR).mkdir(parents=True, exist_ok=True)
