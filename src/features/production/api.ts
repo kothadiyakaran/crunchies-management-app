@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { todayInTz } from '@/lib/utils';
 
 export type ProductionLogRow = {
   id: string;
@@ -22,7 +23,7 @@ export async function createProductionLog(input: {
   product_id: string;
   qty: number;
 }): Promise<string> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInTz();
   const { data, error } = await supabase
     .from('production_logs')
     .insert({ product_id: input.product_id, qty: input.qty, made_on: today })
