@@ -8,6 +8,7 @@ import {
   updateProduct,
   type ProductFullRow,
 } from './api';
+import { getWeeksOfHistoryForProduct } from '@/features/production/api';
 
 export function EditProductPage() {
   const { id = '' } = useParams<{ id: string }>();
@@ -41,12 +42,14 @@ export function EditProductPage() {
         setIsSeasonal(p.is_seasonal);
         setIsAggregated(p.is_aggregated);
         setSourceMaker(p.source_maker_name ?? '');
-        const s = await getSeedDemand(id);
+        const [s, weeks] = await Promise.all([
+          getSeedDemand(id),
+          getWeeksOfHistoryForProduct(id),
+        ]);
         setSeed(s === null ? '' : String(s));
-        // Sprint 2: seed always editable. The read-only-after-4-weeks rule
-        // (spec §1336) lands in Sprint 3 once the algorithm row exposes
-        // weeks_of_history per product on this screen.
-        setSeedReadOnly(false);
+        // Per spec §11: once a product has ≥4 weeks of order history, its seed is
+        // read-only ("No longer used — suggestions now use your actual order history.").
+        setSeedReadOnly(weeks >= 4);
       } catch (err) {
         setError((err as Error).message);
       }
@@ -151,6 +154,11 @@ export function EditProductPage() {
             value={seed}
             onChange={(e) => setSeed(e.target.value)}
           />
+          {seedReadOnly && (
+            <span className="mt-1 block text-body-sm text-ink-500">
+              No longer used — suggestions now use your actual order history.
+            </span>
+          )}
         </label>
 
         <label className="flex items-center gap-2 text-body text-ink-900">
