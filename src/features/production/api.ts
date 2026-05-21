@@ -9,19 +9,21 @@ export type { ProductionWeekRow } from './algorithm';
 export type ProductionLogRow = {
   id: string;
   product_id: string;
-  made_on: string;
   qty: number;
+  made_on: string;
+  notes: string | null;
+  created_at: string;
 };
 
 export async function listRecentProduction(): Promise<ProductionLogRow[]> {
   const { data, error } = await supabase
     .from('production_logs')
-    .select('id, product_id, made_on, qty')
+    .select('id, product_id, qty, made_on, notes, created_at')
     .order('made_on', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return (data ?? []) as ProductionLogRow[];
 }
 
 export async function createProductionLog(input: {
@@ -205,4 +207,132 @@ export async function upsertProductionPlan(
     });
     if (error) throw new Error(error.message);
   }
+}
+
+export async function listProductionLogsForProductInWeek(
+  productId: string,
+  weekStart: string,
+): Promise<ProductionLogRow[]> {
+  const weekEndMs = new Date(`${weekStart}T00:00:00Z`).getTime() + 7 * 24 * 60 * 60 * 1000;
+  const weekEnd = new Date(weekEndMs).toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from('production_logs')
+    .select('id, product_id, qty, made_on, notes, created_at')
+    .eq('product_id', productId)
+    .gte('made_on', weekStart)
+    .lt('made_on', weekEnd)
+    .order('made_on', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ProductionLogRow[];
+}
+
+export async function getProductionLog(id: string): Promise<ProductionLogRow | null> {
+  const { data, error } = await supabase
+    .from('production_logs')
+    .select('id, product_id, qty, made_on, notes, created_at')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data ?? null) as ProductionLogRow | null;
+}
+
+export async function updateProductionLog(
+  id: string,
+  patch: { qty?: number; made_on?: string; notes?: string | null },
+): Promise<void> {
+  const { error } = await supabase.from('production_logs').update(patch).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteProductionLog(id: string): Promise<void> {
+  const { error } = await supabase.from('production_logs').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Returns aggregated (from-other-makers) products with committed demand THIS WEEK.
+ * Used by §5 Section D. Empty when no aggregated products have demand this week.
+ */
+export type AggregatedRow = {
+  product_id: string;
+  name: string;
+  source_maker_name: string | null;
+  unit: string;
+  committed_qty: number;
+};
+
+export async function getAggregatedThisWeek(): Promise<AggregatedRow[]> {
+  const today = todayInTz();
+  const weekStart = weekStartFor(today);
+  const weekEndMs = new Date(`${weekStart}T00:00:00Z`).getTime() + 7 * 24 * 60 * 60 * 1000;
+  const weekEnd = new Date(weekEndMs).toISOString().slice(0, 10);
+
+  // Active aggregated products
+  const { data: products, error: pErr } = await supabase
+    .from('products')
+    .select('id, name, unit, source_maker_name')
+    .eq('active', true)
+    .eq('is_aggregated', true);
+  if (pErr) throw new Error(pErr.message);
+  if (!products || products.length === 0) return [];
+
+  type ItemWithOrder = {
+    product_id: string;
+    qty: number;
+    orders: { target_fulfilment_date: string | null; ordered_at: string } | null;
+  };
+  const { data: itemsData, error: iErr } = await supabase
+    .from('order_items')
+    .select('product_id, qty, orders(target_fulfilment_date, ordered_at)')
+    .in('product_id', products.map((p) => p.id));
+  if (iErr) throw new Error(iErr.message);
+  const items = (itemsData ?? []) as unknown as ItemWithOrder[];
+
+  const weekStartIso = `${weekStart}T00:00:00+05:30`;
+  const weekEndIso = `${weekEnd}T00:00:00+05:30`;
+  const committed: Record<string, number> = {};
+  for (const it of items) {
+    const o = it.orders;
+    if (!o) continue;
+    const matchesDated = o.target_fulfilment_date && o.target_fulfilment_date >= weekStart && o.target_fulfilment_date < weekEnd;
+    const matchesUndated = o.target_fulfilment_date === null && o.ordered_at >= weekStartIso && o.ordered_at < weekEndIso;
+    if (matchesDated || matchesUndated) {
+      committed[it.product_id] = (committed[it.product_id] ?? 0) + Number(it.qty);
+    }
+  }
+
+  return products
+    .map((p) => ({
+      product_id: p.id,
+      name: p.name,
+      source_maker_name: p.source_maker_name,
+      unit: p.unit,
+      committed_qty: committed[p.id] ?? 0,
+    }))
+    .filter((r) => r.committed_qty > 0)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Weeks elapsed since this product's first order, in Asia/Kolkata.
+ * Returns 0 if the product has no orders yet. Used by EditProductPage to
+ * decide whether to make the seed field read-only (>=4 weeks -> read-only per §11).
+ */
+export async function getWeeksOfHistoryForProduct(productId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('order_items')
+    .select('orders!inner(ordered_at)')
+    .eq('product_id', productId)
+    .order('orders(ordered_at)', { ascending: true })
+    .limit(1);
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as unknown as { orders: { ordered_at: string } }[];
+  if (rows.length === 0) return 0;
+  const firstRow = rows[0];
+  if (!firstRow) return 0;
+  const first = new Date(firstRow.orders.ordered_at).getTime();
+  const weekStart = weekStartFor(todayInTz());
+  const now = new Date(`${weekStart}T00:00:00Z`).getTime();
+  const days = Math.floor((now - first) / (24 * 60 * 60 * 1000));
+  return Math.max(0, Math.floor(days / 7));
 }
