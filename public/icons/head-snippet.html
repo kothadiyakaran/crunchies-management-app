@@ -1,0 +1,26 @@
+<!--
+  Crunchies — recommended <head> snippet for the PWA shell.
+  Copy these into your <head>. Paths assume icons are served from /icons/.
+  Adjust paths to match your build pipeline (e.g. /static/icons/, /assets/).
+-->
+
+<!-- Modern SVG favicon (preferred by Chrome/Firefox/Safari) -->
+<link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+
+<!-- PNG fallback favicons -->
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
+
+<!-- iOS home-screen icon (iOS auto-rounds the corners) -->
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+
+<!-- PWA manifest -->
+<link rel="manifest" href="/manifest.json">
+
+<!-- Status-bar / address-bar tint (matches manifest theme_color) -->
+<meta name="theme-color" content="#D9591A">
+
+<!-- iOS PWA chrome -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Crunchies">

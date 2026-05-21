@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Crunchies">
+  <title>Crunchies</title>
+
+  
+  <circle cx="256" cy="256" r="240" fill="#D9591A"></circle>
+
+  
+  <g aria-hidden="true">
+    <path d="M 388 108  C 392 130, 408 146, 434 140  C 416 124, 406 108, 388 108 Z" fill="#FFFFFF"></path>
+    <path d="M 432 158  C 430 172, 438 182, 452 180  C 448 170, 442 158, 432 158 Z" fill="#FFFFFF"></path>
+    <path d="M 86  362  C 82  384, 98  400, 124 394  C 106 378, 96  362, 86 362 Z" fill="#FFFFFF"></path>
+    <path d="M 62  316  C 62  328, 70  338, 84  336   C 80 326,  72 316, 62 316 Z" fill="#FFFFFF"></path>
+  </g>
+
+  
+  <g transform="rotate(-3 256 256)">
+    
+    <path d="M 380 170 A 140 140 0 1 0 380 342" fill="none" stroke="#4A2912" stroke-width="76" stroke-linecap="round" stroke-linejoin="round" transform="translate(9 12)"></path>
+    
+    <path d="M 380 170 A 140 140 0 1 0 380 342" fill="none" stroke="#F4C56F" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"></path>
+  </g>
+</svg>

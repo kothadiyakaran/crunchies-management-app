@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crunchies — Wireframes v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Kalam:wght@400;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; height: 100%; }
+    body { font-family: Inter, system-ui, sans-serif; background: #f0eee9; }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="wireframes/atoms.jsx"></script>
+  <script type="text/babel" src="wireframes/v2.jsx"></script>
+
+  <script type="text/babel" data-presets="env,react">
+    const PH_W = 320, PH_H = 640;
+    const BR_W = 320, BR_H = 640;
+
+    function Phone({ children }) { return <WPhone w={PH_W} h={PH_H}>{children}</WPhone>; }
+    function Browser({ children, url }) { return <WBrowser w={BR_W} h={BR_H} url={url}>{children}</WBrowser>; }
+
+    function App() {
+      return (
+        <DesignCanvas>
+
+          <DCSection id="recap" title="v2 — round 2 revisions" subtitle="Only the unresolved items from review. Decisions captured in HANDOFF.md.">
+            <DCArtboard id="recap-card" label="Decisions so far" width={420} height={520}>
+              <div style={{
+                background: '#fff', border: `1.4px solid ${INK}`, borderRadius: 12,
+                width: '100%', height: '100%', padding: '16px 18px',
+                fontFamily: FONT_BODY, color: INK, boxSizing: 'border-box',
+                boxShadow: '3px 3px 0 rgba(42,36,31,0.12)',
+              }}>
+                <div style={{ fontFamily: FONT_HAND, fontSize: 22, fontWeight: 700, marginBottom: 10 }}>
+                  Chosen directions
+                </div>
+                {[
+                  ['Today',           'B · Calendar-anchored (week strip)',           'redrawn here — fits CTA + tab bar'],
+                  ['Production',      'B · Card + dial',                              'redrawn here — explicit Events nav'],
+                  ['Orders browse',   'B · Grouped by day',                           '—'],
+                  ['Add Order',       'B · Accordion / progressive',                  '—'],
+                  ['Customers add',   'as drawn + custom-channel affordance',         'see HANDOFF.md'],
+                  ['Reports calib.',  'B · Pip markers on made-bar',                  '—'],
+                  ['Reports trends',  'redesigned — simpler narrative',               'shown here'],
+                  ['Public form',     'undecided',                                    'awaiting your pick'],
+                  ['Bill PDF',        'B · Traditional invoice',                      '—'],
+                ].map(([k, v, note], i) => (
+                  <div key={i} style={{
+                    display: 'grid', gridTemplateColumns: '110px 1fr',
+                    columnGap: 10, padding: '6px 0',
+                    borderBottom: i < 8 ? `1px dashed ${INK_3}` : 'none',
+                    fontSize: 12.5,
+                  }}>
+                    <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: INK_2, letterSpacing: 0.4,
+                      textTransform: 'uppercase', alignSelf: 'center' }}>{k}</span>
+                    <div>
+                      <div style={{ fontFamily: FONT_HAND, fontWeight: 700 }}>{v}</div>
+                      {note !== '—' && <div style={{ fontSize: 10.5, color: INK_3, fontStyle: 'italic' }}>{note}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </DCArtboard>
+          </DCSection>
+
+          <DCSection id="today" title="Today — v2" subtitle="B compressed so the + Log new order button and bottom tab bar both fit on-screen.">
+            <DCArtboard id="today-b2" label="Today B v2 · calendar + fits CTA" width={PH_W} height={PH_H}><Phone><TodayBv2/></Phone></DCArtboard>
+          </DCSection>
+
+          <DCSection id="production" title="Production — v2" subtitle="Same card+dial direction. Events section gets an explicit 'All events →' link and a 'See all (N)' button alongside + Add event.">
+            <DCArtboard id="prod-b2" label="Production B v2 · with Events nav" width={PH_W} height={PH_H}><Phone><ProductionBv2/></Phone></DCArtboard>
+          </DCSection>
+
+          <DCSection id="trends" title="Reports — Trends redesigned" subtitle="Single headline number, simple rising line, per-product sparklines. Each piece answers a different obvious question.">
+            <DCArtboard id="trends-v2" label="Trends v2 · is mom getting better?" width={PH_W} height={PH_H}><Phone><ReportsTrendsV2/></Phone></DCArtboard>
+          </DCSection>
+
+          <DCSection id="confirm" title="Order confirmation" subtitle="What an exhibition customer sees right after submitting. Reinforces brand + pickup details.">
+            <DCArtboard id="confirm" label="Order placed · public form post-submit" width={BR_W} height={BR_H}>
+              <Browser url="crunchies.in/order/diwali-fair-aundh-2026/confirmed"><OrderConfirmation/></Browser>
+            </DCArtboard>
+          </DCSection>
+
+        </DesignCanvas>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

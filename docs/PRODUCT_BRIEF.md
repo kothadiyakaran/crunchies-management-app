@@ -925,7 +925,7 @@ Each row shows:
 - Product name + unit
 - A three-bar mini-chart: **plan** (outline style) / **made** (filled, one color) / **demand** (filled, different color)
 - Numeric labels under or next to bars: `Plan 5 · Made 4 · Demand 6`
-- Variance pill on the right shows **plan vs demand** (the calibration signal — how well mom's forecast matched reality): `+2 (+33%)` when she under-planned, `−1 (−20%)` when she over-planned. The made-vs-demand gap is readable from the three bars by eye and is not given its own pill — the pill is reserved for the calibration story.
+- Variance pill on the right: `+2 (+33%)` for under-made vs demand, `−1 (−20%)` for over-made.
 - Tap row → product-week drilldown (a bottom sheet listing that product's batches and orders for the week).
 
 Rows where the product had no plan, no production, and no orders are hidden. Rows where mom set a plan retroactively show a small "plan set retrospectively" footnote.
@@ -1117,10 +1117,6 @@ All active products (in-house and aggregated) appear. No photos in v1.
 - Name (required, free text input)
 - Phone (required; numeric keypad; 10-digit Indian mobile required, validation on submit with inline error)
 - Notes (optional, multi-line, placeholder text: "Anything we should know? (delivery preference, etc.)")
-
-**Privacy disclosure (just above Submit, small body copy)**
-- Single line: *"We'll use your name and phone number only to confirm and deliver this order. We don't share your details."*
-- Plain language, mom-friendly tone, no legalese. No separate Privacy Policy page in v1.
 
 **Submit**
 - Full-width primary button: `Place order`

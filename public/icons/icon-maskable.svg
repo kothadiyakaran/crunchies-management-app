@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Crunchies">
+  <title>Crunchies</title>
+
+  <rect width="512" height="512" fill="#D9591A"></rect>
+
+  <g aria-hidden="true">
+    <path d="M 388 138  C 392 158, 408 172, 432 166  C 416 152, 406 138, 388 138 Z" fill="#FFFFFF"></path>
+    <path d="M 100 360  C 96  380, 112 394, 134 388  C 118 374, 110 360, 100 360 Z" fill="#FFFFFF"></path>
+  </g>
+
+  <g transform="rotate(-3 256 256) scale(0.88) translate(35 35)">
+    <path d="M 380 170 A 140 140 0 1 0 380 342" fill="none" stroke="#4A2912" stroke-width="76" stroke-linecap="round" stroke-linejoin="round" transform="translate(9 12)"></path>
+    <path d="M 380 170 A 140 140 0 1 0 380 342" fill="none" stroke="#F4C56F" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"></path>
+  </g>
+</svg>

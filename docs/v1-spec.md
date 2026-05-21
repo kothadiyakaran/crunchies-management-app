@@ -49,7 +49,7 @@ All tables justified outcome-by-outcome. RLS sketch at the bottom of this sectio
 | `id` | uuid PK | — |
 | `name` | text | O2 — identity for retrieval |
 | `phone` | text | O2 — exhibition contact retention; also WhatsApp link generation |
-| `channel` | enum: `reseller` \| `personal` \| `exhibition` | O3 — categorization for filtered views (where the relationship came from) |
+| `channel_id` | uuid FK → `channels` | O3 — categorization for filtered views (where the relationship came from). Replaces the original enum to support custom channels (see new `channels` table below and §8.3.3). Three system rows are seeded (Personal / Reseller / Exhibition); mom can add more inline. |
 | `size_tier` | enum: `small` \| `large`, **nullable** | O3 — volume tier, applies to any channel (personal customers can be as big as resellers). Nullable because new customers (especially exhibition walk-ins) aren't classifiable yet. Mom can set or change any time. |
 | `source_event_id` | uuid FK → `events` nullable | O2 — links exhibition customers back to where they came from |
 | `notes` | text nullable | O2 — free-text memory ("prefers low-sugar", "lives near Aundh") |
@@ -59,6 +59,23 @@ All tables justified outcome-by-outcome. RLS sketch at the bottom of this sectio
 | `created_at` | timestamptz | — |
 
 **Note on size_tier:** v1 is purely manual. The "should the app auto-suggest a tier from order volume?" question is v2.
+
+### `channels` *(new — extensible customer-channel set)*
+
+Replaces the original `customers.channel` enum. Three rows are seeded as `is_system = true` (Personal / Reseller / Exhibition); mom can add additional rows inline from Add Customer (see §8.3.3).
+
+| Field | Type | Justification |
+|---|---|---|
+| `id` | uuid PK | — |
+| `name` | text | O3 — display name on chips and filters. Max 20 chars, trimmed, case-insensitive unique. |
+| `is_system` | bool default false | O3 — true for the three seed rows; system rows can be soft-hidden but not hard-deleted. |
+| `active` | bool default true | O3 — false hides the channel from pickers/filters; historic customers referencing it keep their attribution. |
+| `created_at` | timestamptz | — |
+
+**Behaviour calls:**
+- Custom channel chips render identical to system ones — no "user-added" visual differentiation (per `DESIGN_HANDOFF.md` §6.1).
+- Seed migration on first run inserts (`Personal`, `Reseller`, `Exhibition`) with `is_system = true`.
+- The public exhibition form does not use this picker; exhibition-form orders attach the customer to the seed "Exhibition" channel automatically.
 
 ### `products`
 
@@ -89,6 +106,7 @@ The center of gravity. One row per order, not per line item.
 | `payment_status` | enum: `unpaid` \| `paid` \| `partial` | O3 — payment-tracking requirement from older doc |
 | `paid_at` | date nullable | O3 — date for reporting |
 | `bill_number` | int **nullable** | O3 — sequential bill number stamped on first `Generate bill` action; reused on regeneration. App-wide sequence starting at 1001. |
+| `public_order_number` | text **nullable** | O2, O3 — public-facing identifier shown to exhibition-form customers on the confirmation screen (§10), formatted `#YYYY-NNNN` where `NNNN` is a per-year sequence. Populated at order creation for `source = exhibition_form`; remains NULL for mom-entered orders. Stable across reads (does not re-derive). |
 | `notes` | text nullable | O2 — special instructions, delivery preferences |
 | `created_at` | timestamptz | — |
 
@@ -155,6 +173,9 @@ Now represents both exhibitions (with public order forms) and festivals (no publ
 | `lead_weeks` | int default 2 | O1 — how many weeks before the event production should start ramping. Per-event (not per-product) in v1 for simplicity. |
 | `slug` | text unique **nullable** | O2 — public URL `crunchies.in/order/<slug>` (only for exhibitions) |
 | `active` | bool default true | O2 — manual override on top of the date check |
+| `pickup_window_start` | timestamptz **nullable** | O2 — start of the customer-facing pickup window, shown on the public confirmation screen's pickup card (§10). NULL for festivals. |
+| `pickup_window_end` | timestamptz **nullable** | O2 — end of pickup window. NULL for festivals. |
+| `venue_line` | text **nullable** | O2 — short stall/venue description shown on the confirmation screen ("Stall 14, Aundh Fair"). NULL for festivals or when not applicable. |
 | `created_at` | timestamptz | — |
 
 ### `event_demand` *(new — events feature)*
@@ -596,21 +617,31 @@ RETROSPECTIVE (Diwali 2025 — closed)
 **Mode toggle (top-right, small)**
 - `Browse` (default) | `Batch entry`
 
-**List rows (two-line)**
+**List rows — grouped by day** *(variant B chosen per `DESIGN_HANDOFF.md` §3)*
+
+Rows are organized under day-group headers. Day-group labels: `TODAY`, `YESTERDAY`, then date labels (`MON 13 MAY`, `SAT 11 MAY`, etc.) for older days. Day headers use the section-label treatment (small, all-caps, muted) from `DESIGN_HANDOFF.md` §4 typography.
+
+Within each day group, rows are reverse-chronological by `ordered_at`. Each row is two lines:
 
 ```
-Sunita Patil                                          today  •  ₹420
-  2 boxes laddu, 1 kg chivda    [pending] [unpaid]      →
+TODAY
+  Sunita Patil                                       08:42  •  ₹420
+    2 boxes laddu, 1 kg chivda    [pending] [unpaid]      →
+  Vikas Mehta                                        09:15  •  ₹180
+    1 kg chivda                   [fulfilled] [paid]      →
+
+YESTERDAY
+  ...
 ```
 
-- Line 1: customer name, relative date ("today" / "yesterday" / "3 days ago" / "12 May"), total amount
-- Line 2: product summary, status badges, tap arrow
-- Default page size ~50 rows; infinite scroll for older orders
+- Line 1: customer name, time (today) or "—" (older days, since the day-header already conveys the date), total amount.
+- Line 2: product summary, status badges, tap arrow.
+- Default page size: ~3 day groups visible; infinite scroll for older days.
 
 **Sort**
-- Default: reverse chronological by `ordered_at`
-- Under `Pending fulfilment`: by `target_fulfilment_date` ascending (most urgent first), NULL treated as today
-- Sort persists during session, resets on app restart
+- Default: reverse chronological by `ordered_at`, naturally bucketed by day-group.
+- Under `Pending fulfilment` filter: day-grouping disabled; sort by `target_fulfilment_date` ascending (most urgent first), NULL treated as today.
+- Sort persists during session, resets on app restart.
 
 ### Layout — Batch entry mode
 
@@ -666,19 +697,25 @@ End-of-day catch-up. Optimized for low transition cost between entries.
 - Each: kind, date, description, resolution status
 - Tap to edit/resolve
 
-### Layout — Log new order flow (live, single)
+### Layout — Log new order flow (live, single) — accordion (variant B)
 
-Form fields top to bottom:
-1. **Customer** — search-as-you-type. `+ New customer` inline (mini-form modal: name, phone, channel; size_tier and notes deferrable)
-2. **Source** — defaults `WhatsApp`; tap to change
-3. **Date** — defaults today; date picker for backdating
-4. **Target fulfilment date** — **required.** Date picker, defaults to today. One tap to change for future-dated orders. The week this falls in is the week demand counts against (§11, §12), so accuracy here drives the calibration loop's signal.
-5. **Items** — at least one required (product chips + qty + unit_price from `products.default_price`, editable; `+ Add another item`)
-6. **Payment status** — defaults `Unpaid`
-7. **Notes** — optional
-8. **Save**
+*Per `DESIGN_HANDOFF.md` §3, the Add Order screen uses the **progressive accordion** variant.* One step is expanded at a time. Each step in the left rail shows a numbered circle (1, 2, 3, …) that becomes a checkmark once the step is filled. Tapping a completed step re-expands it for edit. The "Save" button is permanently visible at the bottom, disabled until validation passes.
 
-Validation: at least one item with `qty > 0` and a customer selected. Save returns to wherever the form was launched from.
+Step list (top to bottom in the accordion):
+
+1. **Customer** — search-as-you-type. `+ New customer` inline (mini-form modal: name, phone, channel chip; size_tier and notes deferrable). Step completes when a customer is selected.
+2. **Source** — defaults `WhatsApp`; tap to change. Auto-completes since it has a default.
+3. **Date** — defaults today; date picker for backdating. Auto-completes since it has a default.
+4. **Target fulfilment date** — **required.** Date picker, defaults to today. One tap to change for future-dated orders. The week this falls in is the week demand counts against (§11, §12), so accuracy here drives the calibration loop's signal. Auto-completes since it has a default.
+5. **Items** — at least one item with `qty > 0` required (product chips + qty + unit_price from `products.default_price`, editable; `+ Add another item`). Step completes when at least one valid item exists.
+6. **Payment status** — defaults `Unpaid`. Auto-completes since it has a default.
+7. **Notes** — optional, no completion gate.
+
+**Save** button at the bottom of the screen — full-width, primary. Disabled until customer + items are valid. Save returns to wherever the form was launched from.
+
+**Validation behaviour:** when the user taps `Save` with steps incomplete, the accordion auto-jumps to the first invalid step and shows an inline error. No modal interruption.
+
+(Batch entry mode (§7 batch section) retains its flat always-visible form — accordion progression is for the live single-entry path only.)
 
 ### Bill generation flow
 
@@ -687,14 +724,22 @@ Tap `Generate bill`:
 2. Mom taps `Share` → **OS share sheet** opens
 3. She picks WhatsApp → bill PDF attached, with a pre-filled message: *"Hi {customer name}, please find your bill attached."* (mom can edit before sending)
 
-**Bill content** — mobile-friendly receipt format (portrait, narrow):
-- Top: business name (from Settings; see §13)
-- Bill number `#1001`, `#1002`, ... (sequential integer; see `orders.bill_number` in §2)
-- Customer name + phone + order date
-- Items table: product, qty, unit price, line total
-- Subtotal, total
-- Payment status stamp (PAID / UNPAID / PARTIAL)
-- Footer note (from Settings; see §13)
+**Bill content** — traditional invoice format *(variant B per `DESIGN_HANDOFF.md` §3)*, mobile-friendly portrait, narrow column. The visual register is a real Indian small-business invoice — not a thermal receipt, not a corporate PDF.
+
+Frame and layout (top to bottom):
+- **Double-border frame** around the entire invoice (outer + inner stroke) — the visual signature of the traditional variant.
+- **Header band** (inside the frame, top): the brand orange (`brand.orange` from the design tokens) as a thin horizontal band, with the logo on the left, business name (large) centred or beside the logo, and business address + GST (if set in Settings, §13) in small caps below the name.
+- **Bill identifier block** (centred or right-aligned under the header band):
+  - Bill number `#1001`, `#1002`, ... (sequential integer; see `orders.bill_number` in §2)
+  - Order date (full, day-first format)
+  - Customer name + phone (left-aligned, paired with the bill identifier)
+- **Items table** with an **orange header row** (`brand.orange` background, white text): columns `Product · Qty · Unit price · Line total`. One row per `order_item`. Right-align numeric columns; tabular-figures typography.
+- **Totals block** below the items table: Subtotal, Total. Right-aligned, with the Total in heavier weight.
+- **Payment stamp box** — a clearly-bordered box at the bottom containing `PAID` / `UNPAID` / `PARTIAL`. Stamped visual treatment (heavier border, distinct color: green-bordered for `PAID`, warm warning for `UNPAID`/`PARTIAL` matching `status.warn.border` / `status.danger.fg` tokens).
+- **Signature line** at the very bottom: a thin rule with *"— Archana"* centred or right-aligned beneath it. Mom's signature presence on the document — confirmed for v1.
+- **Footer note** (centred, small, below the signature): the footer text from Settings (default *"Thank you"*).
+
+Contact info from Settings (phone / WhatsApp / email — whichever are set) renders in a small line under the business address in the header.
 
 **Bill number lifecycle:** generated on first `Generate bill`, persisted to `orders.bill_number`, reused on regeneration. App-wide sequence starting at 1001. Backfilled historical orders (imported at launch per §14 Sprint 9) carry `bill_number = NULL`; if mom later generates a bill for one, it draws the next live sequence number at that moment — pre-launch orders do not burn numbers from the live sequence on import.
 
@@ -743,7 +788,8 @@ Editing an existing complaint: tap → prefilled form; adds `Resolution` field +
 - Right side: `+ Add customer`
 
 **Filter chips (horizontally scrollable, single-select)**
-- `All` (default) · `Resellers` · `Personal` · `Exhibition` · `Large` · `Small` · `Unsorted` (size_tier IS NULL) · `Quiet`
+
+Rendered dynamically. Fixed chips: `All` (default) · `Large` · `Small` · `Unsorted` (size_tier IS NULL) · `Quiet`. Channel chips are interleaved per `channels` table (`active = true`): the three system channels first in seed order (`Reseller` · `Personal` · `Exhibition`), then any custom channels in creation order. As mom adds channels (§8.3.3), they appear here automatically.
 
 **Sort selector (small, top-right under chips)**
 - `Recent order` (default) · `A–Z` · `Most ordered`
@@ -833,16 +879,18 @@ The WhatsApp button tap, the long-press phone-link tap, and the dismiss tap are 
 Fields:
 1. Name (required)
 2. Phone (required for personal/reseller; optional for exhibition)
-3. Channel (required)
+3. **Channel** (required) — chip row rendered dynamically from `channels WHERE active = true`, with system rows first, then any custom channels in creation order, then a dashed **`+ Add channel…`** chip at the very end.
 4. Size tier (optional)
-5. Source event (optional dropdown; auto-set when channel=exhibition and an active event exists)
+5. Source event (optional dropdown; auto-set when the selected channel is `Exhibition` and an active event exists)
 6. Notes (optional)
+
+**Adding a custom channel inline** *(per `DESIGN_HANDOFF.md` §6.1)*: tapping the `+ Add channel…` chip expands an inline single-line input labelled "Channel name" with a `Save` button beside it. On save, the new channel is inserted into `channels` (validation: trimmed, ≤20 chars, case-insensitive unique against existing rows), the new chip appears in the row and is auto-selected, and the inline input collapses. The user stays in the Add Customer form — no navigation. New custom channels become immediately available everywhere `channels` is referenced: Customers directory filter chips, Reports channel breakdown, and any subsequent Add Customer session. Custom chips render identically to system chips (no "user-added" badge).
 
 **Duplicate detection on save:** if phone matches an existing customer, modal: *"Sunita Patil already exists — use existing?"* with `Use existing` / `Save as new` buttons. v2 will add full merge UI.
 
 Save → returns to directory with new customer at top.
 
-(Inline `+ New customer` mini-form from order flows — already in §7 — collects only name + phone + channel. Profile completion happens from the detail screen later.)
+(Inline `+ New customer` mini-form from order flows — already in §7 — collects only name + phone + channel chip. Profile completion happens from the detail screen later.)
 
 ### Empty / first-run states
 
@@ -898,11 +946,15 @@ Three top-level tabs in the bottom navbar's Reports surface:
 
 Per-product rows, sorted by absolute variance descending (biggest misses first — most teachable). Aggregated products excluded.
 
-Each row:
+Each row uses the **pip-marker single-bar treatment** (variant B per `DESIGN_HANDOFF.md` §3):
 - Product name + unit
-- Three-bar mini-chart: **plan** (outline) / **made** (filled) / **demand** (filled, different colour)
-- Numeric labels under bars: `Plan 5 · Made 4 · Demand 6`
-- Variance pill on right shows **plan vs demand** — the calibration signal. Formula: `(demand − plan)` displayed as `+2 (+33%)` when she under-planned, `−1 (−20%)` when she over-planned. Both absolute qty and percentage shown (qty is meaningful for low-volume products, percentage for high-volume). Made-vs-demand (the operational fulfilment gap) is visible from the three bars by eye and is not given its own pill — Reports' unique role is calibration, not operational status.
+- A single horizontal filled bar = **made** quantity, scaled so the bar's max represents the larger of plan vs demand.
+- Two tick markers overlaid on the bar (or its track):
+  - A **dashed vertical tick** at the position of `plan` (her commitment)
+  - A **solid vertical tick** at the position of `demand` (what reality wanted)
+- Numeric labels under the bar: `Plan 5 · Made 4 · Demand 6` — same three numbers as before, now expressed once.
+- Variance pill on right shows **plan vs demand** — the calibration signal. Formula: `(demand − plan)` displayed as `+2 (+33%)` when she under-planned, `−1 (−20%)` when she over-planned. Both absolute qty and percentage shown (qty is meaningful for low-volume products, percentage for high-volume). Made-vs-demand (the operational fulfilment gap) is visible from the bar's fill relative to the solid demand tick — Reports' unique role is calibration, not operational status, so it does not get its own pill.
+- Legend printed **once** below the section (not per-row): *"bar = made · `┊` plan · `│` demand"* (or the equivalent visual key Claude Design produced).
 - Tap row → product-week drilldown (a bottom sheet listing this product's `production_logs` rows for the week + `order_items` rows for orders with `target_fulfilment_date` in the week)
 
 **Plan** = `production_plans.original_planned_qty` (frozen first-saved value, per §12).
@@ -974,7 +1026,7 @@ Comparisons are factual ("Up 12%"), not celebratory ("Great month!"). When viewi
 
 **3. Channel breakdown**
 
-Horizontal stacked bar of orders by channel (reseller / personal / exhibition), with absolute counts and ₹ values labelled. Sub-line: total customers ordered from per channel this month.
+Horizontal stacked bar of orders by channel, with absolute counts and ₹ values labelled. Sub-line: total customers ordered from per channel this month. Segments come from `channels` (`active = true`) — both system rows (Reseller / Personal / Exhibition) and any custom channels with data this month. System rows render in seed order; custom rows in creation order.
 
 **4. Customer base health**
 
@@ -1021,30 +1073,35 @@ Followed by a list of all complaints `reported_at` in the month (same row format
 
 ### Trends tab — sections (top to bottom)
 
-**1. Plan accuracy trend (hero)**
+**1. Plan accuracy (hero) — redesigned per `DESIGN_HANDOFF.md` §3**
 
-Bar chart: weekly variance % over the last 8 completed weeks (current in-progress week excluded). One bar per week. Y-axis: absolute variance %, signed (over-made above zero, under-made below).
+A large display number expresses **accuracy as a single percentage** (e.g., `84%`), accompanied by a one-line caption (e.g., *"Your plans matched demand 84% on average over the last 8 weeks."*). Below the headline:
 
-- Weeks where mom never saved a plan are **skipped (gap in the chart)**, not zeroed.
+- A **simple line chart** showing per-week accuracy % over the last 8 completed weeks. The Y-axis runs from 0% to 100%, **up = better** (higher accuracy). A rising line is the visual narrative the chart exists to deliver.
+- **Accuracy definition** (per-week): `100 − absolute_variance_percent`, where the per-week variance is the volume-weighted average of `|demand − plan| / max(demand, plan)` across all products that had a plan that week.
+- Weeks where mom never saved a plan are **skipped (gap in the line)**, not zeroed.
 - Weeks where plans were set retroactively (`entered_at > week_end`) are also skipped — they don't represent her real-time eyeballing skill.
 - Context line under chart: `5 of last 8 weeks planned.` So mom understands the sample.
-- Hover/tap on a bar → week selector jumps to that week in the Week tab.
+- Tap on any point → week selector jumps to that week in the Week tab.
 
-This is the headline calibration signal — the single chart that tells mom "am I getting closer to demand over time."
+This is the calibration story compressed into one chart: are her plans converging on reality over time? The variant chosen by the design team (line, up = better) is more intuitive than the original signed-variance bar chart and avoids the "is +5% good or bad?" ambiguity.
 
-**2. Per-product calibration trend**
+**2. Per-product trends — sparklines with delta**
 
-For each of mom's top 5 products by lifetime volume: a grouped bar chart, last 8 weeks, plan/made/demand triplets per week.
+For each in-house product (top 5 by lifetime volume shown by default; `see all →` expands to all): a compact row with:
+- Product name + unit (left)
+- **Sparkline** showing per-week accuracy % over the last 8 weeks (small line, no axis, same up-is-better orientation as Section 1)
+- **Delta indicator** showing accuracy change vs the prior 8-week window (e.g., `+9%` if accuracy improved, `−3%` if it slipped)
+- **Biggest miss** sub-caption naming the worst week and product variance for that week (e.g., *"Biggest miss: Mathri week of 6 May (−40%)"*)
+- Tap row → drills into a per-product detail view (full history, not just 8 weeks)
 
-- `see all →` expands to all in-house products.
-- Same week-skipping rules as #1.
-- Tap product → drills into a per-product detail view (full history, not just 8 weeks).
+Same week-skipping rules as Section 1.
 
 **3. Channel mix trend**
 
-Stacked bar by month, last 6 months. Each bar shows order counts by channel (reseller / personal / exhibition). Above each bar: total ₹.
+Stacked bar by month, last 6 months. Segments come from `channels` (`active = true`) — both system rows (Reseller / Personal / Exhibition) and any custom channels with data in the window. Above each bar: total ₹.
 
-Answers: is the exhibition channel growing? Is reseller proportion holding?
+Answers: is the exhibition channel growing? Is the reseller proportion holding?
 
 **4. Past event retrospectives**
 
@@ -1103,49 +1160,68 @@ Fail states return distinct landing pages — no form, just message:
 - Event has ended → *"This event has ended. Thank you!"*
 - Inactive within window → *"Not currently accepting orders."*
 
-### Page layout
+### Page layout — 3-step wizard *(variant B per `DESIGN_HANDOFF.md` §3)*
 
-**Top (sticky header)**
+The form is a 3-step progressive wizard: **Pick → Contact → Confirm**. A progress bar at the very top indicates the user's position (Step 1 of 3, Step 2 of 3, Step 3 of 3). The sticky header sits above the progress bar on every step. In steps 2 and 3, an **order summary** card is always visible (the running total of products + qtys the user picked in step 1), so they can sanity-check without backing out.
+
+**Sticky header (top, every step)**
 - Business name (large, from Settings §13)
 - Event name + dates underneath (small)
 
-**Greeting**
-- *"Place your order — we'll be in touch to confirm."*
+**Step 1 — Pick**
 
-**Product list (body)**
-- All active in-house products (`active=true AND is_aggregated=false`) PLUS aggregated products with source-maker disclosure inline (*"Til Chikki — by Sunita Kaki"*)
-- Each row: name, unit, price (₹), qty stepper (`−` 0 `+`)
-- Prices shown; mom can still adjust on her side before billing
-- Seasonal items shown if `active=true`
-- No photos in v1
+- Greeting line at top: *"Place your order — we'll be in touch to confirm."*
+- Product list (scrollable). All active in-house products (`active=true AND is_aggregated=false`) PLUS aggregated products with source-maker disclosure inline (*"Til Chikki — by Sunita Kaki"*).
+- Each row: name, unit, price (₹), qty stepper (`−` 0 `+`).
+- Prices shown publicly; mom can still adjust on her side before billing.
+- Seasonal items shown if `active=true`. No photos in v1.
+- Primary CTA at bottom: `Continue →` — disabled until at least one qty > 0.
 
-**Contact section (below product list)**
-- Name (required, free text)
+**Step 2 — Contact**
+
+- Order summary card pinned at top (collapsible; products + qtys + running total).
+- Name (required, free text).
 - Phone (required, numeric keypad) — strip `+91`, spaces, dashes; require resulting 10 digits starting with 6–9. Inline error if invalid: *"Please enter a 10-digit Indian mobile number."*
-- Notes (optional, *"Anything we should know? (delivery preference, etc.)"*)
+- Notes (optional, *"Anything we should know? (delivery preference, etc.)"*).
+- Privacy disclosure (small, just above the CTA): *"We'll use your name and phone number only to confirm and deliver this order. We don't share your details."* Minimal compliance posture for DPDP-Act-era expectations without legalese. No separate Privacy Policy page in v1.
+- Buttons: `← Back` (secondary) · `Continue →` (primary; disabled until name + valid phone).
 
-**Privacy disclosure** (small, just above the Submit button)
+**Step 3 — Confirm (review screen)**
 
-A single line, plain language: *"We'll use your name and phone number only to confirm and deliver this order. We don't share your details."* Minimal compliance posture for DPDP-Act-era expectations without legalese; mom-friendly tone, customer-friendly tone. No separate Privacy Policy page in v1.
+- Order summary card (full, all line items + total) — still pinned/visible.
+- "Picking up at:" mini-card with event name, dates, pickup window (if `events.pickup_window_*` set), and venue line (if `events.venue_line` set).
+- Contact recap (name, phone — read-only; tap to edit jumps back to step 2).
+- Buttons: `← Back` (secondary) · `Place order` (primary, full-width).
 
-**Submit**
-- Full-width primary button: `Place order`
-- Disabled until name + phone valid + at least one item qty > 0
+A hidden honeypot field (CSS-hidden text input) is rendered on the form — bots that fill it cause the submission to be silently rejected.
 
-**Confirmation screen** (after submit)
-- "Order received." with checkmark
-- Order summary (products + qty + total)
-- *"{business name} will reach out soon."*
-- No order number / reference shown (avoids leaking sequence info; mom contacts them)
+### Confirmation screen *(after `Place order` succeeds; variant from v2 wireframes)*
+
+A full-screen confirmation page replaces the wizard. Layout top to bottom:
+
+- **Large checkmark** + **"Order placed."** as the heading.
+- **Personalized thank-you line**: *"Thank you, {first name}."* (first name = whatever the customer typed in step 2; if it contained multiple words, use the first whitespace-separated token).
+- **Order number**: `#YYYY-NNNN` format (e.g., `#2026-0042`). The `YYYY` is the year of `orders.ordered_at`; `NNNN` is a per-year sequence (zero-padded to 4 digits, expandable as needed). Persisted to `orders.public_order_number` at creation. Stable, displayed prominently. The year resets the counter on Jan 1, which limits cross-year volume inference from sequence-number gaps.
+- **Pickup card**:
+  - Event name + date range
+  - Pickup window — formatted from `events.pickup_window_start` / `events.pickup_window_end` (e.g., *"Sun 8 Nov · 11:00 am – 4:00 pm"*). Hidden if not set on the event.
+  - Venue line — from `events.venue_line` (e.g., *"Stall 14, Aundh Fair Ground"*). Hidden if not set.
+- **Order summary table** — products × qty + line totals + final total.
+- **Payment posture line**: *"Total · pay at pickup"* — explicit copy, no online payment in v1.
+- **Primary CTA**: `Save to WhatsApp` — a `wa.me/91<customer_phone>` deep-link with a pre-filled message containing the order number, items, and total. The link opens the *customer's own* WhatsApp so they have a copy of the order in their chat history. This is not a merchant notification.
+- **Secondary link**: `Place another order →` — returns to a fresh wizard at Step 1 with name and phone auto-filled from this submission (the wizard pre-fills steps 2's fields; step 1 starts empty).
+- **Footer**: small line *"Questions? WhatsApp Archana at {business_whatsapp}"* — `business_whatsapp` from Settings (§13).
 
 ### Server-side behaviour on submit
 
 Atomic insert (single Supabase edge function or transaction):
 
 1. **Customer dedup on phone.** If `customers.phone` matches an existing row → link new order to that customer. Do NOT update their `source_event_id` (provenance preserved — `source_event_id` is "where we first met them," not "most recent event"). If the matched customer has `active = false` (previously archived), set `active = true` on the match — a returning order is evidence that archiving was premature; the system heals the state automatically. Mom isn't notified of the reactivation; the customer just reappears in pickers.
-2. If no match → create new customer: `channel=exhibition`, `source_event_id=<event.id>`, `phone=<entered>`, `name=<entered>`.
-3. **Create order:** `customer_id=<above>`, `source=exhibition_form`, `ordered_at=now()`, `target_fulfilment_date=NULL` (mom completes on review — see §7/§12; until dated, the order is attributed to the week of `ordered_at` for demand math and surfaces in Today's pending block), `payment_status=unpaid`, `notes=<entered or null>`.
+2. If no match → create new customer: `channel_id = <id of the seed 'Exhibition' row from the channels table>`, `source_event_id=<event.id>`, `phone=<entered>`, `name=<entered>`.
+3. **Create order:** `customer_id=<above>`, `source=exhibition_form`, `ordered_at=now()`, `target_fulfilment_date=NULL` (mom completes on review — see §7/§12; until dated, the order is attributed to the week of `ordered_at` for demand math and surfaces in Today's pending block), `payment_status=unpaid`, `notes=<entered or null>`, `public_order_number = #<YYYY>-<NNNN>` (computed atomically — see below).
 4. **Create `order_items`** rows from qty steppers > 0, with `unit_price` snapshotted from `products.default_price`.
+
+**Public order number allocation:** the `NNNN` sequence is per calendar year. The simplest implementation is a separate per-year counter (e.g., a `public_order_seq` row keyed by year, incremented within the transaction). Format: `#{YYYY}-{NNNN}` with `NNNN` zero-padded to 4 digits up to 9999; extend digit width only if a year exceeds 9999 orders (won't happen in v1).
 
 ### Notification to mom
 
@@ -1349,6 +1425,7 @@ This is the minimal v1 mechanism. A richer "active-season window" model with aut
 | Business address on bill | §7 bill PDF | Yes/no + text |
 | GST number on bill | §7 bill PDF | Legal-display decision: if registered, likely required |
 | Contact info on bill (phone / WhatsApp / email) | §7 bill PDF | Which of these to include |
+| Business WhatsApp number | §10 public-form confirmation footer ("Questions? WhatsApp Archana at …") | 10-digit Indian mobile; used in the `wa.me/91…` deeplink and as the displayed number on the confirmation page. Can be the same as the "Contact info on bill" WhatsApp number if mom wants. |
 | Domain name for exhibition form | §10 public URL | CLAUDE.md placeholder is `crunchies.in/order/<slug>`; confirm actual registered/intended domain |
 
 ### Onboarding flow (already locked in §3)
@@ -1368,7 +1445,24 @@ Each screen's empty state already has its "add your first X" affordance specifie
 
 ---
 
-### Phase 0 — Discovery, design, validation (target ~2 weeks)
+### Phase 0 — Discovery, design, validation *(complete)*
+
+**Status (as of 2026-05-21):** Phase 0 is closed. All six steps below are either done in-flow or consciously skipped. The spec is locked for build.
+
+| Step | Status | Notes |
+|---|---|---|
+| P0.1 — Interview with mom | ✅ Done pre-spec | The interview happened *before* this spec was written; the spec is the codified output of her answers. No separate notes file. |
+| P0.2 — Spec reconciliation against interview | ✅ Done in spec authorship | Mom's answers shaped every section directly. |
+| P0.3 — Design brief for Claude Design | ✅ Done | `docs/PRODUCT_BRIEF.md` (sent to Claude Design alongside the brochure). |
+| P0.4 — Clickable mockup | ✅ Done | Claude Design produced wireframe HTMLs at `docs/design/wireframes/` plus per-screen JSX. These are design references (do not ship). |
+| P0.5 — Mom walkthrough | ⊘ Skipped | Karan's review of the wireframes was deemed sufficient. Mom now sees the app exactly once, at launch (finished form). |
+| P0.6 — Lock for build | ✅ Done | This locking is concurrent with the reconciliation pass that absorbed the 7 design-handoff divergences (see `docs/ENGINEERING_NOTES.md` §4). |
+
+The original P0.1–P0.6 sequence (with the four interview questions and the walkthrough script) is preserved below for reference and for future minor releases that may run a similar Phase-0 cycle.
+
+---
+
+#### Reference: original Phase 0 plan (target ~2 weeks)
 
 The only phase where mom sees something rough. Goal: lock the spec, validate ergonomics on a real device.
 

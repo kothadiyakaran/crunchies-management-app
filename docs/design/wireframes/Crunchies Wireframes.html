@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crunchies — Wireframes v1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Kalam:wght@400;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; height: 100%; }
+    body { font-family: Inter, system-ui, sans-serif; background: #f0eee9; }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="wireframes/atoms.jsx"></script>
+  <script type="text/babel" src="wireframes/today.jsx"></script>
+  <script type="text/babel" src="wireframes/production.jsx"></script>
+  <script type="text/babel" src="wireframes/orders.jsx"></script>
+  <script type="text/babel" src="wireframes/customers.jsx"></script>
+  <script type="text/babel" src="wireframes/events.jsx"></script>
+  <script type="text/babel" src="wireframes/reports.jsx"></script>
+  <script type="text/babel" src="wireframes/public_form.jsx"></script>
+  <script type="text/babel" src="wireframes/bill.jsx"></script>
+
+  <script type="text/babel" data-presets="env,react">
+    const PH_W = 320, PH_H = 640;
+    const BR_W = 320, BR_H = 640;
+
+    function Phone({ children }) {
+      return <WPhone w={PH_W} h={PH_H}>{children}</WPhone>;
+    }
+    function Browser({ children, url }) {
+      return <WBrowser w={BR_W} h={BR_H} url={url}>{children}</WBrowser>;
+    }
+
+    function App() {
+      return (
+        <DesignCanvas>
+
+          <DCSection id="intro" title="Crunchies — wireframes v1" subtitle="Pan & zoom. Drag-reorder artboards. Click any to focus.">
+            <DCArtboard id="approach" label="Approach" width={420} height={460}>
+              <div style={{
+                background: '#fff7c2', border: `2px solid ${INK}`,
+                width: '100%', height: '100%', padding: '18px 20px',
+                fontFamily: FONT_HAND, color: INK, boxSizing: 'border-box',
+                boxShadow: '4px 4px 0 rgba(42,36,31,0.18)',
+              }}>
+                <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Approach</div>
+                <div style={{ fontSize: 14, lineHeight: 1.45 }}>
+                  <p style={{ margin: '4px 0' }}><strong>Sketchy, low-fi, mobile-only.</strong> 320×640 phone frames so 5 screens fit on a row.</p>
+                  <p style={{ margin: '8px 0' }}><strong>B&W with one accent.</strong> The brochure orange is reserved for selected states, the primary CTA, and one variance highlight. Structure carries the page, not color.</p>
+                  <p style={{ margin: '8px 0' }}><strong>3+ variations</strong> on Today / Production / Orders browse / Public form. Single variants where the brief is prescriptive.</p>
+                  <p style={{ margin: '8px 0' }}><strong>Hand-drawn type for headings (Patrick Hand)</strong>, system sans for body, mono for section labels — so the "this is a wireframe" signal is unmistakable.</p>
+                  <p style={{ margin: '8px 0', fontStyle: 'italic', color: INK_2, fontSize: 12 }}>
+                    Not in scope here: onboarding, products-setup, settings detail, hi-fi visual comp.
+                  </p>
+                </div>
+              </div>
+            </DCArtboard>
+
+            <DCArtboard id="legend" label="Legend" width={300} height={460}>
+              <div style={{
+                background: '#fff', border: `1.4px solid ${INK}`, borderRadius: 12,
+                width: '100%', height: '100%', padding: '16px 18px',
+                fontFamily: FONT_BODY, color: INK, boxSizing: 'border-box',
+                boxShadow: '2px 2px 0 rgba(42,36,31,0.12)',
+              }}>
+                <div style={{ fontFamily: FONT_HAND, fontSize: 18, fontWeight: 700, marginBottom: 10 }}>Visual key</div>
+                <Row swatch={<span style={{ width: 18, height: 18, background: ACCENT, border: `1.5px solid ${INK}`, borderRadius: 4, display: 'inline-block' }}/>} label="Accent — primary CTA, selected state only" />
+                <Row swatch={<span style={{ width: 18, height: 18, background: '#fff', border: `1.5px solid ${INK}`, borderRadius: 4, display: 'inline-block' }}/>} label="Ink — primary border, body text" />
+                <Row swatch={<span style={{ width: 18, height: 18, background: '#fff7c2', border: `1.5px solid ${INK}`, borderRadius: 4, display: 'inline-block' }}/>} label="Sticky / banner / draft state" />
+                <Row swatch={<span style={{ width: 18, height: 18, background: 'transparent', border: `1.5px dashed ${INK_3}`, borderRadius: 4, display: 'inline-block' }}/>} label="Placeholder / soft divider" />
+                <Row swatch={<WBadge kind="warn">unpaid</WBadge>} label="Status badge (subtle warn / ok / neutral)" />
+                <Row swatch={<WChip selected>chip</WChip>} label="Filter or quick-select chip" />
+                <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: INK_3, letterSpacing: 0.4, marginTop: 12, textTransform: 'uppercase' }}>
+                  Type · Patrick Hand / Inter / JetBrains Mono
+                </div>
+                <div style={{ fontSize: 11, color: INK_2, marginTop: 8, fontFamily: FONT_HAND }}>
+                  System font on the real build (Roboto). The hand-drawn lettering here is just the wireframe register.
+                </div>
+              </div>
+            </DCArtboard>
+          </DCSection>
+
+          <DCSection id="today" title="Today" subtitle="Three takes on the 5-second daily-decision screen.">
+            <DCArtboard id="today-a" label="A · Decision-first (production hero)" width={PH_W} height={PH_H}><Phone><TodayA/></Phone></DCArtboard>
+            <DCArtboard id="today-b" label="B · Calendar-anchored (week strip)" width={PH_W} height={PH_H}><Phone><TodayB/></Phone></DCArtboard>
+            <DCArtboard id="today-c" label="C · Triage list (one merged feed)" width={PH_W} height={PH_H}><Phone><TodayC/></Phone></DCArtboard>
+          </DCSection>
+
+          <DCSection id="production" title="Production" subtitle="Plan vs suggested vs made — three layouts. Then the planning form + product detail sheet.">
+            <DCArtboard id="prod-a" label="A · Table (plan / sug / made columns)" width={PH_W} height={PH_H}><Phone><ProductionA/></Phone></DCArtboard>
+            <DCArtboard id="prod-b" label="B · Card + dial per product" width={PH_W} height={PH_H}><Phone><ProductionB/></Phone></DCArtboard>
+            <DCArtboard id="prod-c" label="C · Compact + weekly progress hero" width={PH_W} height={PH_H}><Phone><ProductionC/></Phone></DCArtboard>
+            <DCArtboard id="plan" label="Plan this week (form)" width={PH_W} height={PH_H}><Phone><PlanWeek/></Phone></DCArtboard>
+            <DCArtboard id="prod-sheet" label="Product bottom sheet" width={PH_W} height={PH_H}><Phone><ProductSheet/></Phone></DCArtboard>
+          </DCSection>
+
+          <DCSection id="orders" title="Orders" subtitle="Browse (2), batch entry, add (2), detail.">
+            <DCArtboard id="orders-a" label="Browse A · flat reverse-chrono" width={PH_W} height={PH_H}><Phone><OrdersA/></Phone></DCArtboard>
+            <DCArtboard id="orders-b" label="Browse B · grouped by day" width={PH_W} height={PH_H}><Phone><OrdersB/></Phone></DCArtboard>
+            <DCArtboard id="orders-batch" label="Batch entry" width={PH_W} height={PH_H}><Phone><OrdersBatch/></Phone></DCArtboard>
+            <DCArtboard id="add-a" label="Add Order A · single form" width={PH_W} height={PH_H}><Phone><AddOrderA/></Phone></DCArtboard>
+            <DCArtboard id="add-b" label="Add Order B · accordion" width={PH_W} height={PH_H}><Phone><AddOrderB/></Phone></DCArtboard>
+            <DCArtboard id="order-detail" label="Order detail" width={PH_W} height={PH_H}><Phone><OrderDetail/></Phone></DCArtboard>
+          </DCSection>
+
+          <DCSection id="customers" title="Customers" subtitle="Directory, detail (with quiet marker inline), add.">
+            <DCArtboard id="cust-dir" label="Directory" width={PH_W} height={PH_H}><Phone><CustomersDir/></Phone></DCArtboard>
+            <DCArtboard id="cust-detail" label="Customer detail" width={PH_W} height={PH_H}><Phone><CustomerDetail/></Phone></DCArtboard>
+            <DCArtboard id="cust-add" label="Add customer" width={PH_W} height={PH_H}><Phone><AddCustomer/></Phone></DCArtboard>
+          </DCSection>
+
+          <DCSection id="events" title="Events" subtitle="Sub-route under Production. Exhibitions get a public URL.">
+            <DCArtboard id="evt-list" label="Events list" width={PH_W} height={PH_H}><Phone><EventsList/></Phone></DCArtboard>
+            <DCArtboard id="evt-detail" label="Event detail (exhibition)" width={PH_W} height={PH_H}><Phone><EventDetail/></Phone></DCArtboard>
+          </DCSection>
+
+          <DCSection id="reports" title="Reports" subtitle="Two takes on the Week-tab calibration card, plus Trends preview.">
+            <DCArtboard id="rep-a" label="Week A · three-bar mini chart" width={PH_W} height={PH_H}><Phone><ReportsWeekA/></Phone></DCArtboard>
+            <DCArtboard id="rep-b" label="Week B · pip markers on a made-bar" width={PH_W} height={PH_H}><Phone><ReportsWeekB/></Phone></DCArtboard>
+            <DCArtboard id="rep-trends" label="Trends · plan accuracy chart" width={PH_W} height={PH_H}><Phone><ReportsTrends/></Phone></DCArtboard>
+          </DCSection>
+
+          <DCSection id="public" title="Public exhibition form" subtitle="Different audience — anonymous one-time customer. Brand-forward.">
+            <DCArtboard id="pub-a" label="A · long single-scroll" width={BR_W} height={BR_H}><Browser url="crunchies.in/order/diwali-fair-aundh-2026"><PublicFormA/></Browser></DCArtboard>
+            <DCArtboard id="pub-b" label="B · 3-step wizard" width={BR_W} height={BR_H}><Browser url="crunchies.in/order/diwali-fair-aundh-2026"><PublicFormB/></Browser></DCArtboard>
+            <DCArtboard id="pub-c" label="C · menu-card grid + sticky cart" width={BR_W} height={BR_H}><Browser url="crunchies.in/order/diwali-fair-aundh-2026"><PublicFormC/></Browser></DCArtboard>
+          </DCSection>
+
+          <DCSection id="bill" title="Bill PDF" subtitle="What lands in the customer's WhatsApp.">
+            <DCArtboard id="bill-a" label="A · compact receipt" width={480} height={680}><WPaper w={480} h={680}><BillA/></WPaper></DCArtboard>
+            <DCArtboard id="bill-b" label="B · traditional invoice" width={480} height={680}><WPaper w={480} h={680}><BillB/></WPaper></DCArtboard>
+          </DCSection>
+
+        </DesignCanvas>
+      );
+    }
+
+    function Row({ swatch, label }) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0' }}>
+          <div style={{ width: 60, display: 'flex', alignItems: 'center' }}>{swatch}</div>
+          <div style={{ fontSize: 12, color: INK_2 }}>{label}</div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

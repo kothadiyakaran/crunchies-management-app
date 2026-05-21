@@ -119,7 +119,7 @@ Out of v1 (deferred to v2 or later):
 
 All three problems are queries against one `orders` table. The system is **one data spine** with **three lenses**:
 
-- **Data spine:** `customers`, `products`, `orders`, `order_items`, `production_logs`, `production_plans`, `complaints`, `events`, `event_demand`, `seed_demand`.
+- **Data spine:** `customers`, `channels`, `products`, `orders`, `order_items`, `production_logs`, `production_plans`, `complaints`, `events`, `event_demand`, `seed_demand`.
 - **Three lenses on top:**
   - Production dashboard (problem 1) — rolling average demand minus production-this-week → suggested make
   - Customer detail (problem 2) — orders filtered by customer, plus profile fields
@@ -142,6 +142,15 @@ All three problems are queries against one `orders` table. The system is **one d
 ## Design progress
 
 The detailed design lives in `docs/v1-spec.md` — read that for full data model schemas, screen designs, daily flows, and behaviour decisions. Keep CLAUDE.md as the high-level starter.
+
+Companion docs (from the Claude Design handoff, restructured into the repo):
+- `docs/PRODUCT_BRIEF.md` — the brief sent to Claude Design (behavioural PRD).
+- `docs/DESIGN_HANDOFF.md` — Claude Design's handoff: chosen variants, design tokens, hard requirements.
+- `docs/ENGINEERING_NOTES.md` — chosen-variant summary, three open dev tasks, sprint sequence with bundle/spec cross-references.
+- `docs/design/wireframes/` — HTML + JSX wireframes (design references; **do not ship to production**).
+- `docs/design/screenshots/` — 18 PNGs, one per chosen variant.
+
+**Phase 0 status:** complete. P0.1 + P0.2 happened pre-spec (the spec IS the codified output of mom's interview); P0.3 + P0.4 done (brief sent, Claude Design returned wireframes); P0.5 skipped (Karan's review sufficient — mom sees the app only at launch); P0.6 closed concurrent with the design-handoff reconciliation pass. Spec is locked for build.
 
 Status:
 - [x] §1 Architecture & integration thesis
