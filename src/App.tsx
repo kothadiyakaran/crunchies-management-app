@@ -5,6 +5,7 @@ import { AuthProvider } from '@/features/auth/AuthProvider';
 import { AppShell } from '@/components/AppShell';
 import { TodayPage } from '@/features/today/TodayPage';
 import { OrdersPage } from '@/features/orders/OrdersPage';
+import { AddOrderPage } from '@/features/orders/AddOrderPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { ProductionPage } from '@/features/production/ProductionPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
@@ -27,6 +28,7 @@ export default function App() {
         <Route element={<Protected />}>
           <Route path="/today" element={<TodayPage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/orders/new" element={<AddOrderPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/production" element={<ProductionPage />} />
           <Route path="/reports" element={<ReportsPage />} />
