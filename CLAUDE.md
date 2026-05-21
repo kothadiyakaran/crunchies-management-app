@@ -152,7 +152,14 @@ Companion docs (from the Claude Design handoff, restructured into the repo):
 
 **Phase 0 status:** complete. P0.1 + P0.2 happened pre-spec (the spec IS the codified output of mom's interview); P0.3 + P0.4 done (brief sent, Claude Design returned wireframes); P0.5 skipped (Karan's review sufficient — mom sees the app only at launch); P0.6 closed concurrent with the design-handoff reconciliation pass. Spec is locked for build.
 
-**Phase 1 status:** Sprint 0 engineering complete (2026-05-21). Foundation shipped — Vite + React + TS + PWA scaffold, Supabase schema applied + RLS enabled on every table, mom + admin auth users created, deployed to `https://www.crunchies.app` via Vercel (GitHub-connected, auto-deploys on push to `main`). End-to-end login verified via Playwright smoke test (`scripts/smoke-test-login.py` — re-runnable). **One Sprint 0 task still open:** install the PWA on mom's actual phone to de-risk Android quirks before Sprint 1 piles features on top (v1-spec.md §14 flags this as the single highest technical-unknown). Sprint 1 (walking skeleton) is the next coding move.
+**Phase 1 status:** Sprints 0–2 complete and deployed to `https://www.crunchies.app` (2026-05-21).
+- **Sprint 0** — Vite + React + TS + PWA scaffold, Supabase schema + RLS on every table, mom + admin auth users, Vercel auto-deploy on push to `main`, PWA installed and verified on Karan's Android.
+- **Sprint 1** (walking skeleton) — 5-tab bottom nav + AppShell, minimal Add Order and Log Production forms wired end-to-end, Today renders raw queries. Dev fixtures seeded via `scripts/dev-seed.sql` (5 `[DEV]` products + 4 `[DEV]` customers across all channels).
+- **Sprint 2** (Production lens part 1) — Products CRUD at `/products`, §11 production-suggestion algorithm (rolling avg + seed fallback + committed demand, pure TypeScript function in `src/features/production/algorithm.ts` with 11 unit tests, `needs_seed` flag for unseeded+<4w-history), Production Section C with `Plan: — / Suggested: N / Made: N` rows + "Manage products →" header link, LogProduction prefilled via `?product_id=`, Today Block 1 with seed footnote when all visible rows are seed-based.
+
+Smoke at `scripts/smoke-test-walking-skeleton.py` (re-runnable; reads `SMOKE_EMAIL` / `SMOKE_PASSWORD` from process env or `.env.local`, supports both Vite `KEY=value` and PowerShell `$env:KEY = "value"` forms). Test count: 28 across 8 vitest files.
+
+Sprint 3 (Production lens part 2 — planning view + product-detail bottom sheet + subtitles) is the next coding move. Architectural decisions captured in `docs/decisions/2026-05-21-sprint-2-architecture-decisions.md`.
 
 Status:
 - [x] §1 Architecture & integration thesis
