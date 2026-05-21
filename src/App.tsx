@@ -8,6 +8,7 @@ import { OrdersPage } from '@/features/orders/OrdersPage';
 import { AddOrderPage } from '@/features/orders/AddOrderPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { ProductionPage } from '@/features/production/ProductionPage';
+import { LogProductionPage } from '@/features/production/LogProductionPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 
 function Protected() {
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/orders/new" element={<AddOrderPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/production" element={<ProductionPage />} />
+          <Route path="/production/new" element={<LogProductionPage />} />
           <Route path="/reports" element={<ReportsPage />} />
         </Route>
         <Route path="/" element={<Navigate to="/today" replace />} />
