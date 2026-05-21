@@ -224,17 +224,19 @@ export async function updateOrder(
 }
 
 export async function markFulfilled(id: string): Promise<void> {
+  // fulfilled_at is a Postgres `date` column (not timestamptz) — use today-in-IST.
   const { error } = await supabase
     .from('orders')
-    .update({ fulfilled_at: new Date().toISOString() })
+    .update({ fulfilled_at: todayInTz() })
     .eq('id', id);
   if (error) throw new Error(error.message);
 }
 
 export async function markPaid(id: string): Promise<void> {
+  // paid_at is a Postgres `date` column — use today-in-IST.
   const { error } = await supabase
     .from('orders')
-    .update({ payment_status: 'paid', paid_at: new Date().toISOString() })
+    .update({ payment_status: 'paid', paid_at: todayInTz() })
     .eq('id', id);
   if (error) throw new Error(error.message);
 }
