@@ -152,14 +152,15 @@ Companion docs (from the Claude Design handoff, restructured into the repo):
 
 **Phase 0 status:** complete. P0.1 + P0.2 happened pre-spec (the spec IS the codified output of mom's interview); P0.3 + P0.4 done (brief sent, Claude Design returned wireframes); P0.5 skipped (Karan's review sufficient — mom sees the app only at launch); P0.6 closed concurrent with the design-handoff reconciliation pass. Spec is locked for build.
 
-**Phase 1 status:** Sprints 0–2 complete and deployed to `https://www.crunchies.app` (2026-05-21).
+**Phase 1 status:** Sprints 0–3 complete and deployed to `https://www.crunchies.app` (2026-05-21).
 - **Sprint 0** — Vite + React + TS + PWA scaffold, Supabase schema + RLS on every table, mom + admin auth users, Vercel auto-deploy on push to `main`, PWA installed and verified on Karan's Android.
 - **Sprint 1** (walking skeleton) — 5-tab bottom nav + AppShell, minimal Add Order and Log Production forms wired end-to-end, Today renders raw queries. Dev fixtures seeded via `scripts/dev-seed.sql` (5 `[DEV]` products + 4 `[DEV]` customers across all channels).
 - **Sprint 2** (Production lens part 1) — Products CRUD at `/products`, §11 production-suggestion algorithm (rolling avg + seed fallback + committed demand, pure TypeScript function in `src/features/production/algorithm.ts` with 11 unit tests, `needs_seed` flag for unseeded+<4w-history), Production Section C with `Plan: — / Suggested: N / Made: N` rows + "Manage products →" header link, LogProduction prefilled via `?product_id=`, Today Block 1 with seed footnote when all visible rows are seed-based.
+- **Sprint 3** (Production lens part 2) — full calibration loop. Planning view at `/production/plan-this-week` with `original_planned_qty` frozen on first save (§12 immutability rule), plan composition layer (`composeWithPlan` in `src/features/production/planLayer.ts`) yielding plan-aware `target`/`gap`/`done`/`subtitle` per row, "includes pending orders" subtitle when committed > base (event-uplift subtitle deferred to Sprint 7), product-detail bottom sheet with this-week log list and tap-to-edit at `/production/log/:id` (full edit/delete), "Done this week (N)" collapse on Production, Section D read-only "From other makers" table, "Add a seed estimate →" affordance via SeedEstimateModal, seed read-only on EditProductPage once weeks_of_history ≥ 4. Today Block 1 now plan-aware.
 
-Smoke at `scripts/smoke-test-walking-skeleton.py` (re-runnable; reads `SMOKE_EMAIL` / `SMOKE_PASSWORD` from process env or `.env.local`, supports both Vite `KEY=value` and PowerShell `$env:KEY = "value"` forms). Test count: 28 across 8 vitest files.
+Smoke at `scripts/smoke-test-walking-skeleton.py` (re-runnable; reads `SMOKE_EMAIL` / `SMOKE_PASSWORD` from process env or `.env.local`, supports both Vite `KEY=value` and PowerShell `$env:KEY = "value"` forms). Test count: 38 across 10 vitest files.
 
-Sprint 3 (Production lens part 2 — planning view + product-detail bottom sheet + subtitles) is the next coding move. Architectural decisions captured in `docs/decisions/2026-05-21-sprint-2-architecture-decisions.md`.
+Sprint 4 (Order lens part 1 — Orders browse + filters, Order detail, Add Order with mandatory `target_fulfilment_date`, Today Block 2) is the next coding move. Architectural decisions captured in `docs/decisions/2026-05-21-sprint-2-architecture-decisions.md`.
 
 Status:
 - [x] §1 Architecture & integration thesis
