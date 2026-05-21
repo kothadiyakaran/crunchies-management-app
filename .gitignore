@@ -58,6 +58,11 @@ Thumbs.db
 .claude/settings.local.json
 .claude/.cache/
 
+# Skills install: .claude/skills/ are absolute-path symlinks into .agents/skills/.
+# Track .agents/skills/ (the real content) instead — symlinks are regenerated
+# per machine by `npx skills add` (or the install command).
+.claude/skills/
+
 # Playwright
 test-results/
 playwright-report/
