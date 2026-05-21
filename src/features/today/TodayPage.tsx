@@ -4,7 +4,7 @@ export function TodayPage() {
   const { user, isAdmin, signOut } = useAuth();
 
   return (
-    <div className="flex min-h-full flex-col bg-paper-surface px-edge py-6">
+    <>
       <header className="flex items-baseline justify-between">
         <h1 className="text-title text-ink-900">Today</h1>
         <span className="text-label uppercase text-ink-500">
@@ -13,13 +13,13 @@ export function TodayPage() {
       </header>
 
       <section className="mt-6 rounded-card bg-paper-elevated p-edge shadow-card">
-        <p className="text-body text-ink-700">
-          Sprint 0 stub. The real Today screen ships in Sprint 1.
-        </p>
+        <p className="text-body text-ink-700">Sprint 1 walking skeleton — raw query results below.</p>
         <p className="mt-2 text-body-sm text-ink-500">{user?.email}</p>
       </section>
 
-      <div className="mt-auto pt-8">
+      {/* Real queries land in Task 6. */}
+
+      <div className="mt-8">
         <button
           type="button"
           onClick={signOut}
@@ -28,6 +28,6 @@ export function TodayPage() {
           Sign out
         </button>
       </div>
-    </div>
+    </>
   );
 }
