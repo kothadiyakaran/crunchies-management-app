@@ -257,7 +257,7 @@ Five tabs is the upper bound for thumb-reach mobile nav. Each tab maps to a diff
 
 ### Public exhibition order form
 
-Completely separate app surface, no navigation chrome, single-page form. Lives at `crunchies.in/order/<event-slug>` (the domain is illustrative).
+Completely separate app surface, no navigation chrome, single-page form. Lives at `crunchies.app/order/<event-slug>` (the domain is illustrative).
 
 ---
 
@@ -863,7 +863,7 @@ RETROSPECTIVE (Diwali 2025 — closed)
 
 ```
 Public URL
-  crunchies.in/order/diwali-fair-aundh-2026
+  crunchies.app/order/diwali-fair-aundh-2026
 
   [ Copy link ]    [ Share via WhatsApp ]
 ```
@@ -871,7 +871,7 @@ Public URL
 - Slug auto-suggested from name on first save (lowercased, hyphenated, year-suffix appended).
 - Editable; must be unique and URL-safe.
 - Hidden for festivals.
-- The WhatsApp share pre-fills a message: *"Hi! Place your order for {event name} here: crunchies.in/order/{slug}"* (editable before sending).
+- The WhatsApp share pre-fills a message: *"Hi! Place your order for {event name} here: crunchies.app/order/{slug}"* (editable before sending).
 
 **Expected demand per product**
 
@@ -1077,7 +1077,7 @@ That's the entire Settings surface. No tabs, no sub-screens. Specific input valu
 
 **Purpose:** capture exhibition walk-ins as structured customers + orders (O2). The only non-mom-facing surface in v1. Designed for **untrained users on their own phone at a fair**, completing in under 60 seconds.
 
-**URL:** `crunchies.in/order/<event-slug>` (the domain is illustrative; the slug is per-event).
+**URL:** `crunchies.app/order/<event-slug>` (the domain is illustrative; the slug is per-event).
 
 **Audience profile (very different from mom):**
 - A stranger at a fair or exhibition who picked up a brochure or saw a QR code at the stall.

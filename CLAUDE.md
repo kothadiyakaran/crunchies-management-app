@@ -33,7 +33,7 @@ All three must be true:
 - **Exhibition customers:** anonymous, fill a public per-event order URL.
 
 ### Scope of the customer surface
-- Per-event order form for exhibitions only (e.g., `crunchies.in/order/diwali-2026`). New customer fills name/phone/products/qty → creates a customer (with `channel=exhibition`, `source_event=<slug>`) + an order.
+- Per-event order form for exhibitions only (e.g., `crunchies.app/order/diwali-2026`). New customer fills name/phone/products/qty → creates a customer (with `channel=exhibition`, `source_event=<slug>`) + an order.
 - NOT in v1: repeat-order links for regulars, public catalogue page, WhatsApp Business API automation. WhatsApp stays as the primary channel for everything else; no automation.
 
 ### Capture timing
@@ -110,7 +110,7 @@ Out of v1 (deferred to v2 or later):
 - Supabase backend: Postgres + auth + Row-Level Security (RLS).
 - Client-side `jsPDF` for bill generation; sharing via OS share sheet.
 - Deploy: Vercel or Cloudflare Pages, GitHub-connected.
-- Short custom domain for the exhibition form (e.g., `crunchies.in/order/<event-slug>`).
+- Short custom domain for the exhibition form (e.g., `crunchies.app/order/<event-slug>`).
 
 ### Phase 2 — ongoing after launch
 - Small fixes and additions; no major UX overhauls expected (per iteration-tolerance constraint).

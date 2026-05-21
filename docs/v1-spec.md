@@ -171,7 +171,7 @@ Now represents both exhibitions (with public order forms) and festivals (no publ
 | `starts_on` | date | O1 — event window start |
 | `ends_on` | date | O1 — event window end |
 | `lead_weeks` | int default 2 | O1 — how many weeks before the event production should start ramping. Per-event (not per-product) in v1 for simplicity. |
-| `slug` | text unique **nullable** | O2 — public URL `crunchies.in/order/<slug>` (only for exhibitions) |
+| `slug` | text unique **nullable** | O2 — public URL `crunchies.app/order/<slug>` (only for exhibitions) |
 | `active` | bool default true | O2 — manual override on top of the date check |
 | `pickup_window_start` | timestamptz **nullable** | O2 — start of the customer-facing pickup window, shown on the public confirmation screen's pickup card (§10). NULL for festivals. |
 | `pickup_window_end` | timestamptz **nullable** | O2 — end of pickup window. NULL for festivals. |
@@ -507,7 +507,7 @@ Used for both viewing and editing. Past events default to read-only with an "Edi
 
 ```
 Public URL
-  crunchies.in/order/diwali-fair-aundh-2026
+  crunchies.app/order/diwali-fair-aundh-2026
 
   [ Copy link ]    [ Share via WhatsApp ]
 ```
@@ -516,7 +516,7 @@ Public URL
 - If still colliding, auto-suffix a numeric counter (`-2`, `-3`).
 - Editable; must be unique and URL-safe (`a-z0-9-`).
 - Hidden entirely for festivals.
-- WhatsApp share pre-fills: *"Hi! Place your order for {event name} here: crunchies.in/order/{slug}"* — mom can edit before sending.
+- WhatsApp share pre-fills: *"Hi! Place your order for {event name} here: crunchies.app/order/{slug}"* — mom can edit before sending.
 
 **Expected demand per product**
 
@@ -1148,7 +1148,7 @@ A list of past events (any `kind`), descending by `ends_on`. Each row:
 
 ### URL & access
 
-`crunchies.in/order/<slug>` — slug from `events.slug` (only exhibitions have slugs; festivals don't appear here).
+`crunchies.app/order/<slug>` — slug from `events.slug` (only exhibitions have slugs; festivals don't appear here).
 
 **Access gate** (server-side via RLS):
 - `events.active = true`
@@ -1426,7 +1426,7 @@ This is the minimal v1 mechanism. A richer "active-season window" model with aut
 | GST number on bill | §7 bill PDF | Legal-display decision: if registered, likely required |
 | Contact info on bill (phone / WhatsApp / email) | §7 bill PDF | Which of these to include |
 | Business WhatsApp number | §10 public-form confirmation footer ("Questions? WhatsApp Archana at …") | 10-digit Indian mobile; used in the `wa.me/91…` deeplink and as the displayed number on the confirmation page. Can be the same as the "Contact info on bill" WhatsApp number if mom wants. |
-| Domain name for exhibition form | §10 public URL | CLAUDE.md placeholder is `crunchies.in/order/<slug>`; confirm actual registered/intended domain |
+| Domain name for exhibition form | §10 public URL | CLAUDE.md placeholder is `crunchies.app/order/<slug>`; confirm actual registered/intended domain |
 
 ### Onboarding flow (already locked in §3)
 
@@ -1535,7 +1535,7 @@ Each sprint = a focused unit of work CC and Karan complete together, paced by Ka
 - Auth (mom + Karan; admin role for Karan)
 - Vercel/Cloudflare Pages deploy pipeline, GitHub-connected
 - PWA manifest + service worker; **install + launch verified on mom's actual phone** (de-risk Android quirks early — this is the single highest-risk technical unknown for the install experience)
-- Custom domain DNS pointed (the exhibition form needs `crunchies.in/order/<slug>` resolvable; verify path routing works)
+- Custom domain DNS pointed (the exhibition form needs `crunchies.app/order/<slug>` resolvable; verify path routing works)
 
 #### Sprint 1 — Walking skeleton
 
@@ -1589,7 +1589,7 @@ Each sprint = a focused unit of work CC and Karan complete together, paced by Ka
 - Production screen Section B (upcoming events)
 - §11 algorithm: event_uplift integrated
 - Anonymous-insert RLS policies for `customers` / `orders` / `order_items` (gated on slug + active + window)
-- Exhibition public form §10 at `crunchies.in/order/<slug>` (honeypot, dedup-on-phone, atomic insert)
+- Exhibition public form §10 at `crunchies.app/order/<slug>` (honeypot, dedup-on-phone, atomic insert)
 - Edge function or transaction for the public-form insert path; verify with synthetic submissions
 - `committed_expected_qty` snapshot trigger / scheduled job at `event.starts_on`
 - §6 retrospective card
