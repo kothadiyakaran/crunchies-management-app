@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { getProductionThisWeek, type ProductionWeekRow } from '@/features/production/api';
+import {
+  getProductionThisWeek,
+  getProductionPlansForWeek,
+} from '@/features/production/api';
+import { composeWithPlan, type ProductionWeekRowFull } from '@/features/production/planLayer';
 import { listTodayPendingOrders, type OrderRow } from '@/features/orders/api';
 import { listCustomersByIds } from '@/features/customers/api';
+import { weekStartFor } from '@/lib/week';
+import { todayInTz } from '@/lib/utils';
 
 export function TodayPage() {
   const { user, isAdmin, signOut } = useAuth();
-  const [productionRows, setProductionRows] = useState<ProductionWeekRow[]>([]);
+  const [productionRows, setProductionRows] = useState<ProductionWeekRowFull[]>([]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -15,8 +21,13 @@ export function TodayPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [pr, os] = await Promise.all([getProductionThisWeek(), listTodayPendingOrders()]);
-        setProductionRows(pr);
+        const weekStart = weekStartFor(todayInTz());
+        const [pr, plans, os] = await Promise.all([
+          getProductionThisWeek(),
+          getProductionPlansForWeek(weekStart),
+          listTodayPendingOrders(),
+        ]);
+        setProductionRows(composeWithPlan(pr, plans));
         setOrders(os);
         const cnames = await listCustomersByIds(os.map((o) => o.customer_id));
         setCustomerNames(cnames);
@@ -26,8 +37,13 @@ export function TodayPage() {
     })();
   }, []);
 
-  // Hide products where suggested === 0 AND produced === 0 (per spec §4)
-  const visibleProduction = productionRows.filter((r) => !(r.suggested === 0 && r.produced_qty === 0));
+  // Hide products where target === 0 AND produced === 0 (per spec §4)
+  const visibleProduction = productionRows
+    .filter((r) => !(r.target === 0 && r.produced_qty === 0))
+    .sort((a, b) => {
+      if (b.gap !== a.gap) return b.gap - a.gap;
+      return a.name.localeCompare(b.name);
+    });
   const allSeeded = visibleProduction.length > 0 && visibleProduction.every((r) => r.uses_seed);
 
   return (
@@ -54,9 +70,12 @@ export function TodayPage() {
                 <div className="flex items-baseline justify-between">
                   <span className="text-body font-semibold text-ink-900">{r.name}</span>
                   <span className="text-body-sm text-ink-500">
-                    target {r.suggested} · made {r.produced_qty}
+                    target {r.target} · made {r.produced_qty}
                   </span>
                 </div>
+                {r.subtitle && (
+                  <p className="mt-1 text-body-sm text-ink-500">{r.subtitle}</p>
+                )}
               </Link>
             </li>
           ))}
