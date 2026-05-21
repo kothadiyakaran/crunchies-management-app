@@ -16,3 +16,13 @@ export async function listActiveProducts(): Promise<ProductRow[]> {
   if (error) throw new Error(error.message);
   return data ?? [];
 }
+
+export async function listProductsByIds(ids: string[]): Promise<Record<string, string>> {
+  if (ids.length === 0) return {};
+  const { data, error } = await supabase
+    .from('products')
+    .select('id, name')
+    .in('id', ids);
+  if (error) throw new Error(error.message);
+  return Object.fromEntries((data ?? []).map((p) => [p.id, p.name]));
+}
