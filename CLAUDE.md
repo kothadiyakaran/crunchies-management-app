@@ -152,6 +152,8 @@ Companion docs (from the Claude Design handoff, restructured into the repo):
 
 **Phase 0 status:** complete. P0.1 + P0.2 happened pre-spec (the spec IS the codified output of mom's interview); P0.3 + P0.4 done (brief sent, Claude Design returned wireframes); P0.5 skipped (Karan's review sufficient — mom sees the app only at launch); P0.6 closed concurrent with the design-handoff reconciliation pass. Spec is locked for build.
 
+**Phase 1 status:** Sprint 0 engineering complete (2026-05-21). Foundation shipped — Vite + React + TS + PWA scaffold, Supabase schema applied + RLS enabled on every table, mom + admin auth users created, deployed to `https://www.crunchies.app` via Vercel (GitHub-connected, auto-deploys on push to `main`). End-to-end login verified via Playwright smoke test (`scripts/smoke-test-login.py` — re-runnable). **One Sprint 0 task still open:** install the PWA on mom's actual phone to de-risk Android quirks before Sprint 1 piles features on top (v1-spec.md §14 flags this as the single highest technical-unknown). Sprint 1 (walking skeleton) is the next coding move.
+
 Status:
 - [x] §1 Architecture & integration thesis
 - [x] §2 Data model (updated with `production_plans`, `event_demand`; `events` generalized for festivals + exhibitions)

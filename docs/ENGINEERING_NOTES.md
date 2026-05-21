@@ -256,7 +256,9 @@ All three review items are resolved:
 2. ✅ **Products setup screen** — confirmed Option A (build from `v1-spec.md` §2 + brand tokens during Sprint 2; flag for design review at mid-fi). No design-team pause required.
 3. ✅ **Sprint sequence locked.** Step 7 (Bill PDF) is folded into Sprint 4 (Order lens part 2) since the order-detail screen and bill generation ship together. Otherwise the order in §5 above stands.
 
-Sprint 0 is now unblocked. Outstanding values that arrive separately (mom-provided): the §13 Settings inputs (business name, address, GST, bill footer, contact info, business WhatsApp, logo asset, domain). These slot into Sprint 9 (Settings + polish) and don't block earlier sprints.
+**Sprint 0 status:** ✅ engineering complete (2026-05-21). Scaffold + Supabase schema (3 applied migrations) + RLS + auth shell + Vercel deploy to `crunchies.app` + end-to-end login verified. **One open task:** install the PWA on mom's phone (Karan, asynchronous; v1-spec.md §14 places this in Sprint 0 to fail-early). Sprint 1 (walking skeleton — `v1-spec.md` §14) is now the active sprint.
+
+Outstanding values that arrive separately (mom-provided): the §13 Settings inputs (business name, address, GST, bill footer, contact info, business WhatsApp, logo asset). These slot into Sprint 9 (Settings + polish) and don't block earlier sprints. Domain is resolved — `crunchies.app`.
 
 ---
 

@@ -1528,14 +1528,15 @@ Each sprint = a focused unit of work CC and Karan complete together, paced by Ka
 
 **Mom's visibility during Phase 1: zero.** No interim demos. Karan gives her verbal progress updates ("orders screen is done, working on customers next") to keep anticipation up. She sees the app once, at launch, in a state she'll trust.
 
-#### Sprint 0 — Foundation
+#### Sprint 0 — Foundation ✅ *complete 2026-05-21*
 
-- Vite + React + TypeScript project scaffolding
-- Supabase project setup; all §2 tables migrated; RLS policies sketched
-- Auth (mom + Karan; admin role for Karan)
-- Vercel/Cloudflare Pages deploy pipeline, GitHub-connected
-- PWA manifest + service worker; **install + launch verified on mom's actual phone** (de-risk Android quirks early — this is the single highest-risk technical unknown for the install experience)
-- Custom domain DNS pointed (the exhibition form needs `crunchies.app/order/<slug>` resolvable; verify path routing works)
+- [x] Vite + React + TypeScript project scaffolding (+ Tailwind 3 with brand tokens, shadcn/ui conventions, ESLint + Prettier + Vitest)
+- [x] Supabase project setup; all §2 tables migrated (3 migrations); RLS enabled on every table with `authed_all` policy for mom + admin
+- [x] Auth shell built — mom + admin users created via dashboard; login flow verified end-to-end against the live deploy via `scripts/smoke-test-login.py`
+- [x] Vercel deploy pipeline, GitHub-connected, env vars set; `vercel.json` SPA-rewrite added so deep links work
+- [x] PWA manifest + service worker shipped; manifest serves correctly on the live domain and the shell renders
+- [ ] **Open Sprint 0 task — install + launch verified on mom's actual phone.** The spec placed this in Sprint 0 specifically to *fail early* if there are Android/Chrome quirks. The app is live and stable enough to install — Karan can do this asynchronously (just open `crunchies.app` on her phone, install to home screen, confirm launch). Discovering an install bug now is cheap; discovering it at the Sprint 9 launch session is expensive.
+- [x] Custom domain `crunchies.app` resolving via Vercel; SPA routes (e.g. `/login`, `/order/<slug>`) verified 200 OK
 
 #### Sprint 1 — Walking skeleton
 
