@@ -21,6 +21,7 @@ export type ProductionWeekRow = {
   base: number;
   suggested: number;
   uses_seed: boolean;
+  needs_seed: boolean;
 };
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -41,7 +42,8 @@ export function computeProductionWeek(input: AlgorithmInput): ProductionWeekRow[
   for (const p of input.products) {
     if (p.is_aggregated) continue;
     const rolling_avg = round1((input.rollingDemand[p.id] ?? 0) / 4);
-    const seed_qty = p.id in input.seedQty ? input.seedQty[p.id] : null;
+    const rawSeed = input.seedQty[p.id];
+    const seed_qty: number | null = rawSeed === undefined ? null : rawSeed;
     const first = input.firstOrderedAt[p.id];
     const weeks_of_history = first ? weeksBetween(first, input.weekStart) : 0;
     const committed_qty = input.committedDemand[p.id] ?? 0;
@@ -55,6 +57,7 @@ export function computeProductionWeek(input: AlgorithmInput): ProductionWeekRow[
 
     const suggested = round1(Math.max(0, Math.max(base, committed_qty) - produced_qty));
     const uses_seed = p.is_seasonal || weeks_of_history < 4;
+    const needs_seed = seed_qty === null && (p.is_seasonal || weeks_of_history < 4);
 
     rows.push({
       product_id: p.id,
@@ -69,6 +72,7 @@ export function computeProductionWeek(input: AlgorithmInput): ProductionWeekRow[
       base,
       suggested,
       uses_seed,
+      needs_seed,
     });
   }
   rows.sort((a, b) => {
