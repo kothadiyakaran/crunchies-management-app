@@ -9,6 +9,7 @@ import { AddOrderPage } from '@/features/orders/AddOrderPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { ProductionPage } from '@/features/production/ProductionPage';
 import { LogProductionPage } from '@/features/production/LogProductionPage';
+import { EditLogProductionPage } from '@/features/production/EditLogProductionPage';
 import { PlanWeekPage } from '@/features/production/PlanWeekPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { ProductsPage } from '@/features/products/ProductsPage';
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="/production" element={<ProductionPage />} />
           <Route path="/production/new" element={<LogProductionPage />} />
           <Route path="/production/plan-this-week" element={<PlanWeekPage />} />
+          <Route path="/production/log/:id" element={<EditLogProductionPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/products/new" element={<AddProductPage />} />
