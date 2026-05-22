@@ -37,7 +37,7 @@ describe('TrendsTab', () => {
         <TrendsTab />
       </MemoryRouter>,
     );
-    await waitFor(() => screen.getByText(/Trends become useful/i));
+    await waitFor(() => screen.getByText(/No plans saved in the last 8 weeks yet/i));
   });
 
   it('renders the big accuracy number when at least one week has data', async () => {

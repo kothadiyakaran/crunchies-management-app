@@ -120,6 +120,9 @@ export function TrendsTab() {
       : null;
   const accuracyLoaded = accuracy !== null;
   const accuracyEmpty = accuracyLoaded && accuracyValues.length === 0;
+  // Distinguish "no plans saved at all" from "some plan data, but <2 weeks" so
+  // the empty copy matches spec §9.3 (lines 1121–1122).
+  const accuracyThin = accuracyLoaded && accuracyValues.length > 0 && accuracyValues.length < 2;
 
   const visibleProducts =
     productTrends === null
@@ -137,7 +140,7 @@ export function TrendsTab() {
         ) : accuracyEmpty ? (
           <div>
             <p className="text-body-sm text-ink-500">
-              No plans saved in the last 8 weeks yet. Trends become useful after a few weeks of planning.
+              No plans saved in the last 8 weeks yet.
             </p>
             <Link
               to="/production/plan-this-week"
@@ -145,6 +148,12 @@ export function TrendsTab() {
             >
               Plan this week →
             </Link>
+          </div>
+        ) : accuracyThin ? (
+          <div>
+            <p className="text-body-sm text-ink-500">
+              Trends become useful after a few weeks of planning. Keep going.
+            </p>
           </div>
         ) : (
           <div className="rounded-card bg-paper-elevated p-4">

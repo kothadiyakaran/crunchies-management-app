@@ -176,9 +176,25 @@ export function CustomersPage() {
         })}
         {!loading && rows.length === 0 && (
           <li className="text-body-sm text-ink-500">
-            {filter.kind === 'quiet'
-              ? "No quiet customers — you're in touch with everyone."
-              : 'No customers match this filter.'}
+            {filter.kind === 'quiet' ? (
+              "No quiet customers — you're in touch with everyone."
+            ) : filter.kind === 'all' && debounced.trim().length === 0 ? (
+              <>
+                No customers yet.{' '}
+                <Link to="/customers/new" className="underline">Add your first →</Link>
+              </>
+            ) : (
+              <>
+                No customers match this filter.{' '}
+                <button
+                  type="button"
+                  onClick={() => setFixedFilter('All')}
+                  className="underline"
+                >
+                  Clear filter →
+                </button>
+              </>
+            )}
           </li>
         )}
       </ul>

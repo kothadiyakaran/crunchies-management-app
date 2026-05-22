@@ -86,10 +86,14 @@ export function TodayPage() {
               </Link>
             </li>
           ))}
-          {visibleProduction.length === 0 && (
+          {visibleProduction.length === 0 && productionRows.length === 0 && (
             <li className="text-body-sm text-ink-500">
-              Nothing to make this week. <Link to="/products/new" className="underline">Add a product →</Link>
+              Add products and seed averages to see your weekly plan.{' '}
+              <Link to="/products" className="underline">Set up products →</Link>
             </li>
+          )}
+          {visibleProduction.length === 0 && productionRows.length > 0 && (
+            <li className="text-body-sm text-ink-500">All covered for this week.</li>
           )}
         </ul>
         {allSeeded && (

@@ -114,6 +114,24 @@ export function WeekTab() {
   const isCurrent = isCurrentWeek(weekStart, today);
   const newCustomersTotal = (newCustomers ?? []).reduce((s, c) => s + c.count, 0);
 
+  // Empty-state: no calibration rows AND no orders for the week (spec §9.1).
+  // We only render once all fetches have completed (otherwise we'd flash the
+  // empty state during initial load).
+  const allLoaded =
+    calibration !== null &&
+    summary !== null &&
+    newCustomers !== null &&
+    topProducts !== null &&
+    topCustomers !== null &&
+    complaints !== null;
+  const weekHasActivity =
+    visible.length > 0 ||
+    (summary?.total_orders ?? 0) > 0 ||
+    (topProducts?.length ?? 0) > 0 ||
+    (topCustomers?.length ?? 0) > 0 ||
+    newCustomersTotal > 0 ||
+    (complaints?.length ?? 0) > 0;
+
   return (
     <div>
       {/* 1. Period selector */}
@@ -145,6 +163,14 @@ export function WeekTab() {
         </p>
       )}
 
+      {allLoaded && !weekHasActivity && (
+        <p className="mt-6 text-body-sm text-ink-500">
+          No activity this week.
+        </p>
+      )}
+
+      {(!allLoaded || weekHasActivity) && (
+        <>
       {/* 2. Calibration card (hero) */}
       <ReportSection title="Calibration">
         {visible.length === 0 ? (
@@ -322,6 +348,8 @@ export function WeekTab() {
             ))}
           </ul>
         </ReportSection>
+      )}
+        </>
       )}
     </div>
   );
