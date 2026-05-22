@@ -15,7 +15,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { todayInTz } from '@/lib/utils';
 import {
   getPerWeekAccuracyLastN,
@@ -135,9 +135,17 @@ export function TrendsTab() {
         {!accuracyLoaded ? (
           <p className="text-body-sm text-ink-500">Loading…</p>
         ) : accuracyEmpty ? (
-          <p className="text-body-sm text-ink-500">
-            Trends become useful after a few weeks of planning. Keep going.
-          </p>
+          <div>
+            <p className="text-body-sm text-ink-500">
+              No plans saved in the last 8 weeks yet. Trends become useful after a few weeks of planning.
+            </p>
+            <Link
+              to="/production/plan-this-week"
+              className="mt-2 inline-block text-body-sm text-brand-orange underline"
+            >
+              Plan this week →
+            </Link>
+          </div>
         ) : (
           <div className="rounded-card bg-paper-elevated p-4">
             <p className="text-display text-brand-orange tabular-nums">

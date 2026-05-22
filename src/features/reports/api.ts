@@ -709,6 +709,23 @@ export async function getPerProductTrends(today: string): Promise<PerProductTren
       biggest_miss,
     };
   });
+
+  // Sort by lifetime volume DESC per spec §9.3 line 1091 ("top 5 by lifetime volume").
+  // One extra query against order_items; v1 scale tolerates the SUM client-side.
+  const { data: volData, error: volErr } = await supabase
+    .from('order_items')
+    .select('product_id, qty');
+  if (volErr) throw new Error(volErr.message);
+  const lifetimeVol: Record<string, number> = {};
+  for (const r of volData ?? []) {
+    lifetimeVol[r.product_id] = (lifetimeVol[r.product_id] ?? 0) + Number(r.qty);
+  }
+  result.sort((a, b) => {
+    const va = lifetimeVol[a.product_id] ?? 0;
+    const vb = lifetimeVol[b.product_id] ?? 0;
+    if (vb !== va) return vb - va;
+    return a.name.localeCompare(b.name);
+  });
   return result;
 }
 
