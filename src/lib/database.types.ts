@@ -6,474 +6,623 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
 export type Database = {
   __InternalSupabase: {
-    PostgrestVersion: '14.5';
-  };
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
       channels: {
         Row: {
-          active: boolean;
-          created_at: string;
-          id: string;
-          is_system: boolean;
-          name: string;
-        };
+          active: boolean
+          created_at: string
+          id: string
+          is_system: boolean
+          name: string
+        }
         Insert: {
-          active?: boolean;
-          created_at?: string;
-          id?: string;
-          is_system?: boolean;
-          name: string;
-        };
+          active?: boolean
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name: string
+        }
         Update: {
-          active?: boolean;
-          created_at?: string;
-          id?: string;
-          is_system?: boolean;
-          name?: string;
-        };
-        Relationships: [];
-      };
+          active?: boolean
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       complaints: {
         Row: {
-          description: string;
-          id: string;
-          kind: Database['public']['Enums']['complaint_kind'];
-          order_id: string;
-          reported_at: string;
-          resolution: string | null;
-          resolved_at: string | null;
-        };
+          description: string
+          id: string
+          kind: Database["public"]["Enums"]["complaint_kind"]
+          order_id: string
+          reported_at: string
+          resolution: string | null
+          resolved_at: string | null
+        }
         Insert: {
-          description: string;
-          id?: string;
-          kind: Database['public']['Enums']['complaint_kind'];
-          order_id: string;
-          reported_at?: string;
-          resolution?: string | null;
-          resolved_at?: string | null;
-        };
+          description: string
+          id?: string
+          kind: Database["public"]["Enums"]["complaint_kind"]
+          order_id: string
+          reported_at?: string
+          resolution?: string | null
+          resolved_at?: string | null
+        }
         Update: {
-          description?: string;
-          id?: string;
-          kind?: Database['public']['Enums']['complaint_kind'];
-          order_id?: string;
-          reported_at?: string;
-          resolution?: string | null;
-          resolved_at?: string | null;
-        };
+          description?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["complaint_kind"]
+          order_id?: string
+          reported_at?: string
+          resolution?: string | null
+          resolved_at?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: 'complaints_order_id_fkey';
-            columns: ['order_id'];
-            isOneToOne: false;
-            referencedRelation: 'orders';
-            referencedColumns: ['id'];
+            foreignKeyName: "complaints_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       customers: {
         Row: {
-          active: boolean;
-          channel_id: string;
-          created_at: string;
-          id: string;
-          last_contacted_at: string | null;
-          last_ordered_at: string | null;
-          name: string;
-          notes: string | null;
-          phone: string | null;
-          size_tier: Database['public']['Enums']['customer_size_tier'] | null;
-          source_event_id: string | null;
-        };
+          active: boolean
+          channel_id: string
+          created_at: string
+          id: string
+          last_contacted_at: string | null
+          last_ordered_at: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          size_tier: Database["public"]["Enums"]["customer_size_tier"] | null
+          source_event_id: string | null
+        }
         Insert: {
-          active?: boolean;
-          channel_id: string;
-          created_at?: string;
-          id?: string;
-          last_contacted_at?: string | null;
-          last_ordered_at?: string | null;
-          name: string;
-          notes?: string | null;
-          phone?: string | null;
-          size_tier?: Database['public']['Enums']['customer_size_tier'] | null;
-          source_event_id?: string | null;
-        };
+          active?: boolean
+          channel_id: string
+          created_at?: string
+          id?: string
+          last_contacted_at?: string | null
+          last_ordered_at?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          size_tier?: Database["public"]["Enums"]["customer_size_tier"] | null
+          source_event_id?: string | null
+        }
         Update: {
-          active?: boolean;
-          channel_id?: string;
-          created_at?: string;
-          id?: string;
-          last_contacted_at?: string | null;
-          last_ordered_at?: string | null;
-          name?: string;
-          notes?: string | null;
-          phone?: string | null;
-          size_tier?: Database['public']['Enums']['customer_size_tier'] | null;
-          source_event_id?: string | null;
-        };
+          active?: boolean
+          channel_id?: string
+          created_at?: string
+          id?: string
+          last_contacted_at?: string | null
+          last_ordered_at?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          size_tier?: Database["public"]["Enums"]["customer_size_tier"] | null
+          source_event_id?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: 'customers_channel_id_fkey';
-            columns: ['channel_id'];
-            isOneToOne: false;
-            referencedRelation: 'channels';
-            referencedColumns: ['id'];
+            foreignKeyName: "customers_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'customers_source_event_id_fkey';
-            columns: ['source_event_id'];
-            isOneToOne: false;
-            referencedRelation: 'events';
-            referencedColumns: ['id'];
+            foreignKeyName: "customers_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       event_demand: {
         Row: {
-          committed_expected_qty: number | null;
-          event_id: string;
-          expected_qty: number;
-          notes: string | null;
-          product_id: string;
-        };
+          committed_expected_qty: number | null
+          event_id: string
+          expected_qty: number
+          notes: string | null
+          product_id: string
+        }
         Insert: {
-          committed_expected_qty?: number | null;
-          event_id: string;
-          expected_qty: number;
-          notes?: string | null;
-          product_id: string;
-        };
+          committed_expected_qty?: number | null
+          event_id: string
+          expected_qty: number
+          notes?: string | null
+          product_id: string
+        }
         Update: {
-          committed_expected_qty?: number | null;
-          event_id?: string;
-          expected_qty?: number;
-          notes?: string | null;
-          product_id?: string;
-        };
+          committed_expected_qty?: number | null
+          event_id?: string
+          expected_qty?: number
+          notes?: string | null
+          product_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: 'event_demand_event_id_fkey';
-            columns: ['event_id'];
-            isOneToOne: false;
-            referencedRelation: 'events';
-            referencedColumns: ['id'];
+            foreignKeyName: "event_demand_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'event_demand_product_id_fkey';
-            columns: ['product_id'];
-            isOneToOne: false;
-            referencedRelation: 'products';
-            referencedColumns: ['id'];
+            foreignKeyName: "event_demand_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       events: {
         Row: {
-          active: boolean;
-          created_at: string;
-          ends_on: string;
-          id: string;
-          kind: Database['public']['Enums']['event_kind'];
-          lead_weeks: number;
-          name: string;
-          pickup_window_end: string | null;
-          pickup_window_start: string | null;
-          slug: string | null;
-          starts_on: string;
-          venue_line: string | null;
-        };
+          active: boolean
+          created_at: string
+          ends_on: string
+          id: string
+          kind: Database["public"]["Enums"]["event_kind"]
+          lead_weeks: number
+          name: string
+          pickup_window_end: string | null
+          pickup_window_start: string | null
+          slug: string | null
+          starts_on: string
+          venue_line: string | null
+        }
         Insert: {
-          active?: boolean;
-          created_at?: string;
-          ends_on: string;
-          id?: string;
-          kind: Database['public']['Enums']['event_kind'];
-          lead_weeks?: number;
-          name: string;
-          pickup_window_end?: string | null;
-          pickup_window_start?: string | null;
-          slug?: string | null;
-          starts_on: string;
-          venue_line?: string | null;
-        };
+          active?: boolean
+          created_at?: string
+          ends_on: string
+          id?: string
+          kind: Database["public"]["Enums"]["event_kind"]
+          lead_weeks?: number
+          name: string
+          pickup_window_end?: string | null
+          pickup_window_start?: string | null
+          slug?: string | null
+          starts_on: string
+          venue_line?: string | null
+        }
         Update: {
-          active?: boolean;
-          created_at?: string;
-          ends_on?: string;
-          id?: string;
-          kind?: Database['public']['Enums']['event_kind'];
-          lead_weeks?: number;
-          name?: string;
-          pickup_window_end?: string | null;
-          pickup_window_start?: string | null;
-          slug?: string | null;
-          starts_on?: string;
-          venue_line?: string | null;
-        };
-        Relationships: [];
-      };
+          active?: boolean
+          created_at?: string
+          ends_on?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["event_kind"]
+          lead_weeks?: number
+          name?: string
+          pickup_window_end?: string | null
+          pickup_window_start?: string | null
+          slug?: string | null
+          starts_on?: string
+          venue_line?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
-          id: string;
-          order_id: string;
-          product_id: string;
-          qty: number;
-          unit_price: number;
-        };
+          id: string
+          order_id: string
+          product_id: string
+          qty: number
+          unit_price: number
+        }
         Insert: {
-          id?: string;
-          order_id: string;
-          product_id: string;
-          qty: number;
-          unit_price: number;
-        };
+          id?: string
+          order_id: string
+          product_id: string
+          qty: number
+          unit_price: number
+        }
         Update: {
-          id?: string;
-          order_id?: string;
-          product_id?: string;
-          qty?: number;
-          unit_price?: number;
-        };
+          id?: string
+          order_id?: string
+          product_id?: string
+          qty?: number
+          unit_price?: number
+        }
         Relationships: [
           {
-            foreignKeyName: 'order_items_order_id_fkey';
-            columns: ['order_id'];
-            isOneToOne: false;
-            referencedRelation: 'orders';
-            referencedColumns: ['id'];
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'order_items_product_id_fkey';
-            columns: ['product_id'];
-            isOneToOne: false;
-            referencedRelation: 'products';
-            referencedColumns: ['id'];
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       orders: {
         Row: {
-          bill_number: number | null;
-          created_at: string;
-          customer_id: string;
-          fulfilled_at: string | null;
-          id: string;
-          notes: string | null;
-          ordered_at: string;
-          paid_at: string | null;
-          payment_status: Database['public']['Enums']['order_payment_status'];
-          public_order_number: string | null;
-          source: Database['public']['Enums']['order_source'];
-          target_fulfilment_date: string | null;
-        };
+          bill_number: number | null
+          created_at: string
+          customer_id: string
+          fulfilled_at: string | null
+          id: string
+          notes: string | null
+          ordered_at: string
+          paid_at: string | null
+          payment_status: Database["public"]["Enums"]["order_payment_status"]
+          public_order_number: string | null
+          source: Database["public"]["Enums"]["order_source"]
+          target_fulfilment_date: string | null
+        }
         Insert: {
-          bill_number?: number | null;
-          created_at?: string;
-          customer_id: string;
-          fulfilled_at?: string | null;
-          id?: string;
-          notes?: string | null;
-          ordered_at?: string;
-          paid_at?: string | null;
-          payment_status?: Database['public']['Enums']['order_payment_status'];
-          public_order_number?: string | null;
-          source: Database['public']['Enums']['order_source'];
-          target_fulfilment_date?: string | null;
-        };
+          bill_number?: number | null
+          created_at?: string
+          customer_id: string
+          fulfilled_at?: string | null
+          id?: string
+          notes?: string | null
+          ordered_at?: string
+          paid_at?: string | null
+          payment_status?: Database["public"]["Enums"]["order_payment_status"]
+          public_order_number?: string | null
+          source: Database["public"]["Enums"]["order_source"]
+          target_fulfilment_date?: string | null
+        }
         Update: {
-          bill_number?: number | null;
-          created_at?: string;
-          customer_id?: string;
-          fulfilled_at?: string | null;
-          id?: string;
-          notes?: string | null;
-          ordered_at?: string;
-          paid_at?: string | null;
-          payment_status?: Database['public']['Enums']['order_payment_status'];
-          public_order_number?: string | null;
-          source?: Database['public']['Enums']['order_source'];
-          target_fulfilment_date?: string | null;
-        };
+          bill_number?: number | null
+          created_at?: string
+          customer_id?: string
+          fulfilled_at?: string | null
+          id?: string
+          notes?: string | null
+          ordered_at?: string
+          paid_at?: string | null
+          payment_status?: Database["public"]["Enums"]["order_payment_status"]
+          public_order_number?: string | null
+          source?: Database["public"]["Enums"]["order_source"]
+          target_fulfilment_date?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: 'orders_customer_id_fkey';
-            columns: ['customer_id'];
-            isOneToOne: false;
-            referencedRelation: 'customers';
-            referencedColumns: ['id'];
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       production_logs: {
         Row: {
-          created_at: string;
-          id: string;
-          made_on: string;
-          notes: string | null;
-          product_id: string;
-          qty: number;
-        };
+          created_at: string
+          id: string
+          made_on: string
+          notes: string | null
+          product_id: string
+          qty: number
+        }
         Insert: {
-          created_at?: string;
-          id?: string;
-          made_on: string;
-          notes?: string | null;
-          product_id: string;
-          qty: number;
-        };
+          created_at?: string
+          id?: string
+          made_on: string
+          notes?: string | null
+          product_id: string
+          qty: number
+        }
         Update: {
-          created_at?: string;
-          id?: string;
-          made_on?: string;
-          notes?: string | null;
-          product_id?: string;
-          qty?: number;
-        };
+          created_at?: string
+          id?: string
+          made_on?: string
+          notes?: string | null
+          product_id?: string
+          qty?: number
+        }
         Relationships: [
           {
-            foreignKeyName: 'production_logs_product_id_fkey';
-            columns: ['product_id'];
-            isOneToOne: false;
-            referencedRelation: 'products';
-            referencedColumns: ['id'];
+            foreignKeyName: "production_logs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       production_plans: {
         Row: {
-          entered_at: string;
-          notes: string | null;
-          original_planned_qty: number;
-          planned_qty: number;
-          product_id: string;
-          week_start: string;
-        };
+          entered_at: string
+          notes: string | null
+          original_planned_qty: number
+          planned_qty: number
+          product_id: string
+          week_start: string
+        }
         Insert: {
-          entered_at?: string;
-          notes?: string | null;
-          original_planned_qty: number;
-          planned_qty: number;
-          product_id: string;
-          week_start: string;
-        };
+          entered_at?: string
+          notes?: string | null
+          original_planned_qty: number
+          planned_qty: number
+          product_id: string
+          week_start: string
+        }
         Update: {
-          entered_at?: string;
-          notes?: string | null;
-          original_planned_qty?: number;
-          planned_qty?: number;
-          product_id?: string;
-          week_start?: string;
-        };
+          entered_at?: string
+          notes?: string | null
+          original_planned_qty?: number
+          planned_qty?: number
+          product_id?: string
+          week_start?: string
+        }
         Relationships: [
           {
-            foreignKeyName: 'production_plans_product_id_fkey';
-            columns: ['product_id'];
-            isOneToOne: false;
-            referencedRelation: 'products';
-            referencedColumns: ['id'];
+            foreignKeyName: "production_plans_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
           },
-        ];
-      };
+        ]
+      }
       products: {
         Row: {
-          active: boolean;
-          created_at: string;
-          default_price: number;
-          id: string;
-          is_aggregated: boolean;
-          is_seasonal: boolean;
-          name: string;
-          source_maker_name: string | null;
-          unit: string;
-        };
+          active: boolean
+          created_at: string
+          default_price: number
+          id: string
+          is_aggregated: boolean
+          is_seasonal: boolean
+          name: string
+          source_maker_name: string | null
+          unit: string
+        }
         Insert: {
-          active?: boolean;
-          created_at?: string;
-          default_price: number;
-          id?: string;
-          is_aggregated?: boolean;
-          is_seasonal?: boolean;
-          name: string;
-          source_maker_name?: string | null;
-          unit: string;
-        };
+          active?: boolean
+          created_at?: string
+          default_price: number
+          id?: string
+          is_aggregated?: boolean
+          is_seasonal?: boolean
+          name: string
+          source_maker_name?: string | null
+          unit: string
+        }
         Update: {
-          active?: boolean;
-          created_at?: string;
-          default_price?: number;
-          id?: string;
-          is_aggregated?: boolean;
-          is_seasonal?: boolean;
-          name?: string;
-          source_maker_name?: string | null;
-          unit?: string;
-        };
-        Relationships: [];
-      };
+          active?: boolean
+          created_at?: string
+          default_price?: number
+          id?: string
+          is_aggregated?: boolean
+          is_seasonal?: boolean
+          name?: string
+          source_maker_name?: string | null
+          unit?: string
+        }
+        Relationships: []
+      }
       public_order_number_counter: {
         Row: {
-          last_n: number;
-          year: number;
-        };
+          last_n: number
+          year: number
+        }
         Insert: {
-          last_n?: number;
-          year: number;
-        };
+          last_n?: number
+          year: number
+        }
         Update: {
-          last_n?: number;
-          year?: number;
-        };
-        Relationships: [];
-      };
+          last_n?: number
+          year?: number
+        }
+        Relationships: []
+      }
       seed_demand: {
         Row: {
-          entered_at: string;
-          product_id: string;
-          weekly_avg_qty: number;
-        };
+          entered_at: string
+          product_id: string
+          weekly_avg_qty: number
+        }
         Insert: {
-          entered_at?: string;
-          product_id: string;
-          weekly_avg_qty: number;
-        };
+          entered_at?: string
+          product_id: string
+          weekly_avg_qty: number
+        }
         Update: {
-          entered_at?: string;
-          product_id?: string;
-          weekly_avg_qty?: number;
-        };
+          entered_at?: string
+          product_id?: string
+          weekly_avg_qty?: number
+        }
         Relationships: [
           {
-            foreignKeyName: 'seed_demand_product_id_fkey';
-            columns: ['product_id'];
-            isOneToOne: true;
-            referencedRelation: 'products';
-            referencedColumns: ['id'];
+            foreignKeyName: "seed_demand_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
           },
-        ];
-      };
-    };
-    Views: Record<string, never>;
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
-      allocate_bill_number: { Args: { p_order_id: string }; Returns: number };
-      auth_is_admin: { Args: Record<string, never>; Returns: boolean };
-      next_public_order_number: { Args: { p_year?: number }; Returns: string };
+      allocate_bill_number: { Args: { p_order_id: string }; Returns: number }
+      auth_is_admin: { Args: never; Returns: boolean }
+      next_public_order_number: { Args: { p_year?: number }; Returns: string }
+      public_create_exhibition_order: {
+        Args: {
+          p_honeypot?: string
+          p_items: Json
+          p_name: string
+          p_notes: string
+          p_phone: string
+          p_slug: string
+        }
+        Returns: Json
+      }
+      public_get_event_by_slug: { Args: { p_slug: string }; Returns: Json }
+      public_get_order_by_ref: {
+        Args: { p_order_id: string; p_slug: string }
+        Returns: Json
+      }
       refresh_customer_last_ordered_at: {
-        Args: { p_customer_id: string };
-        Returns: undefined;
-      };
-    };
+        Args: { p_customer_id: string }
+        Returns: undefined
+      }
+    }
     Enums: {
-      complaint_kind: 'quality' | 'delivery' | 'wrong_item' | 'other';
-      customer_size_tier: 'small' | 'large';
-      event_kind: 'festival' | 'exhibition' | 'other';
-      order_payment_status: 'unpaid' | 'paid' | 'partial';
-      order_source: 'whatsapp' | 'exhibition_form' | 'in_person' | 'phone';
-    };
-    CompositeTypes: Record<string, never>;
-  };
-};
+      complaint_kind: "quality" | "delivery" | "wrong_item" | "other"
+      customer_size_tier: "small" | "large"
+      event_kind: "festival" | "exhibition" | "other"
+      order_payment_status: "unpaid" | "paid" | "partial"
+      order_source: "whatsapp" | "exhibition_form" | "in_person" | "phone"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      complaint_kind: ["quality", "delivery", "wrong_item", "other"],
+      customer_size_tier: ["small", "large"],
+      event_kind: ["festival", "exhibition", "other"],
+      order_payment_status: ["unpaid", "paid", "partial"],
+      order_source: ["whatsapp", "exhibition_form", "in_person", "phone"],
+    },
+  },
+} as const
