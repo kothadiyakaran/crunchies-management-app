@@ -103,10 +103,20 @@ These are encoded in the test file and the production code; the plan was updated
 
 ---
 
+## Post-implementation fixes (commit `e300b11`)
+
+The advisor reviewing the closed sprint flagged two real issues that landed as a follow-up commit before declaring Sprint 5 truly done:
+
+1. **Bold weight on the bill rendered as regular.** Original Task 2 implementation registered `NotoSans-Regular.ttf` under both `'normal'` and `'bold'` style keys; jsPDF doesn't synthesise bold, so every `setBold()` call (business name, customer name, table header, "Total", PAID/UNPAID/PARTIAL stamp) used the regular face and the bill had no visual hierarchy. Fix: downloaded the official `NotoSans-Bold.ttf` (~631 KB) to `public/fonts/`, refactored `loadNotoSansBase64()` to return `{ regular, bold }` (fetched in parallel), and updated `buildBillPdf` to register each TTF under its matching style key. `BuildBillOpts.fontBase64` is now `{ regular: string; bold: string } | undefined`.
+
+2. **Edit-mode save handler had no test coverage.** Task 7's `AddOrderPage in edit mode` test asserted hydration only; the `updateOrder` + `updateOrderItems` branch was untested. Added a save-branch test that clicks `Save changes` after hydration and asserts both mocks are called with the hydrated payload.
+
+3. **Browser verification of the bill flow had been deferred.** `scripts/verify-bill-flow.py` now runs headless Playwright against the local dev server: login → open an order → click Generate bill → assert iframe acquires a blob: src → assert both `NotoSans-Regular.ttf` and `NotoSans-Bold.ttf` fetch 200 → assert the `Bill #NNNN` badge appears → screenshot to `scripts/screenshots/sprint5-bill-modal.png`. Verified passing on 2026-05-22 against `e300b11`. Re-runnable manually pre-deploy; not wired into CI yet (Sprint 9 polish).
+
 ## Open items carrying into Sprint 6+
 
 - **`BUSINESS_INFO` → Settings table swap.** Sprint 9 builds the `settings` table per §13; the `BUSINESS_INFO` constants in `src/lib/business.ts` become a one-find-replace migration to a single-row Settings read.
 - **Complaint surfacing on Customer detail.** Spec §8 "Open complaints section" on the customer detail screen is Sprint 6 territory — aggregates unresolved complaints across all orders for a customer. The plumbing is already there (`listComplaintsForOrder` exists, can be lifted to `listOpenComplaintsForCustomer` later).
-- **Bold-weight Noto Sans.** Task 2 re-uses `NotoSans-Regular.ttf` as the bold-weight font for jsPDF. If mom dislikes the visual weight on bold rows (totals, table header), add `NotoSans-Bold.ttf` and switch the `addFont('NotoSans', 'bold')` call.
-- **Browser smoke for the bill flow.** Deferred from Tasks 4 and 8 — Karan tests on his Android post-deploy where the OS share sheet behaviour is real. No automated coverage of `navigator.share` exists for now.
+- **Browser smoke for the bill flow on production.** `scripts/verify-bill-flow.py` covers the local dev path. Karan still tests the OS share sheet → WhatsApp hand-off on his actual Android post-deploy (no automated coverage of `navigator.share` exists).
+- **`allocate_bill_number` row locking.** Single-tenant context makes it theoretical, but the function does select-then-update without `SELECT … FOR UPDATE`. If multi-tenant ever happens, add the row lock to prevent two concurrent calls from both passing the `IS NULL` check.
 - **`npm audit` advisories.** Sprint 5 Task 1's `npm install jspdf` reported 7 vulnerabilities (6 moderate, 1 critical) in the broader dependency tree, none attributable to jspdf itself. Not addressed in Sprint 5 — schedule `npm audit fix` as a standalone hygiene pass before the launch sprint.
