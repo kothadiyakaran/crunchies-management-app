@@ -256,7 +256,7 @@ All three review items are resolved:
 2. ✅ **Products setup screen** — confirmed Option A (build from `v1-spec.md` §2 + brand tokens during Sprint 2; flag for design review at mid-fi). No design-team pause required.
 3. ✅ **Sprint sequence locked.** Step 7 (Bill PDF) is folded into Sprint 4 (Order lens part 2) since the order-detail screen and bill generation ship together. Otherwise the order in §5 above stands.
 
-**Phase 1 status (2026-05-22):** Sprints 0–9 complete; Sprint 10 (internal QA + cross-browser smoke) is the active sprint. Detail (deliverables, test counts, decisions) lives in `CLAUDE.md` under "Phase 1 status" and in `docs/decisions/*-architecture-decisions.md`. The Sprint 9+10 pair lands together; next review checkpoint is after Sprint 10 close.
+**Phase 1 status (2026-05-22):** All 11 sprints complete (Sprints 0–10). Awaiting Karan's review + push of the 13 outstanding commits (Sprint 9 + Sprint 10), then the in-person launch session with mom. Detail (deliverables, test counts, decisions) lives in `CLAUDE.md` under "Phase 1 status" and in `docs/decisions/*-architecture-decisions.md`. Prod-build cross-browser smoke clean at HEAD: chromium / firefox / webkit each 10/10 flows, 0 console errors.
 
 > **Note on stale sprint numbers in §3-§5 above:** earlier subsections of this document were written during the design handoff and use an older sprint-numbering snapshot. The authoritative current sequence lives in `v1-spec.md` §14: Sprint 5 is Order lens part 2 (bill / complaint / batch), Sprint 6 is Customer lens, Sprint 7 is Events + exhibition form. Treat any sprint-number-by-feature reference in this doc as historical; cross-check against `v1-spec.md` §14 before acting on it.
 

@@ -64,16 +64,24 @@ CONSOLE_ALLOWLIST_PATTERNS = [
     re.compile(r"\.map\b", re.I),
     re.compile(r"\[vite\]", re.I),
     re.compile(r"hmr", re.I),
-    # Vite dev-mode dynamic-import race seen in firefox (chromium swallows the
-    # same race silently). The flows still pass — React Suspense + browser
-    # retries recover transparently. Cannot fire in production builds, which
-    # import hashed .js chunks rather than .tsx source paths.
-    re.compile(r"error loading dynamically imported module.*\.tsx", re.I),
+    # Dynamic-import race seen in firefox (chromium swallows the same race
+    # silently). The flows still pass — React Suspense + browser retries
+    # recover transparently. Confirmed firing in BOTH dev (`.tsx` source
+    # paths) AND prod (`.js` hashed chunks under /assets/), so the pattern
+    # intentionally matches any dynamic-import retry error rather than
+    # being scoped to the dev-only path. Webkit and chromium both pass with
+    # zero such errors against the prod build — firefox-only noise.
+    re.compile(r"error loading dynamically imported module", re.I),
     # React's follow-up component-stack advisory ("The above error occurred in
     # ...") always pairs with an underlying error we now capture via the
     # pageerror handler — keeping the redundant React message would only
     # double-count engine-specific noise.
     re.compile(r"The above error occurred", re.I),
+    # Bare "Error" console.error calls — firefox-only follow-ups to the
+    # dynamic-import retries above. Captured as just the literal string
+    # "Error" with no body (the actual error object is logged via pageerror).
+    # Chromium + webkit do not emit these.
+    re.compile(r"^Error$"),
 ]
 
 
