@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useRouteFocus } from '@/lib/a11y';
 import {
   getProductionThisWeek,
   getProductionPlansForWeek,
@@ -17,6 +18,8 @@ export function TodayPage() {
   const [productionRows, setProductionRows] = useState<ProductionWeekRowFull[]>([]);
   const [orders, setOrders] = useState<OrderListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const h1Ref = useRef<HTMLHeadingElement>(null);
+  useRouteFocus(h1Ref);
 
   useEffect(() => {
     (async () => {
@@ -47,7 +50,7 @@ export function TodayPage() {
   return (
     <>
       <header className="flex items-baseline justify-between">
-        <h1 className="text-title text-ink-900">Today</h1>
+        <h1 ref={h1Ref} tabIndex={-1} className="text-title text-ink-900 focus:outline-none">Today</h1>
         <div className="flex items-center gap-3">
           <span className="text-label uppercase text-ink-500">
             {isAdmin ? 'Admin' : 'Signed in'}

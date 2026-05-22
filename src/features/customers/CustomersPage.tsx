@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useRouteFocus } from '@/lib/a11y';
 import {
   listChannels,
   listCustomersFiltered,
@@ -38,6 +39,8 @@ export function CustomersPage() {
   const [rows, setRows] = useState<CustomerListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const h1Ref = useRef<HTMLHeadingElement>(null);
+  useRouteFocus(h1Ref);
 
   const filter: CustomerFilter = useMemo(() => {
     if (channelParam) return { kind: 'channel', channelId: channelParam };
@@ -78,7 +81,7 @@ export function CustomersPage() {
   return (
     <div>
       <header className="flex items-baseline justify-between">
-        <h1 className="text-title text-ink-900">Customers</h1>
+        <h1 ref={h1Ref} tabIndex={-1} className="text-title text-ink-900 focus:outline-none">Customers</h1>
         <Link
           to="/customers/new"
           className="text-body-sm font-semibold text-brand-orange"
@@ -135,6 +138,7 @@ export function CustomersPage() {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as CustomerSort)}
+          aria-label="Sort customers"
           className="h-8 rounded-pill border border-ink-900/20 bg-paper px-3 text-body-sm text-ink-900"
         >
           {Object.entries(SORT_LABELS).map(([k, v]) => (

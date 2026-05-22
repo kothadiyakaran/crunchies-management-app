@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { createCustomerQuick } from '@/features/customers/api';
 import { ChannelChipPicker } from '@/features/customers/ChannelChipPicker';
+import { useDialogA11y } from '@/lib/a11y';
 
 type Props = {
   onClose: () => void;
@@ -13,6 +14,9 @@ export function AddCustomerInlineModal({ onClose, onCreated }: Props) {
   const [channelId, setChannelId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const titleId = useId();
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const { closeBtnRef } = useDialogA11y(onClose, { initialFocusRef: nameInputRef });
 
   const canSubmit = name.trim().length > 0 && channelId.length > 0 && !submitting;
 
@@ -42,16 +46,17 @@ export function AddCustomerInlineModal({ onClose, onCreated }: Props) {
       <div className="fixed inset-0 z-40 bg-ink-900/40" onClick={onClose} aria-hidden="true" />
       <div
         role="dialog"
-        aria-label="Add new customer"
+        aria-modal="true"
+        aria-labelledby={titleId}
         className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-paper-elevated p-5 shadow-2xl"
       >
-        <h2 className="text-subtitle text-ink-900">New customer</h2>
+        <h2 id={titleId} className="text-subtitle text-ink-900">New customer</h2>
         <form onSubmit={onSubmit} className="mt-4 space-y-3">
           <label className="block">
             <span className={labelSpan}>Name</span>
             <input
+              ref={nameInputRef}
               className={inputClass}
-              autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -77,6 +82,7 @@ export function AddCustomerInlineModal({ onClose, onCreated }: Props) {
 
           <div className="flex gap-2">
             <button
+              ref={closeBtnRef}
               type="button"
               onClick={onClose}
               disabled={submitting}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   listProductionLogsForProductInWeek,
@@ -7,6 +7,7 @@ import {
 import type { ProductionWeekRowFull } from './planLayer';
 import { weekStartFor } from '@/lib/week';
 import { todayInTz } from '@/lib/utils';
+import { useDialogA11y } from '@/lib/a11y';
 
 type Props = {
   row: ProductionWeekRowFull;
@@ -17,6 +18,8 @@ export function ProductDetailSheet({ row, onClose }: Props) {
   const [logs, setLogs] = useState<ProductionLogRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const titleId = useId();
+  const { closeBtnRef } = useDialogA11y(onClose);
 
   const weekStart = weekStartFor(todayInTz());
 
@@ -35,15 +38,17 @@ export function ProductDetailSheet({ row, onClose }: Props) {
       />
       <div
         role="dialog"
-        aria-label={`${row.name} — this week`}
+        aria-modal="true"
+        aria-labelledby={titleId}
         className="fixed inset-x-0 bottom-0 z-50 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-paper-elevated p-5 shadow-2xl"
       >
         <header className="flex items-start justify-between">
           <div>
-            <h2 className="text-subtitle text-ink-900">{row.name}</h2>
+            <h2 id={titleId} className="text-subtitle text-ink-900">{row.name}</h2>
             <p className="text-body-sm text-ink-500">this week</p>
           </div>
           <button
+            ref={closeBtnRef}
             type="button"
             onClick={onClose}
             aria-label="Close"

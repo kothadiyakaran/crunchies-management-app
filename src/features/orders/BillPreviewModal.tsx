@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { buildBillPdf, loadNotoSansBase64, type BillInput } from './billPdf';
 import { useSettings } from '@/features/settings/SettingsContext';
 import type { OrderDetailRow } from './api';
 import { allocateBillNumber } from './api';
+import { useDialogA11y } from '@/lib/a11y';
 
 type Props = {
   order: OrderDetailRow;
@@ -16,6 +17,8 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const titleId = useId();
+  const { closeBtnRef } = useDialogA11y(onClose);
 
   useEffect(() => {
     // Wait until settings have loaded — buildBillPdf needs the business identity.
@@ -84,13 +87,24 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-ink-900/40" onClick={onClose} />
-      <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-paper-elevated p-4 shadow-xl">
+      <div className="fixed inset-0 z-40 bg-ink-900/40" onClick={onClose} aria-hidden="true" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-paper-elevated p-4 shadow-xl"
+      >
         <header className="flex items-baseline justify-between">
-          <h2 className="text-subtitle text-ink-900">
+          <h2 id={titleId} className="text-subtitle text-ink-900">
             Bill {billNumber ? `#${billNumber}` : '…'}
           </h2>
-          <button onClick={onClose} className="text-body-sm text-ink-500">
+          <button
+            ref={closeBtnRef}
+            type="button"
+            onClick={onClose}
+            aria-label="Close bill preview"
+            className="text-body-sm text-ink-500"
+          >
             Close
           </button>
         </header>

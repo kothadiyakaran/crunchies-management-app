@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useRouteFocus } from '@/lib/a11y';
 import {
   getProductionThisWeek,
   getProductionPlansForWeek,
@@ -19,6 +20,8 @@ export function ProductionPage() {
   const [openProductId, setOpenProductId] = useState<string | null>(null);
   const [seedTarget, setSeedTarget] = useState<ProductionWeekRowFull | null>(null);
   const [doneOpen, setDoneOpen] = useState(false);
+  const h1Ref = useRef<HTMLHeadingElement>(null);
+  useRouteFocus(h1Ref);
 
   const weekStart = weekStartFor(todayInTz());
 
@@ -54,7 +57,7 @@ export function ProductionPage() {
   return (
     <div>
       <header className="flex items-baseline justify-between">
-        <h1 className="text-title text-ink-900">Production</h1>
+        <h1 ref={h1Ref} tabIndex={-1} className="text-title text-ink-900 focus:outline-none">Production</h1>
         <Link to="/products" className="text-body-sm text-ink-500 underline">
           Manage products →
         </Link>
@@ -85,35 +88,19 @@ export function ProductionPage() {
 
         <ul className={`${!loading && rows.length > 0 ? 'mt-4' : ''} space-y-2`}>
           {notDone.map((r) => (
-            <li key={r.product_id}>
-              <div
-                role="button"
-                tabIndex={0}
+            <li key={r.product_id} className="rounded-card bg-paper-elevated">
+              <button
+                type="button"
                 onClick={() => setOpenProductId(r.product_id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setOpenProductId(r.product_id);
-                  }
-                }}
-                className="block w-full cursor-pointer rounded-card bg-paper-elevated p-3 text-left"
+                aria-label={`Open ${r.name} details`}
+                className="block w-full cursor-pointer rounded-card p-3 text-left"
               >
                 <div className="flex items-baseline justify-between">
                   <span className="text-body font-semibold text-ink-900">{r.name}</span>
                   <span className="text-body-sm text-ink-500">{r.unit}</span>
                 </div>
 
-                {r.needs_seed ? (
-                  <div className="mt-2">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setSeedTarget(r); }}
-                      className="text-body-sm text-brand-orange underline"
-                    >
-                      Add a seed estimate →
-                    </button>
-                  </div>
-                ) : (
+                {!r.needs_seed && (
                   <>
                     <div className="mt-1 grid grid-cols-3 gap-2 text-body-sm">
                       <span className="text-ink-500">
@@ -131,7 +118,18 @@ export function ProductionPage() {
                     )}
                   </>
                 )}
-              </div>
+              </button>
+              {r.needs_seed && (
+                <div className="px-3 pb-3">
+                  <button
+                    type="button"
+                    onClick={() => setSeedTarget(r)}
+                    className="text-body-sm text-brand-orange underline"
+                  >
+                    Add a seed estimate →
+                  </button>
+                </div>
+              )}
             </li>
           ))}
           {!loading && rows.length === 0 && !error && (

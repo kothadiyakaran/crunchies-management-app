@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { listOrdersFiltered, type OrderFilter, type OrderListItem } from './api';
 import { formatDayHeader, formatINR, formatOrderTimestamp, groupOrdersByDay } from './orderFormatters';
 import { todayInTz } from '@/lib/utils';
+import { useRouteFocus } from '@/lib/a11y';
 
 const FILTERS: { key: OrderFilter; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -19,6 +20,8 @@ export function OrdersPage() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const h1Ref = useRef<HTMLHeadingElement>(null);
+  useRouteFocus(h1Ref);
 
   useEffect(() => {
     setLoading(true);
@@ -38,7 +41,7 @@ export function OrdersPage() {
   return (
     <div>
       <header className="flex items-baseline justify-between">
-        <h1 className="text-title text-ink-900">Orders</h1>
+        <h1 ref={h1Ref} tabIndex={-1} className="text-title text-ink-900 focus:outline-none">Orders</h1>
         <Link
           to="/orders/new"
           className="rounded-btn-sm bg-brand-orange px-3 py-2 text-body-sm font-semibold text-white"

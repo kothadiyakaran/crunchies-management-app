@@ -1,7 +1,9 @@
+import { useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { WeekTab } from './WeekTab';
 import { MonthTab } from './MonthTab';
 import { TrendsTab } from './TrendsTab';
+import { useRouteFocus } from '@/lib/a11y';
 
 type Tab = 'week' | 'month' | 'trends';
 const TABS: { value: Tab; label: string }[] = [
@@ -18,6 +20,8 @@ export function ReportsPage() {
   const [params, setParams] = useSearchParams();
   const raw = params.get('tab') ?? 'week';
   const tab: Tab = isTab(raw) ? raw : 'week';
+  const h1Ref = useRef<HTMLHeadingElement>(null);
+  useRouteFocus(h1Ref);
 
   function setTab(next: Tab) {
     const sp = new URLSearchParams(params);
@@ -28,9 +32,13 @@ export function ReportsPage() {
 
   return (
     <div>
-      <h1 className="text-title text-ink-900">Reports</h1>
+      <h1 ref={h1Ref} tabIndex={-1} className="text-title text-ink-900 focus:outline-none">Reports</h1>
 
-      <div className="mt-4 flex gap-1 border-b border-ink-900/10">
+      <div
+        role="tablist"
+        aria-label="Reports timeframe"
+        className="mt-4 flex gap-1 border-b border-ink-900/10"
+      >
         {TABS.map((t) => {
           const active = t.value === tab;
           return (
@@ -38,7 +46,10 @@ export function ReportsPage() {
               key={t.value}
               type="button"
               role="tab"
+              id={`reports-tab-${t.value}`}
               aria-selected={active}
+              aria-controls={`reports-panel-${t.value}`}
+              tabIndex={active ? 0 : -1}
               onClick={() => setTab(t.value)}
               className={`h-10 px-4 text-body-sm border-b-2 -mb-px ${
                 active
@@ -52,7 +63,12 @@ export function ReportsPage() {
         })}
       </div>
 
-      <div className="mt-4">
+      <div
+        role="tabpanel"
+        id={`reports-panel-${tab}`}
+        aria-labelledby={`reports-tab-${tab}`}
+        className="mt-4"
+      >
         {tab === 'week' && <WeekTab />}
         {tab === 'month' && <MonthTab />}
         {tab === 'trends' && <TrendsTab />}

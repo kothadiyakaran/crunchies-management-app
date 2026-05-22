@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import {
   createComplaint,
   updateComplaint,
   type ComplaintKind,
   type ComplaintRow,
 } from './complaintsApi';
+import { useDialogA11y } from '@/lib/a11y';
 
 type Props = {
   orderId: string;
@@ -27,6 +28,11 @@ export function ComplaintSheet({ orderId, existing, onClose, onSaved }: Props) {
   const [resolved, setResolved] = useState(existing?.resolved_at !== null && existing?.resolved_at !== undefined);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const titleId = useId();
+  const kindId = useId();
+  const descId = useId();
+  const resolutionId = useId();
+  const { closeBtnRef } = useDialogA11y(onClose);
 
   async function onSave() {
     if (!description.trim()) {
@@ -54,19 +60,31 @@ export function ComplaintSheet({ orderId, existing, onClose, onSaved }: Props) {
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-ink-900/40" onClick={onClose} />
-      <div className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-paper-elevated p-4 shadow-xl">
+      <div className="fixed inset-0 z-40 bg-ink-900/40" onClick={onClose} aria-hidden="true" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-paper-elevated p-4 shadow-xl"
+      >
         <header className="flex items-baseline justify-between">
-          <h2 className="text-subtitle text-ink-900">
+          <h2 id={titleId} className="text-subtitle text-ink-900">
             {existing ? 'Edit complaint' : 'Log complaint'}
           </h2>
-          <button onClick={onClose} className="text-body-sm text-ink-500">
+          <button
+            ref={closeBtnRef}
+            type="button"
+            onClick={onClose}
+            aria-label="Close complaint sheet"
+            className="text-body-sm text-ink-500"
+          >
             Close
           </button>
         </header>
 
-        <label className="mt-4 block text-body-sm text-ink-700">Kind</label>
+        <label htmlFor={kindId} className="mt-4 block text-body-sm text-ink-700">Kind</label>
         <select
+          id={kindId}
           value={kind}
           onChange={(e) => setKind(e.target.value as ComplaintKind)}
           disabled={!!existing}
@@ -77,8 +95,9 @@ export function ComplaintSheet({ orderId, existing, onClose, onSaved }: Props) {
           ))}
         </select>
 
-        <label className="mt-4 block text-body-sm text-ink-700">Description</label>
+        <label htmlFor={descId} className="mt-4 block text-body-sm text-ink-700">Description</label>
         <textarea
+          id={descId}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           disabled={!!existing}
@@ -88,8 +107,9 @@ export function ComplaintSheet({ orderId, existing, onClose, onSaved }: Props) {
 
         {existing && (
           <>
-            <label className="mt-4 block text-body-sm text-ink-700">Resolution</label>
+            <label htmlFor={resolutionId} className="mt-4 block text-body-sm text-ink-700">Resolution</label>
             <textarea
+              id={resolutionId}
               value={resolution}
               onChange={(e) => setResolution(e.target.value)}
               rows={3}

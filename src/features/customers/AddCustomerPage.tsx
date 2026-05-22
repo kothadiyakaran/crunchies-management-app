@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChannelChipPicker } from './ChannelChipPicker';
 import {
@@ -10,6 +10,7 @@ import {
 } from './api';
 import { listInProgressExhibitions } from '@/features/events/api';
 import type { EventRow } from '@/features/events/api';
+import { useDialogA11y } from '@/lib/a11y';
 
 const SIZES: { value: 'small' | 'large' | null; label: string }[] = [
   { value: null, label: '—' },
@@ -258,35 +259,61 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
       </form>
 
       {dupExisting && (
-        <>
-          <div className="fixed inset-0 z-40 bg-ink-900/40" onClick={() => setDupExisting(null)} />
-          <div
-            role="dialog"
-            className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-paper-elevated p-5 shadow-2xl"
-          >
-            <h2 className="text-subtitle text-ink-900">{dupExisting.name} already exists</h2>
-            <p className="mt-2 text-body text-ink-700">
-              A customer with this phone number is already in the directory.
-            </p>
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                onClick={onUseExisting}
-                className="h-11 flex-1 rounded-btn bg-brand-orange text-body font-semibold text-white"
-              >
-                Use existing
-              </button>
-              <button
-                type="button"
-                onClick={onSaveAsNew}
-                className="h-11 flex-1 rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-900"
-              >
-                Save as new
-              </button>
-            </div>
-          </div>
-        </>
+        <DuplicateCustomerDialog
+          name={dupExisting.name}
+          onClose={() => setDupExisting(null)}
+          onUseExisting={onUseExisting}
+          onSaveAsNew={onSaveAsNew}
+        />
       )}
     </div>
+  );
+}
+
+function DuplicateCustomerDialog({
+  name,
+  onClose,
+  onUseExisting,
+  onSaveAsNew,
+}: {
+  name: string;
+  onClose: () => void;
+  onUseExisting: () => void;
+  onSaveAsNew: () => void;
+}) {
+  const titleId = useId();
+  const { closeBtnRef } = useDialogA11y(onClose);
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-ink-900/40" onClick={onClose} aria-hidden="true" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-paper-elevated p-5 shadow-2xl"
+      >
+        <h2 id={titleId} className="text-subtitle text-ink-900">{name} already exists</h2>
+        <p className="mt-2 text-body text-ink-700">
+          A customer with this phone number is already in the directory.
+        </p>
+        <div className="mt-4 flex gap-2">
+          <button
+            ref={closeBtnRef}
+            type="button"
+            onClick={onUseExisting}
+            className="h-11 flex-1 rounded-btn bg-brand-orange text-body font-semibold text-white"
+          >
+            Use existing
+          </button>
+          <button
+            type="button"
+            onClick={onSaveAsNew}
+            className="h-11 flex-1 rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-900"
+          >
+            Save as new
+          </button>
+        </div>
+      </div>
+    </>
   );
 }

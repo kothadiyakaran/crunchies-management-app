@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useDialogA11y } from '@/lib/a11y';
 import {
   createEvent,
   updateEvent,
@@ -625,40 +626,67 @@ export function EventDetailPage() {
       </form>
 
       {confirmDelete && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-ink-900/40"
-            onClick={() => !deleting && setConfirmDelete(false)}
-          />
-          <div
-            role="dialog"
-            className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-paper-elevated p-5 shadow-2xl"
-          >
-            <h2 className="text-subtitle text-ink-900">Delete {name}?</h2>
-            <p className="mt-2 text-body text-ink-700">
-              This will remove the event, its expected demand entries, and its retrospective.
-            </p>
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(false)}
-                disabled={deleting}
-                className="h-11 flex-1 rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-900"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={onConfirmDelete}
-                disabled={deleting}
-                className="h-11 flex-1 rounded-btn bg-status-danger-fg text-body font-semibold text-white disabled:opacity-50"
-              >
-                {deleting ? 'Deleting…' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </>
+        <DeleteEventDialog
+          name={name}
+          deleting={deleting}
+          onCancel={() => !deleting && setConfirmDelete(false)}
+          onConfirm={onConfirmDelete}
+        />
       )}
     </div>
+  );
+}
+
+function DeleteEventDialog({
+  name,
+  deleting,
+  onCancel,
+  onConfirm,
+}: {
+  name: string;
+  deleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const titleId = useId();
+  const { closeBtnRef } = useDialogA11y(onCancel);
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-40 bg-ink-900/40"
+        onClick={onCancel}
+        aria-hidden="true"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-paper-elevated p-5 shadow-2xl"
+      >
+        <h2 id={titleId} className="text-subtitle text-ink-900">Delete {name}?</h2>
+        <p className="mt-2 text-body text-ink-700">
+          This will remove the event, its expected demand entries, and its retrospective.
+        </p>
+        <div className="mt-4 flex gap-2">
+          <button
+            ref={closeBtnRef}
+            type="button"
+            onClick={onCancel}
+            disabled={deleting}
+            className="h-11 flex-1 rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-900"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={deleting}
+            className="h-11 flex-1 rounded-btn bg-status-danger-fg text-body font-semibold text-white disabled:opacity-50"
+          >
+            {deleting ? 'Deleting…' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }

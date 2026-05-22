@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { setSeedDemand } from '@/features/products/api';
+import { useDialogA11y } from '@/lib/a11y';
 
 type Props = {
   productId: string;
@@ -13,6 +14,9 @@ export function SeedEstimateModal({ productId, productName, unit, onClose, onSav
   const [qty, setQty] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const titleId = useId();
+  const qtyInputRef = useRef<HTMLInputElement>(null);
+  const { closeBtnRef } = useDialogA11y(onClose, { initialFocusRef: qtyInputRef });
 
   const num = Number(qty);
   const canSubmit = qty.length > 0 && Number.isFinite(num) && num >= 0 && !submitting;
@@ -36,10 +40,11 @@ export function SeedEstimateModal({ productId, productName, unit, onClose, onSav
       <div className="fixed inset-0 z-40 bg-ink-900/40" onClick={onClose} aria-hidden="true" />
       <div
         role="dialog"
-        aria-label={`Add a seed estimate for ${productName}`}
+        aria-modal="true"
+        aria-labelledby={titleId}
         className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-paper-elevated p-5 shadow-2xl"
       >
-        <h2 className="text-subtitle text-ink-900">Seed estimate</h2>
+        <h2 id={titleId} className="text-subtitle text-ink-900">Seed estimate for {productName}</h2>
         <p className="mt-1 text-body-sm text-ink-500">
           {productName} — roughly how much per week?
         </p>
@@ -48,11 +53,11 @@ export function SeedEstimateModal({ productId, productName, unit, onClose, onSav
           <label className="block">
             <span className="text-label uppercase text-ink-500">Weekly average ({unit})</span>
             <input
+              ref={qtyInputRef}
               type="number"
               inputMode="decimal"
               min="0"
               step="any"
-              autoFocus
               className="mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
               value={qty}
               onChange={(e) => setQty(e.target.value)}
@@ -63,6 +68,7 @@ export function SeedEstimateModal({ productId, productName, unit, onClose, onSav
 
           <div className="flex gap-2">
             <button
+              ref={closeBtnRef}
               type="button"
               onClick={onClose}
               disabled={submitting}

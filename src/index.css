@@ -19,4 +19,28 @@
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
+
+  /*
+   * Sprint 9 T9.5 — accessibility pass.
+   * Global focus-visible outline on all interactive elements. We use the
+   * browser-native :focus-visible pseudo-class so the ring only renders on
+   * keyboard navigation, not on touch/mouse press (Mom's mobile UI stays
+   * uncluttered; keyboard users get a visible target).
+   * Brand orange (#D9591A) for consistency with the design system.
+   */
+  :focus {
+    outline: none;
+  }
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible,
+  [role='button']:focus-visible,
+  [role='tab']:focus-visible {
+    outline: 2px solid #d9591a;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }

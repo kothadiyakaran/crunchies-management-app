@@ -6,12 +6,13 @@
 // Toast pattern: inline savedToast boolean auto-clearing after 2s — matches
 // EventDetailPage.tsx (no sonner dependency in v1; see plan T9.2 note).
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import { updateSettings, type BusinessInfo } from './api';
 import { cleanPhone, isValidIndianMobile } from '@/features/public/phoneValidation';
+import { useRouteFocus } from '@/lib/a11y';
 
 const EMAIL_RE = /.+@.+\..+/;
 
@@ -31,6 +32,8 @@ export function SettingsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [savedToast, setSavedToast] = useState(false);
+  const h1Ref = useRef<HTMLHeadingElement>(null);
+  useRouteFocus(h1Ref);
 
   // Hydrate fields from context once settings load.
   useEffect(() => {
@@ -112,7 +115,7 @@ export function SettingsPage() {
         >
           <ArrowLeft size={20} aria-hidden="true" />
         </Link>
-        <h1 className="text-title text-ink-900">Settings</h1>
+        <h1 ref={h1Ref} tabIndex={-1} className="text-title text-ink-900 focus:outline-none">Settings</h1>
       </header>
 
       {loading && !settings && (
