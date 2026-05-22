@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
-import { createCustomerQuick, listChannels } from '@/features/customers/api';
-
-type Channel = { id: string; name: string };
+import { useState } from 'react';
+import { createCustomerQuick } from '@/features/customers/api';
+import { ChannelChipPicker } from '@/features/customers/ChannelChipPicker';
 
 type Props = {
   onClose: () => void;
@@ -11,20 +10,9 @@ type Props = {
 export function AddCustomerInlineModal({ onClose, onCreated }: Props) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [channels, setChannels] = useState<Channel[]>([]);
   const [channelId, setChannelId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    listChannels()
-      .then((cs) => {
-        setChannels(cs);
-        const first = cs[0];
-        if (first) setChannelId(first.id);
-      })
-      .catch((e: Error) => setError(e.message));
-  }, []);
 
   const canSubmit = name.trim().length > 0 && channelId.length > 0 && !submitting;
 
@@ -78,18 +66,12 @@ export function AddCustomerInlineModal({ onClose, onCreated }: Props) {
               onChange={(e) => setPhone(e.target.value)}
             />
           </label>
-          <label className="block">
+          <div>
             <span className={labelSpan}>Channel</span>
-            <select
-              className={inputClass}
-              value={channelId}
-              onChange={(e) => setChannelId(e.target.value)}
-            >
-              {channels.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </label>
+            <div className="mt-1">
+              <ChannelChipPicker value={channelId || null} onChange={setChannelId} />
+            </div>
+          </div>
 
           {error && <p className="text-body-sm text-status-danger-fg">{error}</p>}
 
