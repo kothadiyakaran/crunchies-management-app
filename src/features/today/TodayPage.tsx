@@ -7,6 +7,7 @@ import {
 } from '@/features/production/api';
 import { composeWithPlan, type ProductionWeekRowFull } from '@/features/production/planLayer';
 import { listTodayPendingOrders, type OrderListItem } from '@/features/orders/api';
+import { QuietCustomerNudge } from '@/features/customers/QuietCustomerNudge';
 import { weekStartFor } from '@/lib/week';
 import { todayInTz } from '@/lib/utils';
 
@@ -115,6 +116,8 @@ export function TodayPage() {
           )}
         </ul>
       </section>
+
+      <QuietCustomerNudge />
 
       <p className="mt-6 text-body-sm text-ink-500">{user?.email}</p>
 
