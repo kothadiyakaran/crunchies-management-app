@@ -1,39 +1,63 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { AppShell } from '@/components/AppShell';
-import { TodayPage } from '@/features/today/TodayPage';
-import { OrdersPage } from '@/features/orders/OrdersPage';
-import { AddOrderPage } from '@/features/orders/AddOrderPage';
-import { BatchEntryPage } from '@/features/orders/BatchEntryPage';
-import { OrderDetailPage } from '@/features/orders/OrderDetailPage';
-import { EditOrderPage } from '@/features/orders/EditOrderPage';
-import { CustomersPage } from '@/features/customers/CustomersPage';
-import { AddCustomerPage } from '@/features/customers/AddCustomerPage';
-import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
-import { EditCustomerPage } from '@/features/customers/EditCustomerPage';
-import { ProductionPage } from '@/features/production/ProductionPage';
-import { LogProductionPage } from '@/features/production/LogProductionPage';
-import { EditLogProductionPage } from '@/features/production/EditLogProductionPage';
-import { PlanWeekPage } from '@/features/production/PlanWeekPage';
-import { ReportsPage } from '@/features/reports/ReportsPage';
-import { ProductsPage } from '@/features/products/ProductsPage';
-import { AddProductPage } from '@/features/products/AddProductPage';
-import { EditProductPage } from '@/features/products/EditProductPage';
-import { EventsPage } from '@/features/events/EventsPage';
-import { EventDetailPage } from '@/features/events/EventDetailPage';
-import { PublicOrderFormPage } from '@/features/public/PublicOrderFormPage';
-import { OrderConfirmationPage } from '@/features/public/OrderConfirmationPage';
-import { SettingsPage } from '@/features/settings/SettingsPage';
+
+// Route-level code-splitting (T9.6). Each page becomes its own chunk so the
+// initial bundle stays small; the largest dep — jspdf — only loads when the
+// user opens an order detail and taps "Generate bill". Login stays eager so
+// the auth gate renders instantly without a Suspense flash.
+const TodayPage = lazy(() => import('@/features/today/TodayPage').then((m) => ({ default: m.TodayPage })));
+const OrdersPage = lazy(() => import('@/features/orders/OrdersPage').then((m) => ({ default: m.OrdersPage })));
+const AddOrderPage = lazy(() => import('@/features/orders/AddOrderPage').then((m) => ({ default: m.AddOrderPage })));
+const BatchEntryPage = lazy(() => import('@/features/orders/BatchEntryPage').then((m) => ({ default: m.BatchEntryPage })));
+const OrderDetailPage = lazy(() => import('@/features/orders/OrderDetailPage').then((m) => ({ default: m.OrderDetailPage })));
+const EditOrderPage = lazy(() => import('@/features/orders/EditOrderPage').then((m) => ({ default: m.EditOrderPage })));
+const CustomersPage = lazy(() => import('@/features/customers/CustomersPage').then((m) => ({ default: m.CustomersPage })));
+const AddCustomerPage = lazy(() => import('@/features/customers/AddCustomerPage').then((m) => ({ default: m.AddCustomerPage })));
+const CustomerDetailPage = lazy(() => import('@/features/customers/CustomerDetailPage').then((m) => ({ default: m.CustomerDetailPage })));
+const EditCustomerPage = lazy(() => import('@/features/customers/EditCustomerPage').then((m) => ({ default: m.EditCustomerPage })));
+const ProductionPage = lazy(() => import('@/features/production/ProductionPage').then((m) => ({ default: m.ProductionPage })));
+const LogProductionPage = lazy(() => import('@/features/production/LogProductionPage').then((m) => ({ default: m.LogProductionPage })));
+const EditLogProductionPage = lazy(() => import('@/features/production/EditLogProductionPage').then((m) => ({ default: m.EditLogProductionPage })));
+const PlanWeekPage = lazy(() => import('@/features/production/PlanWeekPage').then((m) => ({ default: m.PlanWeekPage })));
+const ReportsPage = lazy(() => import('@/features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })));
+const ProductsPage = lazy(() => import('@/features/products/ProductsPage').then((m) => ({ default: m.ProductsPage })));
+const AddProductPage = lazy(() => import('@/features/products/AddProductPage').then((m) => ({ default: m.AddProductPage })));
+const EditProductPage = lazy(() => import('@/features/products/EditProductPage').then((m) => ({ default: m.EditProductPage })));
+const EventsPage = lazy(() => import('@/features/events/EventsPage').then((m) => ({ default: m.EventsPage })));
+const EventDetailPage = lazy(() => import('@/features/events/EventDetailPage').then((m) => ({ default: m.EventDetailPage })));
+const PublicOrderFormPage = lazy(() => import('@/features/public/PublicOrderFormPage').then((m) => ({ default: m.PublicOrderFormPage })));
+const OrderConfirmationPage = lazy(() => import('@/features/public/OrderConfirmationPage').then((m) => ({ default: m.OrderConfirmationPage })));
+const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+
+function PageSkeleton() {
+  return (
+    <div className="min-h-screen flex items-center justify-center text-ink-500">
+      <div>Loading…</div>
+    </div>
+  );
+}
 
 function Protected() {
   return (
     <ProtectedRoute>
       <AppShell>
-        <Outlet />
+        <Suspense fallback={<PageSkeleton />}>
+          <Outlet />
+        </Suspense>
       </AppShell>
     </ProtectedRoute>
+  );
+}
+
+function PublicSuspense() {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <Outlet />
+    </Suspense>
   );
 }
 
@@ -66,8 +90,10 @@ export default function App() {
           <Route path="/products/:id" element={<EditProductPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
-        <Route path="/order/:slug" element={<PublicOrderFormPage />} />
-        <Route path="/order/:slug/confirmed" element={<OrderConfirmationPage />} />
+        <Route element={<PublicSuspense />}>
+          <Route path="/order/:slug" element={<PublicOrderFormPage />} />
+          <Route path="/order/:slug/confirmed" element={<OrderConfirmationPage />} />
+        </Route>
         <Route path="/" element={<Navigate to="/today" replace />} />
         <Route path="*" element={<Navigate to="/today" replace />} />
       </Routes>

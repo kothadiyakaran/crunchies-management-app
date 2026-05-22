@@ -34,4 +34,18 @@ export default defineConfig({
     port: 5173,
     host: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Keep jspdf out of the initial bundle — it only loads when the user
+        // taps "Generate bill" on an order detail. Route-level lazy() in
+        // App.tsx already isolates the OrderDetail chunk; this further
+        // separates jspdf so it can be cached independently across route
+        // upgrades. (T9.6 perf pass.)
+        manualChunks: {
+          jspdf: ['jspdf'],
+        },
+      },
+    },
+  },
 });
