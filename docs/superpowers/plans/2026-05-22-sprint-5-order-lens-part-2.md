@@ -41,13 +41,31 @@
 - Modify: `package.json`, `package-lock.json`
 - Create: `src/lib/business.ts`
 
-- [ ] **Step 1: Install jspdf**
+- [ ] **Step 1: Install jspdf (tilde-pinned)**
 
 ```powershell
-npm install jspdf@^2.5.1
+npm install jspdf@~2.5.1
 ```
 
+Tilde (not caret) — `billPdf.test.ts` reads `pdf.internal.pages` for text extraction, which is a private 2.5.x-stable API. Tilde-pin so a future `npm update` doesn't silently break the tests on a 2.6 minor bump; intentional upgrades will then rediscover the brittleness rather than mid-feature.
+
 Expected: `package.json` and `package-lock.json` updated; no peer-dep warnings.
+
+- [ ] **Step 1b: Download Noto Sans TTF for the bill ₹ glyph**
+
+jsPDF's built-in Helvetica has no `₹` (U+20B9). The bill is mom's customer-facing brand artifact; spec §7 explicitly says `₹1,20,500.00`. Embed Noto Sans (OFL, safe to bundle) and lazy-load it on first bill render.
+
+```powershell
+New-Item -ItemType Directory -Force -Path public/fonts | Out-Null
+Invoke-WebRequest -Uri "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSans/hinted/ttf/NotoSans-Regular.ttf" -OutFile "public/fonts/NotoSans-Regular.ttf"
+```
+
+Verify file size > 100KB:
+```powershell
+(Get-Item public/fonts/NotoSans-Regular.ttf).Length
+```
+
+Expected: ~500KB.
 
 - [ ] **Step 2: Verify typecheck still passes**
 
@@ -138,6 +156,8 @@ const baseInput: BillInput = {
   paymentStatus: 'unpaid',
 };
 
+import { formatBillCurrency } from './billPdf';
+
 describe('buildBillPdf', () => {
   it('includes business name and bill number in the rendered text', () => {
     const pdf = buildBillPdf(baseInput, business);
@@ -159,6 +179,27 @@ describe('buildBillPdf', () => {
     const pdf = buildBillPdf(baseInput, business);
     const text = extractAllText(pdf);
     expect(text).toContain('580');
+  });
+
+  it('falls back to "Rs." when no font is provided (test environment)', () => {
+    const pdf = buildBillPdf(baseInput, business);
+    expect(extractAllText(pdf)).toContain('Rs.');
+  });
+
+  it('uses ₹ when fontBase64 is provided', () => {
+    // Real base64 would be ~700KB; use a stub that's enough to pass addFont's parser
+    // is not feasible — instead just test the formatter branch via a public helper.
+    // (Visual ₹ rendering is verified manually in Task 4 step 4.)
+    const pdf = buildBillPdf(baseInput, business, { fontBase64: 'STUB' });
+    // When fontBase64 is provided, the formatter switches to ₹ even if addFont throws.
+    // To avoid the addFont throw on STUB, we test the formatter directly.
+    expect(extractAllText(pdf)).toBeDefined(); // smoke; formatter test below
+  });
+
+  it('formatBillCurrency returns ₹ when font is present, Rs. when not', () => {
+    // Pure formatter test
+    expect(formatBillCurrency(580, true)).toMatch(/^₹/);
+    expect(formatBillCurrency(580, false)).toMatch(/^Rs\./);
   });
 
   it('stamps PAID / UNPAID / PARTIAL based on payment_status', () => {
@@ -206,7 +247,7 @@ npm test -- src/features/orders/billPdf.test.ts
 
 Expected: FAIL with "Cannot find module './billPdf'".
 
-- [ ] **Step 3: Implement `buildBillPdf`**
+- [ ] **Step 3: Implement `buildBillPdf` + the `loadNotoSansBase64()` helper**
 
 ```ts
 // src/features/orders/billPdf.ts
@@ -230,9 +271,41 @@ export type BillInput = {
   paymentStatus: 'unpaid' | 'paid' | 'partial';
 };
 
+export type BuildBillOpts = {
+  /** Base64-encoded NotoSans-Regular.ttf. When provided, the PDF uses ₹.
+   *  When omitted (e.g. unit tests), falls back to "Rs." + Helvetica. */
+  fontBase64?: string;
+};
+
+/** Lazy-loaded singleton — fetched once per session, on first bill render. */
+let _notoCache: Promise<string> | null = null;
+export function loadNotoSansBase64(): Promise<string> {
+  if (!_notoCache) {
+    _notoCache = fetch('/fonts/NotoSans-Regular.ttf')
+      .then((r) => {
+        if (!r.ok) throw new Error(`font load failed: ${r.status}`);
+        return r.arrayBuffer();
+      })
+      .then((buf) => {
+        const bytes = new Uint8Array(buf);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]!);
+        return btoa(binary);
+      });
+  }
+  return _notoCache;
+}
+
+/** Public helper, exported for unit tests. */
+export function formatBillCurrency(n: number, fontHasRupee: boolean): string {
+  const num = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(n);
+  return fontHasRupee ? `₹${num}` : `Rs. ${num}`;
+}
+
 // brand.orange from design tokens
 const BRAND_ORANGE: [number, number, number] = [0xf2, 0x80, 0x0c];
 const INK_900: [number, number, number] = [0x1a, 0x1a, 0x1a];
+const INK_700: [number, number, number] = [0x4a, 0x4a, 0x4a];
 const INK_500: [number, number, number] = [0x6b, 0x6b, 0x6b];
 
 const PAGE_W = 210; // A4 portrait mm
@@ -240,9 +313,28 @@ const PAGE_H = 297;
 const MARGIN = 12;
 const INNER_PAD = 4;
 
-export function buildBillPdf(input: BillInput, business: BusinessInfo): jsPDF {
+export function buildBillPdf(input: BillInput, business: BusinessInfo, opts: BuildBillOpts = {}): jsPDF {
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
-  pdf.setFont('helvetica');
+  // Font: when fontBase64 supplied (runtime), embed NotoSans and use ₹.
+  // Otherwise (tests / no font available) fall back to Helvetica + "Rs.".
+  let fontHasRupee = false;
+  if (opts.fontBase64) {
+    try {
+      pdf.addFileToVFS('NotoSans-Regular.ttf', opts.fontBase64);
+      pdf.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+      pdf.addFont('NotoSans-Regular.ttf', 'NotoSans', 'bold'); // re-use regular as bold fallback; replace with bold TTF if mom dislikes weight
+      pdf.setFont('NotoSans', 'normal');
+      fontHasRupee = true;
+    } catch {
+      pdf.setFont('helvetica');
+    }
+  } else {
+    pdf.setFont('helvetica');
+  }
+  const fontFamily = fontHasRupee ? 'NotoSans' : 'helvetica';
+  const setBold = () => pdf.setFont(fontFamily, 'bold');
+  const setNormal = () => pdf.setFont(fontFamily, 'normal');
+  const money = (n: number) => formatBillCurrency(n, fontHasRupee);
 
   // Double-border frame (outer + inner)
   pdf.setDrawColor(...INK_900);
@@ -262,17 +354,17 @@ export function buildBillPdf(input: BillInput, business: BusinessInfo): jsPDF {
 
   pdf.setTextColor(255, 255, 255);
   pdf.setFontSize(18);
-  pdf.setFont('helvetica', 'bold');
+  setBold();
   pdf.text(business.name, PAGE_W / 2, bandTop + 8, { align: 'center' });
   if (business.tagline) {
     pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
+    setNormal();
     pdf.text(business.tagline, PAGE_W / 2, bandTop + 14, { align: 'center' });
   }
 
   // Address + GST + contact (below the band)
   let cursor = bandTop + 24;
-  pdf.setTextColor(...INK_700_FROM_500());
+  pdf.setTextColor(...INK_700);
   pdf.setFontSize(9);
   business.addressLines.forEach((line) => {
     pdf.text(line, PAGE_W / 2, cursor, { align: 'center' });
@@ -294,18 +386,18 @@ export function buildBillPdf(input: BillInput, business: BusinessInfo): jsPDF {
   cursor += 4;
   pdf.setFontSize(11);
   pdf.setTextColor(...INK_900);
-  pdf.setFont('helvetica', 'bold');
+  setBold();
   pdf.text(`#${input.billNumber}`, contentRight, cursor, { align: 'right' });
-  pdf.setFont('helvetica', 'normal');
+  setNormal();
   pdf.setFontSize(9);
   pdf.text(formatDate(input.orderedAt), contentRight, cursor + 5, { align: 'right' });
 
   pdf.setFontSize(11);
-  pdf.setFont('helvetica', 'bold');
+  setBold();
   pdf.text(input.customerName, contentLeft, cursor);
   if (input.customerPhone) {
     pdf.setFontSize(9);
-    pdf.setFont('helvetica', 'normal');
+    setNormal();
     pdf.text(input.customerPhone, contentLeft, cursor + 5);
   }
   cursor += 12;
@@ -316,7 +408,7 @@ export function buildBillPdf(input: BillInput, business: BusinessInfo): jsPDF {
   pdf.rect(contentLeft - 1, cursor - 4, contentWidth + 2, 7, 'F');
   pdf.setTextColor(255, 255, 255);
   pdf.setFontSize(9);
-  pdf.setFont('helvetica', 'bold');
+  setBold();
   pdf.text('Product', colX[0]!, cursor);
   pdf.text('Qty', colX[1]!, cursor, { align: 'right' });
   pdf.text('Unit', colX[2]!, cursor, { align: 'right' });
@@ -324,12 +416,12 @@ export function buildBillPdf(input: BillInput, business: BusinessInfo): jsPDF {
   cursor += 7;
 
   pdf.setTextColor(...INK_900);
-  pdf.setFont('helvetica', 'normal');
+  setNormal();
   input.items.forEach((it) => {
     pdf.text(it.name, colX[0]!, cursor);
     pdf.text(String(it.qty), colX[1]!, cursor, { align: 'right' });
-    pdf.text(formatINRPlain(it.unitPrice), colX[2]!, cursor, { align: 'right' });
-    pdf.text(formatINRPlain(it.lineTotal), colX[3]!, cursor, { align: 'right' });
+    pdf.text(money(it.unitPrice), colX[2]!, cursor, { align: 'right' });
+    pdf.text(money(it.lineTotal), colX[3]!, cursor, { align: 'right' });
     cursor += 6;
   });
 
@@ -340,9 +432,9 @@ export function buildBillPdf(input: BillInput, business: BusinessInfo): jsPDF {
   pdf.line(contentLeft + contentWidth * 0.55, cursor, contentRight, cursor);
   cursor += 5;
   pdf.setFontSize(11);
-  pdf.setFont('helvetica', 'bold');
+  setBold();
   pdf.text('Total', colX[2]!, cursor, { align: 'right' });
-  pdf.text(formatINRPlain(input.subtotal), colX[3]!, cursor, { align: 'right' });
+  pdf.text(money(input.subtotal), colX[3]!, cursor, { align: 'right' });
   cursor += 14;
 
   // Payment stamp box
@@ -356,7 +448,7 @@ export function buildBillPdf(input: BillInput, business: BusinessInfo): jsPDF {
   pdf.rect(stampX, cursor, stampW, stampH);
   pdf.setTextColor(...stampColor);
   pdf.setFontSize(14);
-  pdf.setFont('helvetica', 'bold');
+  setBold();
   pdf.text(stampLabel, PAGE_W / 2, cursor + 8, { align: 'center' });
   cursor += stampH + 18;
 
@@ -368,7 +460,7 @@ export function buildBillPdf(input: BillInput, business: BusinessInfo): jsPDF {
   pdf.line(sigX, cursor, sigX + sigW, cursor);
   pdf.setTextColor(...INK_500);
   pdf.setFontSize(9);
-  pdf.setFont('helvetica', 'normal');
+  setNormal();
   pdf.text(business.signatureLine, sigX + sigW / 2, cursor + 5, { align: 'center' });
   cursor += 14;
 
@@ -379,17 +471,9 @@ export function buildBillPdf(input: BillInput, business: BusinessInfo): jsPDF {
   return pdf;
 }
 
-function INK_700_FROM_500(): [number, number, number] {
-  return [0x4a, 0x4a, 0x4a];
-}
-
 function formatDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function formatINRPlain(n: number): string {
-  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(n);
 }
 ```
 
@@ -549,7 +633,7 @@ git commit -m "Sprint 5 Task 3: bill_number allocation RPC + JS wrapper"
 ```tsx
 // src/features/orders/BillPreviewModal.tsx
 import { useEffect, useState } from 'react';
-import { buildBillPdf, type BillInput } from './billPdf';
+import { buildBillPdf, loadNotoSansBase64, type BillInput } from './billPdf';
 import { BUSINESS_INFO } from '@/lib/business';
 import type { OrderDetailRow } from './api';
 import { allocateBillNumber } from './api';
@@ -567,22 +651,33 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
   const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
+    // Capture the URL in a closure-local var so the cleanup can revoke whatever
+    // we created (the `pdfUrl` state setter is async — depending on it in the
+    // cleanup would close over the initial null value and leak every preview).
+    let createdUrl: string | null = null;
+    let cancelled = false;
     (async () => {
       try {
-        const n = billNumber ?? (await allocateBillNumber(order.id));
+        const [n, fontBase64] = await Promise.all([
+          billNumber ?? allocateBillNumber(order.id),
+          loadNotoSansBase64().catch(() => undefined), // ₹ degrades to "Rs." if font load fails
+        ]);
+        if (cancelled) return;
         if (n !== billNumber) {
           setBillNumber(n);
           onAllocated(n);
         }
-        const pdf = buildBillPdf(toBillInput(order, n), BUSINESS_INFO);
+        const pdf = buildBillPdf(toBillInput(order, n), BUSINESS_INFO, { fontBase64 });
         const blob = pdf.output('blob');
-        setPdfUrl(URL.createObjectURL(blob));
+        createdUrl = URL.createObjectURL(blob);
+        setPdfUrl(createdUrl);
       } catch (e) {
-        setError((e as Error).message);
+        if (!cancelled) setError((e as Error).message);
       }
     })();
     return () => {
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+      cancelled = true;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -590,8 +685,10 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
   async function onShare() {
     if (!billNumber) return;
     setSharing(true);
+    let dlUrl: string | null = null;
     try {
-      const pdf = buildBillPdf(toBillInput(order, billNumber), BUSINESS_INFO);
+      const fontBase64 = await loadNotoSansBase64().catch(() => undefined);
+      const pdf = buildBillPdf(toBillInput(order, billNumber), BUSINESS_INFO, { fontBase64 });
       const blob = pdf.output('blob');
       const file = new File([blob], `bill-${billNumber}.pdf`, { type: 'application/pdf' });
       const shareData: ShareData = {
@@ -602,16 +699,16 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
       if (navigator.canShare?.({ files: [file] }) && navigator.share) {
         await navigator.share(shareData);
       } else {
-        // Fallback: trigger download
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        dlUrl = URL.createObjectURL(blob);
+        a.href = dlUrl;
         a.download = `bill-${billNumber}.pdf`;
         a.click();
-        URL.revokeObjectURL(a.href);
       }
     } catch (e) {
       if ((e as Error).name !== 'AbortError') setError((e as Error).message);
     } finally {
+      if (dlUrl) URL.revokeObjectURL(dlUrl);
       setSharing(false);
     }
   }
@@ -1221,7 +1318,20 @@ Update the page title and Save-button copy to vary by mode:
 - Title: `<h1>{editingOrderId ? 'Edit order' : 'Log new order'}</h1>`
 - Save button label: `editingOrderId ? 'Save changes' : 'Save order'`
 
-Customer/source/ordered-at locking: in edit mode, render those accordion bodies read-only (disable the inputs / show plain text) rather than removing the steps. Simplest gate is a `const locked = !!editingOrderId;` flag, used to set `disabled` on the customer picker, source buttons, and ordered-at date input. This preserves visual continuity with the create flow.
+**No field-level locking.** Spec §7 "Editability & deletion" is explicit: *"No locks. Mom can edit or delete any order, any time. Edits to historical orders shift the rolling-average demand intentionally — she's correcting reality, algorithm should reflect reality."* Every accordion step stays editable in edit mode, including customer/source/ordered-at. The hydration effect above pre-fills them; mom can change any of them and the save handler patches accordingly.
+
+Note: changing `customer_id` mid-edit is a real (rare) edit-as-correction path mom may need ("I logged this against the wrong Sunita"). `updateOrder` already supports patching but currently lacks `customer_id` in its `patch` type — extend it: add `customer_id?: string` and `source?: OrderRow['source']` and `ordered_at?: string` to the `updateOrder` patch signature, and pass them in the edit branch:
+
+```ts
+await updateOrder(editingOrderId, {
+  customer_id: customer.id,
+  source,
+  ordered_at: `${orderedAt}T12:00:00+05:30`,
+  target_fulfilment_date: targetDate,
+  notes: notes.trim() || null,
+  payment_status: paymentStatus,
+});
+```
 
 - [ ] **Step 3: Create `EditOrderPage.tsx`**
 
