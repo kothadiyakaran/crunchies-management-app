@@ -8,7 +8,7 @@
 // existing public/api.ts wrappers around the 0005 RPCs.
 
 import { supabase } from '@/lib/supabase';
-import type { BusinessInfo } from '@/lib/business';
+import type { BusinessInfo } from '@/features/orders/billPdf';
 
 export type { BusinessInfo };
 

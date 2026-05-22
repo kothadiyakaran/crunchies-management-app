@@ -5,11 +5,14 @@ import {
   submitExhibitionOrder,
   type PublicEventResponse,
 } from './api';
+import { getPublicBusinessIdentity } from '@/features/settings/api';
 import { PickStep } from './PickStep';
 import { ContactStep } from './ContactStep';
 import { ConfirmStep } from './ConfirmStep';
 
 type LoadState = PublicEventResponse | null | 'not_found';
+
+type BusinessIdentity = { name: string; tagline: string | null; whatsapp: string | null };
 
 export function PublicOrderFormPage() {
   const { slug = '' } = useParams<{ slug: string }>();
@@ -24,6 +27,7 @@ export function PublicOrderFormPage() {
   const [honeypot, setHoneypot] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [business, setBusiness] = useState<BusinessIdentity | null>(null);
 
   // Pre-fill name/phone from URL params (supports "Place another order →" loop).
   useEffect(() => {
@@ -32,6 +36,21 @@ export function PublicOrderFormPage() {
     const p = url.searchParams.get('phone');
     if (n) setName(n);
     if (p) setPhone(p);
+  }, []);
+
+  // Fetch public business identity (name shown in sticky header).
+  useEffect(() => {
+    let alive = true;
+    getPublicBusinessIdentity()
+      .then((b) => {
+        if (alive) setBusiness(b);
+      })
+      .catch(() => {
+        // Graceful fallback — leave header name as a placeholder.
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -101,7 +120,9 @@ export function PublicOrderFormPage() {
     <div className="min-h-screen bg-paper-surface">
       {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-brand-orange px-4 py-3 text-white">
-        <h1 className="text-title font-bold">Crunchies</h1>
+        <h1 className="text-title font-bold">
+          {business ? business.name : <span className="opacity-0">…</span>}
+        </h1>
         <p className="text-body-sm opacity-90">
           {event.name} · {event.starts_on} – {event.ends_on}
         </p>

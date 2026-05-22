@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildBillPdf, formatBillCurrency, type BillInput } from './billPdf';
-import type { BusinessInfo } from '@/lib/business';
+import { buildBillPdf, formatBillCurrency, type BillInput, type BusinessInfo } from './billPdf';
 
 const business: BusinessInfo = {
   name: 'Test Snacks',

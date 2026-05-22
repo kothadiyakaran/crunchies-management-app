@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { buildBillPdf, loadNotoSansBase64, type BillInput } from './billPdf';
-import { BUSINESS_INFO } from '@/lib/business';
+import { useSettings } from '@/features/settings/SettingsContext';
 import type { OrderDetailRow } from './api';
 import { allocateBillNumber } from './api';
 
@@ -11,12 +11,15 @@ type Props = {
 };
 
 export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
+  const { settings } = useSettings();
   const [billNumber, setBillNumber] = useState<number | null>(order.bill_number);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
+    // Wait until settings have loaded — buildBillPdf needs the business identity.
+    if (!settings) return;
     // Capture the URL in a closure-local var so the cleanup can revoke whatever
     // we created (the `pdfUrl` state setter is async — depending on it in the
     // cleanup would close over the initial null value and leak every preview).
@@ -33,7 +36,7 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
           setBillNumber(n);
           onAllocated(n);
         }
-        const pdf = buildBillPdf(toBillInput(order, n), BUSINESS_INFO, { fontBase64 });
+        const pdf = buildBillPdf(toBillInput(order, n), settings, { fontBase64 });
         const blob = pdf.output('blob');
         createdUrl = URL.createObjectURL(blob);
         setPdfUrl(createdUrl);
@@ -46,15 +49,15 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [settings]);
 
   async function onShare() {
-    if (!billNumber) return;
+    if (!billNumber || !settings) return;
     setSharing(true);
     let dlUrl: string | null = null;
     try {
       const fontBase64 = await loadNotoSansBase64().catch(() => undefined);
-      const pdf = buildBillPdf(toBillInput(order, billNumber), BUSINESS_INFO, { fontBase64 });
+      const pdf = buildBillPdf(toBillInput(order, billNumber), settings, { fontBase64 });
       const blob = pdf.output('blob');
       const file = new File([blob], `bill-${billNumber}.pdf`, { type: 'application/pdf' });
       const shareData: ShareData = {
@@ -99,12 +102,14 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
             className="mt-3 h-[60vh] w-full rounded border border-ink-900/10"
           />
         ) : (
-          <p className="mt-3 text-body-sm text-ink-500">Generating…</p>
+          <p className="mt-3 text-body-sm text-ink-500">
+            {settings ? 'Generating…' : 'Loading business details…'}
+          </p>
         )}
         <button
           type="button"
           onClick={onShare}
-          disabled={!pdfUrl || sharing}
+          disabled={!pdfUrl || !settings || sharing}
           className="mt-4 h-11 w-full rounded-btn bg-brand-orange text-body font-semibold text-white disabled:opacity-50"
         >
           {sharing ? 'Sharing…' : 'Share'}

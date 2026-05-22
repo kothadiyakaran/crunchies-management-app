@@ -1,5 +1,20 @@
 import { jsPDF } from 'jspdf';
-import type { BusinessInfo } from '@/lib/business';
+
+/** Business identity rendered on the bill. Sourced from the `business_settings`
+ *  row (Sprint 9 T9.1) and consumed by `buildBillPdf` below. Also re-exported
+ *  by `@/features/settings/api` so `useSettings().settings` and the bill
+ *  generator share a single type definition. */
+export type BusinessInfo = {
+  name: string;
+  tagline: string | null;
+  addressLines: string[]; // each rendered as its own line under the name
+  gstLine: string | null; // e.g. "GSTIN: 27ABCDE1234F1Z5" — null hides the line
+  phone: string | null;
+  whatsapp: string | null; // 10-digit IN number, no +91; null hides the line
+  email: string | null;
+  billFooter: string; // small line below signature, e.g. "Thank you"
+  signatureLine: string; // shown above the rule, e.g. "— Archana"
+};
 
 export type BillItem = {
   name: string;

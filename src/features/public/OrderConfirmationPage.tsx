@@ -2,15 +2,32 @@ import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { fetchOrderByRef, type PublicOrderDetail } from './api';
-import { BUSINESS_INFO } from '@/lib/business';
+import { getPublicBusinessIdentity } from '@/features/settings/api';
 
 type LoadState = PublicOrderDetail | null | 'not_found';
+
+type BusinessIdentity = { name: string; tagline: string | null; whatsapp: string | null };
 
 export function OrderConfirmationPage() {
   const { slug = '' } = useParams<{ slug: string }>();
   const [params] = useSearchParams();
   const ref = params.get('ref') ?? '';
   const [data, setData] = useState<LoadState>(null);
+  const [business, setBusiness] = useState<BusinessIdentity | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    getPublicBusinessIdentity()
+      .then((b) => {
+        if (alive) setBusiness(b);
+      })
+      .catch(() => {
+        // Graceful fallback — name renders empty/skeleton, footer hidden.
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -61,7 +78,7 @@ export function OrderConfirmationPage() {
     `/order/${slug}?name=${encodeURIComponent(customer.name)}` +
     `&phone=${encodeURIComponent(customer.phone)}`;
 
-  const businessWa = BUSINESS_INFO.whatsapp;
+  const businessWa = business?.whatsapp ?? null;
   const businessWaDigits = businessWa
     ? businessWa.replace(/[^0-9]/g, '').replace(/^91/, '')
     : null;
@@ -70,7 +87,9 @@ export function OrderConfirmationPage() {
     <div className="min-h-screen bg-paper-surface">
       {/* Sticky orange header band — matches PublicOrderFormPage */}
       <header className="sticky top-0 z-10 bg-brand-orange px-4 py-3 text-white">
-        <h1 className="text-title font-bold">Crunchies</h1>
+        <h1 className="text-title font-bold">
+          {business ? business.name : <span className="opacity-0">…</span>}
+        </h1>
         <p className="text-body-sm opacity-90">
           {event.name} · {formatDateRange(event.starts_on, event.ends_on)}
         </p>
