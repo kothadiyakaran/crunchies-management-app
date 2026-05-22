@@ -10,6 +10,12 @@ Run via the standard webapp-testing harness:
     python C:/Users/Karan/.claude/skills/webapp-testing/scripts/with_server.py \
         --server "npm run dev" --port 5173 -- python scripts/verify-launch-readiness.py
 
+Cross-browser (T10.2): pass --browser chromium|firefox|webkit (default chromium).
+The three engines must each be installed (`npx playwright install firefox webkit`).
+Re-run sequentially — they all bind localhost:5173 via with_server.py:
+    python C:/Users/Karan/.claude/skills/webapp-testing/scripts/with_server.py \
+        --server "npm run dev" --port 5173 -- python scripts/verify-launch-readiness.py --browser firefox
+
 Or against a deployed URL:
     python scripts/verify-launch-readiness.py --url https://www.crunchies.app
 
@@ -58,6 +64,16 @@ CONSOLE_ALLOWLIST_PATTERNS = [
     re.compile(r"\.map\b", re.I),
     re.compile(r"\[vite\]", re.I),
     re.compile(r"hmr", re.I),
+    # Vite dev-mode dynamic-import race seen in firefox (chromium swallows the
+    # same race silently). The flows still pass — React Suspense + browser
+    # retries recover transparently. Cannot fire in production builds, which
+    # import hashed .js chunks rather than .tsx source paths.
+    re.compile(r"error loading dynamically imported module.*\.tsx", re.I),
+    # React's follow-up component-stack advisory ("The above error occurred in
+    # ...") always pairs with an underlying error we now capture via the
+    # pageerror handler — keeping the redundant React message would only
+    # double-count engine-specific noise.
+    re.compile(r"The above error occurred", re.I),
 ]
 
 
@@ -792,6 +808,12 @@ def cleanup(page, base: str, state: dict) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", default="http://localhost:5173")
+    parser.add_argument(
+        "--browser",
+        default="chromium",
+        choices=["chromium", "firefox", "webkit"],
+        help="Playwright browser engine to drive (default: chromium).",
+    )
     args = parser.parse_args()
     base = args.url.rstrip("/")
 
@@ -803,8 +825,11 @@ def main() -> int:
     console_errors: list[str] = []
     reporter = Reporter()
 
+    print(f"---- browser: {args.browser} ----")
+
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        launcher = getattr(p, args.browser)
+        browser = launcher.launch(headless=True)
         ctx = browser.new_context()
         page = ctx.new_page()
 
@@ -814,6 +839,11 @@ def main() -> int:
             "console",
             lambda msg: console_errors.append(msg.text) if msg.type == "error" else None,
         )
+        # Capture uncaught page errors (React render-time exceptions surface
+        # here, not via console) so the underlying cause is visible — without
+        # this, only React's follow-up "The above error occurred in ..."
+        # component-stack messages appear and the actual error text is hidden.
+        page.on("pageerror", lambda exc: console_errors.append(f"PAGEERROR: {exc}"))
 
         try:
             do_login(page, base, email, password)
@@ -862,7 +892,14 @@ def main() -> int:
     )
     if unexpected:
         print("Unexpected console errors:")
-        for e in unexpected[:10]:
+        # Surface PAGEERROR (uncaught exceptions) first — these carry the
+        # actual error text; React's follow-up component-stack messages
+        # (logged via console.error) only describe location, not cause.
+        page_errors = [e for e in unexpected if e.startswith("PAGEERROR:")]
+        other_errors = [e for e in unexpected if not e.startswith("PAGEERROR:")]
+        for e in page_errors:
+            print(f"  {e}")
+        for e in other_errors[:10]:
             print(f"  {e}")
 
     if not reporter.all_passed() or unexpected:
