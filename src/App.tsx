@@ -10,6 +10,7 @@ import { BatchEntryPage } from '@/features/orders/BatchEntryPage';
 import { OrderDetailPage } from '@/features/orders/OrderDetailPage';
 import { EditOrderPage } from '@/features/orders/EditOrderPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
+import { AddCustomerPage } from '@/features/customers/AddCustomerPage';
 import { ProductionPage } from '@/features/production/ProductionPage';
 import { LogProductionPage } from '@/features/production/LogProductionPage';
 import { EditLogProductionPage } from '@/features/production/EditLogProductionPage';
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/orders/:id" element={<OrderDetailPage />} />
           <Route path="/orders/:id/edit" element={<EditOrderPage />} />
           <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/customers/new" element={<AddCustomerPage />} />
           <Route path="/production" element={<ProductionPage />} />
           <Route path="/production/new" element={<LogProductionPage />} />
           <Route path="/production/plan-this-week" element={<PlanWeekPage />} />
