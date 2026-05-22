@@ -106,6 +106,16 @@ Captures `scripts/screenshots/sprint6-{customers-list,customer-detail,add-custom
 
 ---
 
+## Post-implementation fixes (commit `4b5f84c`)
+
+The advisor reviewing the closed sprint flagged two spec deviations that landed as a follow-up commit before declaring Sprint 6 truly done:
+
+1. **`+ Log new order` did not pre-fill the customer.** Spec §8.2 explicitly writes the action as *"+ Log new order (pre-fills customer)"*. The original implementation dropped mom on `/orders/new` with an empty customer picker — exactly the friction the spec phrase forbids. Fix: added `getCustomerLite(id)` to `customers/api.ts`; `AddOrderPage` reads `?customer_id=` via `useSearchParams` and hydrates the customer slot (auto-advancing the accordion past the customer step); `CustomerDetailPage`'s Link became `/orders/new?customer_id=${id}`.
+
+2. **Archived customers bypassed dup-on-phone detection.** `findCustomerByPhone` filtered `.eq('active', true)`, so adding a customer with a phone number she had previously archived silently inserted a duplicate row instead of surfacing the modal. Spec §10 (exhibition form) explicitly auto-reactivates archived matches; §8's standalone-add flow should follow the same logic for the same reason — the system heals the state automatically rather than surfacing a "this was archived" UI. Fix: dropped the `active = true` filter from the query (so archived rows surface in the dup modal), extended the return type to include `active`, widened `AddCustomerPage`'s dup state, and made `onUseExisting` reactivate the matched row via `updateCustomer(id, { active: true })` before navigating. `updateCustomer`'s patch type was extended with `active?: boolean` to support this. Two new unit tests cover the archived-match path and the updated single-`.eq` query chain.
+
+The browser smoke (`scripts/verify-customer-flow.py`) re-ran clean against the fixed code; full suite 90 tests across 17 files.
+
 ## Open items carrying into Sprint 7+
 
 - **Source-event dropdown on AddCustomerPage.** Sprint 7 wires the events table; until then `source_event_id: null` on every new customer. Auto-set when channel is `Exhibition` and an active event exists is a Sprint 7 step.
