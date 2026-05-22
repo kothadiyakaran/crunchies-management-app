@@ -1,5 +1,19 @@
+import { vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          gt: () => Promise.resolve({ count: 0, error: null }),
+        }),
+      }),
+    }),
+  },
+}));
+
 import { BottomNav } from './BottomNav';
 
 function renderAt(path: string) {
