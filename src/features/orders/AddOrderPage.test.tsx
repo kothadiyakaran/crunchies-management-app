@@ -141,4 +141,38 @@ describe('AddOrderPage in edit mode', () => {
     // Save button label flips to "Save changes"
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
   });
+
+  it('save in edit mode calls updateOrder + updateOrderItems with hydrated values', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AddOrderPage editingOrderId="o1" />
+      </MemoryRouter>,
+    );
+    // Wait for hydration — the customer name appearing in the summary signals
+    // getOrderDetail resolved and all fields have been populated into state.
+    await waitFor(() => expect(screen.getByText('Sunita')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(updateOrder).toHaveBeenCalledTimes(1));
+    expect(updateOrder).toHaveBeenCalledWith(
+      'o1',
+      expect.objectContaining({
+        customer_id: 'c1',
+        source: 'whatsapp',
+        ordered_at: '2026-05-20T12:00:00+05:30',
+        target_fulfilment_date: '2026-05-22',
+        payment_status: 'unpaid',
+        notes: 'leave at door',
+      }),
+    );
+    expect(updateOrderItems).toHaveBeenCalledTimes(1);
+    expect(updateOrderItems).toHaveBeenCalledWith(
+      'o1',
+      expect.arrayContaining([
+        expect.objectContaining({ product_id: 'p1', qty: 2, unit_price: 200 }),
+      ]),
+    );
+  });
 });

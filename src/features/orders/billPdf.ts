@@ -19,28 +19,30 @@ export type BillInput = {
 };
 
 export type BuildBillOpts = {
-  /** Base64-encoded NotoSans-Regular.ttf. When provided, the PDF uses ₹.
-   *  When omitted (e.g. unit tests), falls back to "Rs." + Helvetica. */
-  fontBase64?: string;
+  /** Base64-encoded NotoSans TTFs. When provided, the PDF uses ₹ and proper
+   *  bold weight for headings/totals/stamps. When omitted (e.g. unit tests),
+   *  falls back to "Rs." + Helvetica (no bold synthesis either). */
+  fontBase64?: { regular: string; bold: string };
 };
 
-/** Lazy-loaded singleton — fetched once per session, on first bill render. */
-let _notoCache: Promise<string> | null = null;
-export function loadNotoSansBase64(): Promise<string> {
+/** Lazy-loaded singleton — both font weights fetched in parallel on first bill render. */
+let _notoCache: Promise<{ regular: string; bold: string }> | null = null;
+export function loadNotoSansBase64(): Promise<{ regular: string; bold: string }> {
   if (!_notoCache) {
-    _notoCache = fetch('/fonts/NotoSans-Regular.ttf')
-      .then((r) => {
-        if (!r.ok) throw new Error(`font load failed: ${r.status}`);
-        return r.arrayBuffer();
-      })
-      .then((buf) => {
-        const bytes = new Uint8Array(buf);
-        let binary = '';
-        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]!);
-        return btoa(binary);
-      });
+    _notoCache = Promise.all([fetchAsBase64('/fonts/NotoSans-Regular.ttf'), fetchAsBase64('/fonts/NotoSans-Bold.ttf')])
+      .then(([regular, bold]) => ({ regular, bold }));
   }
   return _notoCache;
+}
+
+async function fetchAsBase64(url: string): Promise<string> {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`font load failed: ${url} ${r.status}`);
+  const buf = await r.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]!);
+  return btoa(binary);
 }
 
 /** Public helper, exported for unit tests. */
@@ -74,11 +76,13 @@ export function buildBillPdf(input: BillInput, business: BusinessInfo, opts: Bui
   // modal still degrades gracefully because it wraps loadNotoSansBase64() in
   // .catch(() => undefined).
   let fontHasRupee = false;
-  if (opts.fontBase64 && opts.fontBase64.length >= 1000) {
+  const both = opts.fontBase64;
+  if (both && both.regular.length >= 1000 && both.bold.length >= 1000) {
     try {
-      pdf.addFileToVFS('NotoSans-Regular.ttf', opts.fontBase64);
+      pdf.addFileToVFS('NotoSans-Regular.ttf', both.regular);
       pdf.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
-      pdf.addFont('NotoSans-Regular.ttf', 'NotoSans', 'bold'); // re-use regular as bold fallback; replace with bold TTF if mom dislikes weight
+      pdf.addFileToVFS('NotoSans-Bold.ttf', both.bold);
+      pdf.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
       pdf.setFont('NotoSans', 'normal');
       fontHasRupee = true;
     } catch {

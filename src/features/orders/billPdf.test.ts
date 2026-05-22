@@ -63,7 +63,7 @@ describe('buildBillPdf', () => {
     // Real base64 would be ~700KB; a stub will fail addFont parsing internally.
     // The generator catches the failure and falls back to helvetica — verify
     // it still produces a valid PDF rather than throwing.
-    const pdf = buildBillPdf(baseInput, business, { fontBase64: 'STUB' });
+    const pdf = buildBillPdf(baseInput, business, { fontBase64: { regular: 'STUB', bold: 'STUB' } });
     expect(pdf.output('blob')).toBeInstanceOf(Blob);
   });
 
