@@ -9,6 +9,8 @@ import {
 } from './api';
 import { formatINR } from './orderFormatters';
 import { BillPreviewModal } from './BillPreviewModal';
+import { ComplaintSheet } from './ComplaintSheet';
+import { listComplaintsForOrder, type ComplaintRow } from './complaintsApi';
 
 export function OrderDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
@@ -17,6 +19,8 @@ export function OrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const [billOpen, setBillOpen] = useState(false);
+  const [complaints, setComplaints] = useState<ComplaintRow[]>([]);
+  const [complaintSheet, setComplaintSheet] = useState<{ existing: ComplaintRow | null } | null>(null);
 
   async function load() {
     try {
@@ -26,6 +30,7 @@ export function OrderDetailPage() {
         return;
       }
       setOrder(o);
+      setComplaints(await listComplaintsForOrder(id));
     } catch (e) {
       setError((e as Error).message);
     }
@@ -133,6 +138,31 @@ export function OrderDetailPage() {
 
       {error && <p className="mt-4 text-body-sm text-status-danger-fg">{error}</p>}
 
+      {complaints.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-subtitle text-ink-900">Complaints</h2>
+          <ul className="mt-2 space-y-2">
+            {complaints.map((c) => (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  onClick={() => setComplaintSheet({ existing: c })}
+                  className="block w-full rounded-card bg-paper-elevated p-3 text-left"
+                >
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-body font-semibold text-ink-900">{c.kind.replace('_', ' ')}</span>
+                    <span className="text-body-sm text-ink-500">
+                      {c.reported_at}{c.resolved_at ? ' · resolved' : ' · open'}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-body-sm text-ink-700">{c.description}</p>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="mt-8 space-y-2">
         {!fulfilled && (
           <button
@@ -163,10 +193,10 @@ export function OrderDetailPage() {
         </button>
         <button
           type="button"
-          disabled
-          className="h-11 w-full rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-500"
+          onClick={() => setComplaintSheet({ existing: null })}
+          className="h-11 w-full rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-900"
         >
-          Log complaint (Sprint 5)
+          Log complaint
         </button>
         <button
           type="button"
@@ -195,6 +225,14 @@ export function OrderDetailPage() {
           order={order}
           onClose={() => setBillOpen(false)}
           onAllocated={() => load()}
+        />
+      )}
+      {complaintSheet && (
+        <ComplaintSheet
+          orderId={id}
+          existing={complaintSheet.existing}
+          onClose={() => setComplaintSheet(null)}
+          onSaved={() => load()}
         />
       )}
     </div>
