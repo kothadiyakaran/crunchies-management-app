@@ -8,6 +8,8 @@ import {
   listChannels,
   updateCustomer,
 } from './api';
+import { listInProgressExhibitions } from '@/features/events/api';
+import type { EventRow } from '@/features/events/api';
 
 const SIZES: { value: 'small' | 'large' | null; label: string }[] = [
   { value: null, label: '—' },
@@ -23,6 +25,8 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
   const [channelName, setChannelName] = useState<string>('');
   const [sizeTier, setSizeTier] = useState<'small' | 'large' | null>(null);
   const [notes, setNotes] = useState('');
+  const [sourceEventId, setSourceEventId] = useState<string | null>(null);
+  const [exhibitionEvents, setExhibitionEvents] = useState<EventRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dupExisting, setDupExisting] = useState<{ id: string; name: string; active: boolean } | null>(null);
@@ -45,6 +49,7 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
         setChannelId(c.channel_id);
         setSizeTier(c.size_tier);
         setNotes(c.notes ?? '');
+        setSourceEventId(c.source_event_id);
       } catch (e) {
         setError((e as Error).message);
       }
@@ -52,6 +57,17 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
   }, [editingCustomerId]);
 
   const channelLower = channelName.trim().toLowerCase();
+
+  // Fetch in-progress exhibition events when channel = Exhibition.
+  useEffect(() => {
+    if (channelLower !== 'exhibition') {
+      setExhibitionEvents([]);
+      return;
+    }
+    listInProgressExhibitions()
+      .then(setExhibitionEvents)
+      .catch(() => setExhibitionEvents([])); // silent — non-blocking
+  }, [channelLower]);
   const phoneRequired = channelLower !== 'exhibition'; // spec §8 "phone optional for exhibition only"
   const phoneOk = !phoneRequired || phone.trim().length > 0;
   const canSubmit = name.trim().length > 0 && channelId !== null && phoneOk && !submitting;
@@ -74,6 +90,7 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
         phone: trimmedPhone,
         channel_id: channelId!,
         size_tier: sizeTier,
+        source_event_id: sourceEventId,
         notes: notes.trim() || null,
       });
       navigate(`/customers/${editingCustomerId}`);
@@ -83,7 +100,7 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
         phone: trimmedPhone,
         channel_id: channelId!,
         size_tier: sizeTier,
-        source_event_id: null, // Sprint 7 wires the events dropdown
+        source_event_id: sourceEventId,
         notes: notes.trim() || null,
       });
       navigate(`/customers/${id}`);
@@ -165,6 +182,22 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
             <ChannelChipPicker value={channelId} onChange={setChannelId} />
           </div>
         </div>
+
+        {channelLower === 'exhibition' && exhibitionEvents.length > 0 && (
+          <label className="block">
+            <span className={labelSpan}>Source event (optional)</span>
+            <select
+              className={`${inputClass} bg-paper-elevated`}
+              value={sourceEventId ?? ''}
+              onChange={(e) => setSourceEventId(e.target.value || null)}
+            >
+              <option value="">— Not from an event —</option>
+              {exhibitionEvents.map((ev) => (
+                <option key={ev.id} value={ev.id}>{ev.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <div>
           <span className={labelSpan}>Size tier (optional)</span>
