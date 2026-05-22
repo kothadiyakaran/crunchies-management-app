@@ -1,0 +1,5 @@
+customer_name,customer_phone,customer_channel,ordered_on,product_name,qty,unit_price,payment_status,target_fulfilment_date,notes
+Sunita Patil,9876543210,Personal,2024-12-10,Laddu box,2,200,paid,2024-12-12,Diwali order
+Sunita Patil,9876543210,Personal,2024-12-10,Chivda,1,150,paid,2024-12-12,
+Anil Sharma,9123456789,Reseller,2025-01-05,Chakli,5,120,unpaid,2025-01-07,For shop
+Meera Joshi,9988776655,Personal,2025-02-14,Laddu box,1,200,partial,,
