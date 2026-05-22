@@ -8,6 +8,7 @@ import {
   type OrderDetailRow,
 } from './api';
 import { formatINR } from './orderFormatters';
+import { BillPreviewModal } from './BillPreviewModal';
 
 export function OrderDetailPage() {
   const { id = '' } = useParams<{ id: string }>();
@@ -15,6 +16,7 @@ export function OrderDetailPage() {
   const [order, setOrder] = useState<OrderDetailRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
+  const [billOpen, setBillOpen] = useState(false);
 
   async function load() {
     try {
@@ -154,10 +156,10 @@ export function OrderDetailPage() {
         )}
         <button
           type="button"
-          disabled
-          className="h-11 w-full rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-500"
+          onClick={() => setBillOpen(true)}
+          className="h-11 w-full rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-900"
         >
-          Generate bill (Sprint 5)
+          Generate bill{order.bill_number ? ` (#${order.bill_number})` : ''}
         </button>
         <button
           type="button"
@@ -188,6 +190,13 @@ export function OrderDetailPage() {
           ← Back to orders
         </Link>
       </p>
+      {billOpen && (
+        <BillPreviewModal
+          order={order}
+          onClose={() => setBillOpen(false)}
+          onAllocated={() => load()}
+        />
+      )}
     </div>
   );
 }
