@@ -9,6 +9,7 @@ function makeOrder(over: Partial<OrderListItem> = {}): OrderListItem {
     ordered_at: '2026-05-20T08:42:00+05:30',
     fulfilled_at: null,
     payment_status: 'unpaid',
+    paid_at: null,
     target_fulfilment_date: null,
     notes: null,
     source: 'whatsapp',
