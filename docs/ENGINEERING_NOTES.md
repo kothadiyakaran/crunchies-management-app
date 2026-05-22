@@ -256,7 +256,7 @@ All three review items are resolved:
 2. ✅ **Products setup screen** — confirmed Option A (build from `v1-spec.md` §2 + brand tokens during Sprint 2; flag for design review at mid-fi). No design-team pause required.
 3. ✅ **Sprint sequence locked.** Step 7 (Bill PDF) is folded into Sprint 4 (Order lens part 2) since the order-detail screen and bill generation ship together. Otherwise the order in §5 above stands.
 
-**Phase 1 status (2026-05-22):** Sprints 0–7 complete and deployed to `https://www.crunchies.app`. Detail (deliverables, test counts, decisions) lives in `CLAUDE.md` under "Phase 1 status" and in `docs/decisions/*-architecture-decisions.md`. Sprint 8 (Reports — Week / Month / Trends tabs) is the next coding move; the next review checkpoint is at the close of the Sprint 7+8 pair per the agreed three-pair structure.
+**Phase 1 status (2026-05-22):** Sprints 0–8 complete and deployed to `https://www.crunchies.app`. Detail (deliverables, test counts, decisions) lives in `CLAUDE.md` under "Phase 1 status" and in `docs/decisions/*-architecture-decisions.md`. Sprint 9 (Settings + onboarding + polish + algorithm event-uplift wire-up) is the next coding move; the close of the Sprint 7+8 pair is the next review checkpoint per the agreed three-pair structure.
 
 > **Note on stale sprint numbers in §3-§5 above:** earlier subsections of this document were written during the design handoff and use an older sprint-numbering snapshot. The authoritative current sequence lives in `v1-spec.md` §14: Sprint 5 is Order lens part 2 (bill / complaint / batch), Sprint 6 is Customer lens, Sprint 7 is Events + exhibition form. Treat any sprint-number-by-feature reference in this doc as historical; cross-check against `v1-spec.md` §14 before acting on it.
 
