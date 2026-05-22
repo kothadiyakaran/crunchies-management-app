@@ -333,6 +333,7 @@ export async function updateCustomer(
     size_tier: 'small' | 'large' | null;
     source_event_id: string | null;
     notes: string | null;
+    active: boolean;
   }>,
 ): Promise<void> {
   const { error } = await supabase.from('customers').update(patch).eq('id', id);
@@ -360,14 +361,16 @@ export async function bumpLastContacted(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-export async function findCustomerByPhone(phone: string): Promise<{ id: string; name: string } | null> {
+export async function findCustomerByPhone(phone: string): Promise<{ id: string; name: string; active: boolean } | null> {
   const trimmed = phone.trim();
   if (!trimmed) return null;
+  // Includes archived rows so the dup-modal can surface a "reactivate" path —
+  // mirrors §10's exhibition-form auto-reactivation behaviour. Filtering by
+  // `active = true` here would silently allow phone duplication.
   const { data, error } = await supabase
     .from('customers')
-    .select('id, name')
+    .select('id, name, active')
     .eq('phone', trimmed)
-    .eq('active', true)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data ?? null;
@@ -389,4 +392,15 @@ export async function createChannel(name: string): Promise<{ id: string; name: s
     throw new Error(error?.message ?? 'channel insert failed');
   }
   return data;
+}
+
+/** Lite fetch for the Order form's customer picker pre-fill. */
+export async function getCustomerLite(id: string): Promise<{ id: string; name: string; phone: string | null } | null> {
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id, name, phone')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ?? null;
 }

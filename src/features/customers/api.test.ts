@@ -44,15 +44,29 @@ describe('findCustomerByPhone', () => {
     expect(fromMock).not.toHaveBeenCalled();
   });
 
-  it('passes trimmed phone to .eq() and returns match', async () => {
-    const maybeSingle = vi.fn().mockResolvedValueOnce({ data: { id: 'c1', name: 'Sunita' }, error: null });
-    const eqActive = vi.fn(() => ({ maybeSingle }));
-    const eqPhone = vi.fn(() => ({ eq: eqActive }));
-    const select = vi.fn(() => ({ eq: eqPhone }));
+  it('passes trimmed phone to .eq() (without active filter — see fix-up) and returns match', async () => {
+    const maybeSingle = vi.fn().mockResolvedValueOnce({
+      data: { id: 'c1', name: 'Sunita', active: true },
+      error: null,
+    });
+    const eq = vi.fn(() => ({ maybeSingle }));
+    const select = vi.fn(() => ({ eq }));
     fromMock.mockReturnValueOnce({ select });
     const out = await findCustomerByPhone(' 9876543210 ');
-    expect(out).toEqual({ id: 'c1', name: 'Sunita' });
-    expect(eqPhone).toHaveBeenCalledWith('phone', '9876543210');
+    expect(out).toEqual({ id: 'c1', name: 'Sunita', active: true });
+    expect(eq).toHaveBeenCalledWith('phone', '9876543210');
+  });
+
+  it('returns archived (active=false) matches so the dup modal can reactivate', async () => {
+    const maybeSingle = vi.fn().mockResolvedValueOnce({
+      data: { id: 'c-archived', name: 'Old Sunita', active: false },
+      error: null,
+    });
+    const eq = vi.fn(() => ({ maybeSingle }));
+    const select = vi.fn(() => ({ eq }));
+    fromMock.mockReturnValueOnce({ select });
+    const out = await findCustomerByPhone('9876543210');
+    expect(out).toEqual({ id: 'c-archived', name: 'Old Sunita', active: false });
   });
 });
 

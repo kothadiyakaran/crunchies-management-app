@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CustomerSearchPicker } from './CustomerSearchPicker';
 import { createOrderWithItems, getOrderDetail, updateOrder, updateOrderItems, type OrderItemInput, type OrderRow } from './api';
 import { listActiveProducts, type ProductRow } from '@/features/products/api';
+import { getCustomerLite } from '@/features/customers/api';
 import { todayInTz } from '@/lib/utils';
 
 type Customer = { id: string; name: string; phone: string | null };
@@ -15,6 +16,7 @@ const PAYMENT_STATUSES: OrderRow['payment_status'][] = ['unpaid', 'paid', 'parti
 
 export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {}) {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [source, setSource] = useState<OrderRow['source']>('whatsapp');
@@ -59,6 +61,24 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
       }
     })();
   }, [editingOrderId]);
+
+  useEffect(() => {
+    if (editingOrderId) return; // edit-mode hydration owns this
+    const prefilledId = params.get('customer_id');
+    if (!prefilledId || customer) return;
+    (async () => {
+      try {
+        const c = await getCustomerLite(prefilledId);
+        if (c) {
+          setCustomer(c);
+          setExpandedStep('items'); // skip past the customer step since it's done
+        }
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, editingOrderId]);
 
   function handleCustomer(c: Customer) {
     if (c.id === '') {

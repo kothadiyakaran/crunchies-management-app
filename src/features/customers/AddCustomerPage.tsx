@@ -25,7 +25,7 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [dupExisting, setDupExisting] = useState<{ id: string; name: string } | null>(null);
+  const [dupExisting, setDupExisting] = useState<{ id: string; name: string; active: boolean } | null>(null);
 
   // Resolve channel name from id for phone-required-by-channel logic
   useEffect(() => {
@@ -107,6 +107,15 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
     if (!dupExisting) return;
     const id = dupExisting.id;
     setDupExisting(null);
+    // Reactivate if archived — see §10 exhibition-form behaviour + ADR-26.
+    if (!dupExisting.active) {
+      try {
+        await updateCustomer(id, { active: true });
+      } catch (e) {
+        setError((e as Error).message);
+        return;
+      }
+    }
     navigate(`/customers/${id}`);
   }
 

@@ -131,7 +131,7 @@ export function CustomerDetailPage() {
 
       <section className="mt-6 space-y-2">
         <Link
-          to={`/orders/new`}
+          to={`/orders/new?customer_id=${id}`}
           className="block h-11 w-full rounded-btn bg-brand-orange text-center text-body font-semibold leading-[44px] text-white"
         >
           + Log new order
