@@ -47,6 +47,16 @@ export function OrdersPage() {
         </Link>
       </header>
 
+      <div className="mt-2 flex gap-2 text-body-sm">
+        <span className="rounded-pill bg-paper-muted px-3 py-1 text-ink-900">Browse</span>
+        <Link
+          to="/orders/batch"
+          className="rounded-pill px-3 py-1 text-ink-500 underline"
+        >
+          Batch entry
+        </Link>
+      </div>
+
       <input
         type="search"
         placeholder="Search customer name"

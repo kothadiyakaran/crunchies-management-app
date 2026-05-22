@@ -6,6 +6,7 @@ import { AppShell } from '@/components/AppShell';
 import { TodayPage } from '@/features/today/TodayPage';
 import { OrdersPage } from '@/features/orders/OrdersPage';
 import { AddOrderPage } from '@/features/orders/AddOrderPage';
+import { BatchEntryPage } from '@/features/orders/BatchEntryPage';
 import { OrderDetailPage } from '@/features/orders/OrderDetailPage';
 import { EditOrderPage } from '@/features/orders/EditOrderPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/today" element={<TodayPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/orders/new" element={<AddOrderPage />} />
+          <Route path="/orders/batch" element={<BatchEntryPage />} />
           <Route path="/orders/:id" element={<OrderDetailPage />} />
           <Route path="/orders/:id/edit" element={<EditOrderPage />} />
           <Route path="/customers" element={<CustomersPage />} />
