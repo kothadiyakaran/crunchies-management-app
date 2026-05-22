@@ -1,3 +1,8 @@
+export type EventSource = {
+  event_name: string;
+  qty: number;
+};
+
 export type AlgorithmInput = {
   weekStart: string;
   products: { id: string; name: string; unit: string; is_seasonal: boolean; is_aggregated: boolean }[];
@@ -6,6 +11,21 @@ export type AlgorithmInput = {
   producedQty: Record<string, number>;
   seedQty: Record<string, number>;
   firstOrderedAt: Record<string, string>;
+  /**
+   * Per-product total event uplift contribution this week, summed across all
+   * touching events. Required — pass `{}` for "no events touch this week".
+   * See §11 spec: event_uplift(P, W).
+   */
+  eventUplift: Record<string, number>;
+  /**
+   * Per-product list of contributing events with their individual per-week
+   * uplift contribution. Used to populate row subtitle ("includes ramp-up
+   * for X"). Required — pass `{}` when no events contribute. Sorted desc by
+   * qty so consumers can pick the most-contributing event with
+   * `event_sources[0]`. (Sort is enforced by the algorithm regardless of
+   * input order.)
+   */
+  eventSources: Record<string, EventSource[]>;
 };
 
 export type ProductionWeekRow = {
@@ -22,6 +42,10 @@ export type ProductionWeekRow = {
   suggested: number;
   uses_seed: boolean;
   needs_seed: boolean;
+  /** Total event uplift contribution this week (summed across touching events). */
+  event_uplift: number;
+  /** Contributing events sorted desc by per-week contribution. */
+  event_sources: EventSource[];
 };
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -48,12 +72,24 @@ export function computeProductionWeek(input: AlgorithmInput): ProductionWeekRow[
     const weeks_of_history = first ? weeksBetween(first, input.weekStart) : 0;
     const committed_qty = input.committedDemand[p.id] ?? 0;
     const produced_qty = input.producedQty[p.id] ?? 0;
+    const event_uplift = round1(input.eventUplift[p.id] ?? 0);
+    // Defensive copy + sort: spec invariant (f) — event_sources sorted desc by qty.
+    const event_sources: EventSource[] = (input.eventSources[p.id] ?? [])
+      .map((s) => ({ event_name: s.event_name, qty: s.qty }))
+      .sort((a, b) => b.qty - a.qty);
 
-    const base = p.is_seasonal
+    // Per §11: base = (rolling_avg | seed) + event_uplift.
+    //   - is_seasonal=true → seed-based regardless of history
+    //   - <4w history       → seed-based
+    //   - else              → rolling_avg-based
+    // Missing seed treated as 0 (mom hasn't seeded yet); needs_seed flag fires
+    // separately. event_uplift is additive in all branches.
+    const baseline = p.is_seasonal
       ? seed_qty ?? 0
       : weeks_of_history >= 4
       ? rolling_avg
       : seed_qty ?? 0;
+    const base = round1(baseline + event_uplift);
 
     const suggested = round1(Math.max(0, Math.max(base, committed_qty) - produced_qty));
     const uses_seed = p.is_seasonal || weeks_of_history < 4;
@@ -73,6 +109,8 @@ export function computeProductionWeek(input: AlgorithmInput): ProductionWeekRow[
       suggested,
       uses_seed,
       needs_seed,
+      event_uplift,
+      event_sources,
     });
   }
   rows.sort((a, b) => {

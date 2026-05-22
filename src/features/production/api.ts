@@ -2,9 +2,77 @@ import { supabase } from '@/lib/supabase';
 import { todayInTz } from '@/lib/utils';
 import { weekStartFor } from '@/lib/week';
 import { listAllSeedDemand } from '@/features/products/api';
-import { computeProductionWeek, type AlgorithmInput, type ProductionWeekRow } from './algorithm';
+import {
+  computeProductionWeek,
+  type AlgorithmInput,
+  type EventSource,
+  type ProductionWeekRow,
+} from './algorithm';
 
 export type { ProductionWeekRow } from './algorithm';
+
+/**
+ * Pure helper: given a week and a list of (event, event_demand_rows) tuples,
+ * compute per-product uplift totals + per-product contributing-event lists.
+ *
+ * An event "touches" the week when:
+ *     (starts_on - lead_weeks*7 days) < weekEnd  AND  ends_on >= weekStart
+ *
+ * Per-week contribution from a touching event E to product P:
+ *     event_demand(E, P).expected_qty / (E.lead_weeks + 1)
+ *
+ * Even split across prep weeks + event week per §11. (For a multi-week event,
+ * uplift fires every prep week AND every event week, so total contribution
+ * across the lifecycle can exceed expected_qty — that's per spec, not a bug.)
+ *
+ * Inactive events (`active=false`) should be filtered upstream; this helper
+ * does not re-check. Aggregated products are handled by the algorithm step.
+ */
+export function computeEventUplift(
+  weekStart: string, // YYYY-MM-DD (Monday)
+  touchingEvents: {
+    id: string;
+    name: string;
+    starts_on: string;
+    ends_on: string;
+    lead_weeks: number;
+    demand: { product_id: string; expected_qty: number }[];
+  }[],
+): { eventUplift: Record<string, number>; eventSources: Record<string, EventSource[]> } {
+  const weekStartMs = new Date(`${weekStart}T00:00:00Z`).getTime();
+  const weekEndMs = weekStartMs + 7 * 24 * 60 * 60 * 1000;
+  const weekEnd = new Date(weekEndMs).toISOString().slice(0, 10);
+
+  const eventUplift: Record<string, number> = {};
+  const eventSources: Record<string, EventSource[]> = {};
+
+  for (const ev of touchingEvents) {
+    const startsMs = new Date(`${ev.starts_on}T00:00:00Z`).getTime();
+    const startMinusLeadMs = startsMs - ev.lead_weeks * 7 * 24 * 60 * 60 * 1000;
+    const startMinusLead = new Date(startMinusLeadMs).toISOString().slice(0, 10);
+    // Event touches week if its (starts - lead) is before weekEnd AND ends_on >= weekStart.
+    const touches = startMinusLead < weekEnd && ev.ends_on >= weekStart;
+    if (!touches) continue;
+
+    const divisor = ev.lead_weeks + 1;
+    for (const d of ev.demand) {
+      const expected = Number(d.expected_qty);
+      if (!expected) continue;
+      const perWeek = expected / divisor;
+      eventUplift[d.product_id] = (eventUplift[d.product_id] ?? 0) + perWeek;
+      if (!eventSources[d.product_id]) eventSources[d.product_id] = [];
+      eventSources[d.product_id]!.push({ event_name: ev.name, qty: perWeek });
+    }
+  }
+
+  // Algorithm re-sorts event_sources defensively, but sort here too so callers
+  // (and tests) see a consistent ordering.
+  for (const pid of Object.keys(eventSources)) {
+    eventSources[pid]!.sort((a, b) => b.qty - a.qty);
+  }
+
+  return { eventUplift, eventSources };
+}
 
 export type ProductionLogRow = {
   id: string;
@@ -135,6 +203,59 @@ export async function getProductionThisWeek(): Promise<ProductionWeekRow[]> {
 
   const seedQty = await listAllSeedDemand();
 
+  // --- §11 event_uplift -----------------------------------------------------
+  // Pull all active events whose window could possibly intersect this week
+  // (starts_on - lead_weeks*7 <= weekEnd AND ends_on >= weekStart). We
+  // approximate the lower bound by fetching everything with ends_on >= weekStart
+  // and refining in JS (`computeEventUplift` does the precise touches-check).
+  // At v1 scale (a handful of events) this is fine; the JS-side filter keeps
+  // the SQL trivially correct.
+  const { data: eventsRaw, error: evErr } = await supabase
+    .from('events')
+    .select('id, name, starts_on, ends_on, lead_weeks, active')
+    .eq('active', true)
+    .gte('ends_on', weekStart);
+  if (evErr) throw new Error(evErr.message);
+  type EvRow = {
+    id: string;
+    name: string;
+    starts_on: string;
+    ends_on: string;
+    lead_weeks: number;
+    active: boolean;
+  };
+  const allEvents = (eventsRaw ?? []) as EvRow[];
+
+  let eventUplift: Record<string, number> = {};
+  let eventSources: Record<string, EventSource[]> = {};
+  if (allEvents.length > 0) {
+    // Bulk-fetch event_demand for all candidate events in one round-trip.
+    const eventIds = allEvents.map((e) => e.id);
+    const { data: demandRaw, error: dmErr } = await supabase
+      .from('event_demand')
+      .select('event_id, product_id, expected_qty')
+      .in('event_id', eventIds);
+    if (dmErr) throw new Error(dmErr.message);
+    type DmRow = { event_id: string; product_id: string; expected_qty: number };
+    const demandRows = (demandRaw ?? []) as DmRow[];
+    const demandByEvent = new Map<string, { product_id: string; expected_qty: number }[]>();
+    for (const d of demandRows) {
+      if (!demandByEvent.has(d.event_id)) demandByEvent.set(d.event_id, []);
+      demandByEvent.get(d.event_id)!.push({ product_id: d.product_id, expected_qty: Number(d.expected_qty) });
+    }
+    const eventsForUplift = allEvents.map((e) => ({
+      id: e.id,
+      name: e.name,
+      starts_on: e.starts_on,
+      ends_on: e.ends_on,
+      lead_weeks: e.lead_weeks,
+      demand: demandByEvent.get(e.id) ?? [],
+    }));
+    const out = computeEventUplift(weekStart, eventsForUplift);
+    eventUplift = out.eventUplift;
+    eventSources = out.eventSources;
+  }
+
   const input: AlgorithmInput = {
     weekStart,
     products,
@@ -143,6 +264,8 @@ export async function getProductionThisWeek(): Promise<ProductionWeekRow[]> {
     producedQty,
     seedQty,
     firstOrderedAt,
+    eventUplift,
+    eventSources,
   };
   return computeProductionWeek(input);
 }
