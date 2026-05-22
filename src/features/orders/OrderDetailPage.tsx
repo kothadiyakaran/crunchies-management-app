@@ -198,13 +198,12 @@ export function OrderDetailPage() {
         >
           Log complaint
         </button>
-        <button
-          type="button"
-          disabled
-          className="h-11 w-full rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-500"
+        <Link
+          to={`/orders/${id}/edit`}
+          className="block h-11 w-full rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-900 text-center leading-[44px]"
         >
-          Edit order (Sprint 5)
-        </button>
+          Edit order
+        </Link>
         <button
           type="button"
           onClick={onDelete}

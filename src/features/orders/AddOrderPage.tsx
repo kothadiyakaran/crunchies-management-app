@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CustomerSearchPicker } from './CustomerSearchPicker';
-import { createOrderWithItems, type OrderItemInput, type OrderRow } from './api';
+import { createOrderWithItems, getOrderDetail, updateOrder, updateOrderItems, type OrderItemInput, type OrderRow } from './api';
 import { listActiveProducts, type ProductRow } from '@/features/products/api';
 import { todayInTz } from '@/lib/utils';
 
@@ -13,7 +13,7 @@ type StepKey = 'customer' | 'source' | 'date' | 'target' | 'items' | 'payment' |
 const SOURCES: OrderRow['source'][] = ['whatsapp', 'in_person', 'phone'];
 const PAYMENT_STATUSES: OrderRow['payment_status'][] = ['unpaid', 'paid', 'partial'];
 
-export function AddOrderPage() {
+export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {}) {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [products, setProducts] = useState<ProductRow[]>([]);
@@ -30,6 +30,35 @@ export function AddOrderPage() {
   useEffect(() => {
     listActiveProducts().then(setProducts).catch((e: Error) => setError(e.message));
   }, []);
+
+  useEffect(() => {
+    if (!editingOrderId) return;
+    (async () => {
+      try {
+        const o = await getOrderDetail(editingOrderId);
+        if (!o) {
+          setError('Order not found.');
+          return;
+        }
+        setCustomer({ id: o.customer_id, name: o.customer_name, phone: o.customer_phone });
+        setSource(o.source);
+        setOrderedAt(o.ordered_at.slice(0, 10));
+        setTargetDate(o.target_fulfilment_date ?? todayInTz());
+        setItems(
+          o.items.map((it) => ({
+            product_id: it.product_id,
+            qty: String(it.qty),
+            unit_price: String(it.unit_price),
+          })),
+        );
+        setPaymentStatus(o.payment_status);
+        setNotes(o.notes ?? '');
+        setExpandedStep('items'); // skip past pre-filled steps
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    })();
+  }, [editingOrderId]);
 
   function handleCustomer(c: Customer) {
     if (c.id === '') {
@@ -70,16 +99,29 @@ export function AddOrderPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await createOrderWithItems({
-        customer_id: customer.id,
-        source,
-        ordered_at: `${orderedAt}T12:00:00+05:30`,
-        target_fulfilment_date: targetDate,
-        payment_status: paymentStatus,
-        notes: notes.trim() || null,
-        items: itemsValid,
-      });
-      navigate('/orders');
+      if (editingOrderId) {
+        await updateOrder(editingOrderId, {
+          customer_id: customer.id,
+          source,
+          ordered_at: `${orderedAt}T12:00:00+05:30`,
+          target_fulfilment_date: targetDate,
+          payment_status: paymentStatus,
+          notes: notes.trim() || null,
+        });
+        await updateOrderItems(editingOrderId, itemsValid);
+        navigate(`/orders/${editingOrderId}`);
+      } else {
+        await createOrderWithItems({
+          customer_id: customer.id,
+          source,
+          ordered_at: `${orderedAt}T12:00:00+05:30`,
+          target_fulfilment_date: targetDate,
+          payment_status: paymentStatus,
+          notes: notes.trim() || null,
+          items: itemsValid,
+        });
+        navigate('/orders');
+      }
     } catch (e) {
       setError((e as Error).message);
       setSubmitting(false);
@@ -116,7 +158,7 @@ export function AddOrderPage() {
 
   return (
     <div>
-      <h1 className="text-title text-ink-900">Log new order</h1>
+      <h1 className="text-title text-ink-900">{editingOrderId ? 'Edit order' : 'Log new order'}</h1>
       <form onSubmit={onSubmit} className="mt-6 space-y-2">
         {/* Step 1: Customer */}
         <div className="rounded-card bg-paper-elevated">
@@ -306,7 +348,7 @@ export function AddOrderPage() {
           disabled={!canSubmit}
           className="h-11 w-full rounded-btn bg-brand-orange text-body font-semibold text-white disabled:opacity-50"
         >
-          {submitting ? 'Saving…' : 'Save'}
+          {submitting ? 'Saving…' : editingOrderId ? 'Save changes' : 'Save'}
         </button>
       </form>
     </div>

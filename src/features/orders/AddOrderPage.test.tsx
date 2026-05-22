@@ -8,9 +8,15 @@ const listActiveProducts = vi.fn();
 const searchCustomersByName = vi.fn();
 const listChannels = vi.fn();
 const createCustomerQuick = vi.fn();
+const getOrderDetail = vi.fn();
+const updateOrder = vi.fn();
+const updateOrderItems = vi.fn();
 
 vi.mock('@/features/orders/api', () => ({
   createOrderWithItems: (i: unknown) => createOrderWithItems(i),
+  getOrderDetail: (id: string) => getOrderDetail(id),
+  updateOrder: (id: string, patch: unknown) => updateOrder(id, patch),
+  updateOrderItems: (id: string, items: unknown) => updateOrderItems(id, items),
 }));
 vi.mock('@/features/products/api', () => ({
   listActiveProducts: () => listActiveProducts(),
@@ -41,7 +47,29 @@ beforeEach(() => {
   searchCustomersByName.mockReset();
   listChannels.mockReset();
   createCustomerQuick.mockReset();
+  getOrderDetail.mockReset();
+  updateOrder.mockReset();
+  updateOrderItems.mockReset();
   createOrderWithItems.mockResolvedValue('new-order-id');
+  updateOrder.mockResolvedValue(undefined);
+  updateOrderItems.mockResolvedValue(undefined);
+  getOrderDetail.mockResolvedValue({
+    id: 'o1',
+    customer_id: 'c1',
+    customer_name: 'Sunita',
+    customer_phone: '9999',
+    ordered_at: '2026-05-20T10:00:00+05:30',
+    source: 'whatsapp',
+    target_fulfilment_date: '2026-05-22',
+    payment_status: 'unpaid',
+    notes: 'leave at door',
+    bill_number: null,
+    fulfilled_at: null,
+    items: [
+      { id: 'i1', product_id: 'p1', product_name: 'Laddu', qty: 2, unit_price: 200, line_total: 400 },
+    ],
+    subtotal: 400,
+  });
   listActiveProducts.mockResolvedValue([
     { id: 'p1', name: 'Chivda', unit: '250g', default_price: 100 },
     { id: 'p2', name: 'Laddu', unit: 'box', default_price: 200 },
@@ -89,5 +117,28 @@ describe('AddOrderPage', () => {
     renderPage();
     const save = await screen.findByRole('button', { name: /^Save$/ });
     expect(save).toBeDisabled();
+  });
+});
+
+describe('AddOrderPage in edit mode', () => {
+  it('hydrates from getOrderDetail', async () => {
+    render(
+      <MemoryRouter>
+        <AddOrderPage editingOrderId="o1" />
+      </MemoryRouter>,
+    );
+    // Title flips to Edit
+    expect(await screen.findByRole('heading', { name: 'Edit order' })).toBeInTheDocument();
+    // Customer card shows hydrated name in summary
+    await waitFor(() => expect(screen.getByText('Sunita')).toBeInTheDocument());
+    // Target-date summary reflects hydrated value
+    expect(screen.getByText('2026-05-22')).toBeInTheDocument();
+    // Notes summary reflects hydrated value
+    expect(screen.getByText('leave at door')).toBeInTheDocument();
+    // Items step is expanded with the hydrated item's qty/price as inputs
+    expect(screen.getByLabelText('qty-0')).toHaveValue(2);
+    expect(screen.getByLabelText('price-0')).toHaveValue(200);
+    // Save button label flips to "Save changes"
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
   });
 });

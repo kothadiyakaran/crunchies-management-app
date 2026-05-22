@@ -217,6 +217,9 @@ export async function createOrderWithItems(input: {
 export async function updateOrder(
   id: string,
   patch: {
+    customer_id?: string;
+    source?: OrderRow['source'];
+    ordered_at?: string;
     target_fulfilment_date?: string;
     notes?: string | null;
     payment_status?: OrderRow['payment_status'];
@@ -224,6 +227,30 @@ export async function updateOrder(
 ): Promise<void> {
   const { error } = await supabase.from('orders').update(patch).eq('id', id);
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Replaces all order_items for an order. Simple delete-then-insert. Single-tenant
+ * so race-free; v1 scale (~5 items per order). Atomicity: on insert failure the
+ * original rows are gone — acceptable trade-off because (a) mom is the sole writer
+ * and (b) the Edit form keeps the original items in component state, so she can
+ * retry by re-tapping Save. Hardening (RPC transaction) deferred until needed.
+ */
+export async function updateOrderItems(
+  orderId: string,
+  items: OrderItemInput[],
+): Promise<void> {
+  if (items.length === 0) throw new Error('At least one item is required.');
+  const { error: dErr } = await supabase.from('order_items').delete().eq('order_id', orderId);
+  if (dErr) throw new Error(dErr.message);
+  const rows = items.map((it) => ({
+    order_id: orderId,
+    product_id: it.product_id,
+    qty: it.qty,
+    unit_price: it.unit_price,
+  }));
+  const { error: iErr } = await supabase.from('order_items').insert(rows);
+  if (iErr) throw new Error(iErr.message);
 }
 
 export async function markFulfilled(id: string): Promise<void> {
