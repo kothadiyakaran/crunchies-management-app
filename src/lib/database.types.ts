@@ -459,6 +459,7 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      allocate_bill_number: { Args: { p_order_id: string }; Returns: number };
       auth_is_admin: { Args: Record<string, never>; Returns: boolean };
       next_public_order_number: { Args: { p_year?: number }; Returns: string };
       refresh_customer_last_ordered_at: {

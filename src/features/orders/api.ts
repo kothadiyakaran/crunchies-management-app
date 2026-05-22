@@ -11,6 +11,7 @@ export type OrderRow = {
   target_fulfilment_date: string | null;
   notes: string | null;
   source: 'whatsapp' | 'exhibition_form' | 'in_person' | 'phone';
+  bill_number: number | null;
 };
 
 export type OrderFilter = 'all' | 'pending' | 'unpaid' | 'this_week' | 'this_month';
@@ -38,7 +39,7 @@ export type OrderDetailRow = OrderRow & {
 export async function listOrders(): Promise<OrderRow[]> {
   const { data, error } = await supabase
     .from('orders')
-    .select('id, customer_id, ordered_at, fulfilled_at, payment_status, target_fulfilment_date, notes, source')
+    .select('id, customer_id, ordered_at, fulfilled_at, payment_status, target_fulfilment_date, notes, source, bill_number')
     .order('ordered_at', { ascending: false })
     .limit(100);
   if (error) throw new Error(error.message);
@@ -49,7 +50,7 @@ export async function listOrdersFiltered(filter: OrderFilter): Promise<OrderList
   let q = supabase
     .from('orders')
     .select(
-      'id, customer_id, ordered_at, fulfilled_at, payment_status, target_fulfilment_date, notes, source, customers(name), order_items(qty, unit_price, products(name))',
+      'id, customer_id, ordered_at, fulfilled_at, payment_status, target_fulfilment_date, notes, source, bill_number, customers(name), order_items(qty, unit_price, products(name))',
     )
     .order('ordered_at', { ascending: false })
     .limit(100);
@@ -95,6 +96,7 @@ function toListItem(r: OrderRow & {
     target_fulfilment_date: r.target_fulfilment_date,
     notes: r.notes,
     source: r.source,
+    bill_number: r.bill_number,
     customer_name: r.customers?.name ?? '(unknown customer)',
     total,
     item_summary,
@@ -108,7 +110,7 @@ export async function listTodayPendingOrders(): Promise<OrderListItem[]> {
   const { data, error } = await supabase
     .from('orders')
     .select(
-      'id, customer_id, ordered_at, fulfilled_at, payment_status, target_fulfilment_date, notes, source, customers(name), order_items(qty, unit_price, products(name))',
+      'id, customer_id, ordered_at, fulfilled_at, payment_status, target_fulfilment_date, notes, source, bill_number, customers(name), order_items(qty, unit_price, products(name))',
     )
     .is('fulfilled_at', null)
     .or(`target_fulfilment_date.lte.${today},target_fulfilment_date.is.null`)
@@ -127,7 +129,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetailRow | null>
   const { data, error } = await supabase
     .from('orders')
     .select(
-      'id, customer_id, ordered_at, fulfilled_at, payment_status, target_fulfilment_date, notes, source, customers(name, phone), order_items(id, product_id, qty, unit_price, products(name))',
+      'id, customer_id, ordered_at, fulfilled_at, payment_status, target_fulfilment_date, notes, source, bill_number, customers(name, phone), order_items(id, product_id, qty, unit_price, products(name))',
     )
     .eq('id', id)
     .maybeSingle();
@@ -157,6 +159,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetailRow | null>
     target_fulfilment_date: r.target_fulfilment_date,
     notes: r.notes,
     source: r.source,
+    bill_number: r.bill_number,
     customer_name: r.customers?.name ?? '(unknown customer)',
     customer_phone: r.customers?.phone ?? null,
     items,
@@ -244,4 +247,11 @@ export async function markPaid(id: string): Promise<void> {
 export async function deleteOrder(id: string): Promise<void> {
   const { error } = await supabase.from('orders').delete().eq('id', id);
   if (error) throw new Error(error.message);
+}
+
+export async function allocateBillNumber(orderId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('allocate_bill_number', { p_order_id: orderId });
+  if (error) throw new Error(error.message);
+  if (typeof data !== 'number') throw new Error('allocate_bill_number returned non-numeric');
+  return data;
 }

@@ -12,6 +12,7 @@ function makeOrder(over: Partial<OrderListItem> = {}): OrderListItem {
     target_fulfilment_date: null,
     notes: null,
     source: 'whatsapp',
+    bill_number: null,
     customer_name: 'Sunita Patil',
     total: 420,
     item_summary: '2 boxes laddu, 1 kg chivda',
