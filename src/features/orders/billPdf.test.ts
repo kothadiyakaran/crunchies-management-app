@@ -72,10 +72,39 @@ describe('buildBillPdf', () => {
     expect(formatBillCurrency(580, false)).toMatch(/^Rs\./);
   });
 
-  it('stamps PAID / UNPAID / PARTIAL based on payment_status', () => {
-    expect(extractAllText(buildBillPdf({ ...baseInput, paymentStatus: 'paid' }, business))).toContain('PAID');
-    expect(extractAllText(buildBillPdf({ ...baseInput, paymentStatus: 'unpaid' }, business))).toContain('UNPAID');
-    expect(extractAllText(buildBillPdf({ ...baseInput, paymentStatus: 'partial' }, business))).toContain('PARTIAL');
+  it('renders PAID stamp when payment_status=paid; no UNPAID/PARTIAL stamp otherwise', () => {
+    // PAID is a positive customer-facing receipt and keeps a prominent stamp.
+    const paid = extractAllText(buildBillPdf({ ...baseInput, paymentStatus: 'paid' }, business));
+    expect(paid).toContain('PAID');
+
+    // UNPAID/PARTIAL get a small inline payment-status line under the Total
+    // instead of the prominent stamp — see redesign rationale in billPdf.ts.
+    // The literal strings "UNPAID" / "PARTIAL" must NOT appear in the rendered PDF.
+    const unpaid = extractAllText(buildBillPdf({ ...baseInput, paymentStatus: 'unpaid' }, business));
+    expect(unpaid).not.toContain('UNPAID');
+    expect(unpaid).toContain('Payment due');
+
+    const partial = extractAllText(buildBillPdf({ ...baseInput, paymentStatus: 'partial' }, business));
+    expect(partial).not.toContain('PARTIAL');
+    expect(partial).toContain('balance due');
+  });
+
+  it('renders "Received on {date}" under the PAID stamp when paidAt is set', () => {
+    const text = extractAllText(
+      buildBillPdf({ ...baseInput, paymentStatus: 'paid', paidAt: '2026-05-22' }, business),
+    );
+    expect(text).toMatch(/Received on/i);
+    // The formatted date renderer produces "22 May 2026" in en-IN locale.
+    expect(text).toContain('22 May 2026');
+  });
+
+  it('omits the "Received on" caption when paidAt is null', () => {
+    const text = extractAllText(
+      buildBillPdf({ ...baseInput, paymentStatus: 'paid', paidAt: null }, business),
+    );
+    expect(text).not.toMatch(/Received on/i);
+    // The PAID stamp itself still renders.
+    expect(text).toContain('PAID');
   });
 
   it('includes the signature line', () => {

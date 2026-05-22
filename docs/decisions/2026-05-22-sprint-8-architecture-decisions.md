@@ -114,6 +114,38 @@ The TrendsTab line chart's `onPointClick` callback navigates to `/reports?tab=we
 
 ---
 
+## ADR-39: Bill payment treatment is asymmetric — PAID stamp stays prominent, UNPAID/PARTIAL become inline
+
+**Context:** Spec §7 line 738 originally called for a uniform "payment stamp box" treatment for all three states (PAID / UNPAID / PARTIAL), each in a clearly-bordered box with status-coloured fill. Sprint 5 shipped that exactly — green-bordered stamp for PAID, warm warning (`#b45309`) for UNPAID/PARTIAL. User-side review after generating a real bill for an unpaid order flagged the UNPAID stamp as too prominent: customer-facing bills shouldn't feel accusatory, and the customer already knows they haven't paid yet.
+
+**Decision:** Asymmetric treatment in `buildBillPdf`:
+
+- **PAID** keeps the stamp box (slightly smaller — 32×10 mm at 12 pt vs. the original 38×12 mm at 14 pt). When `paidAt` is populated, a small ink-500 *"Received on {date}"* caption renders beneath the stamp. This is the positive customer-facing receipt mom WANTS prominent.
+- **UNPAID / PARTIAL** render a single inline line under the totals — neutral ink-700 typography, 10 pt, normal weight, right-aligned to the Total column. Copy:
+  - `unpaid` → `Payment due on collection`
+  - `partial` → `Partial payment received · balance due on collection`
+
+No box, no warning colour, no bold.
+
+**Why asymmetric is right:**
+- PAID is positive information the customer wants to see (it's a receipt). Stamping is the correct treatment.
+- UNPAID is the absence of payment — the customer already has that information. A stamped UNPAID box reads as distrust; an inline line reads as gentle reminder.
+- v1's user (mom) is in a small-business context where the customer relationship trumps invoice rigour. Spec was written under a generic-invoice mental model; this redesign matches mom's social reality.
+
+**Schema change:** Added `paid_at` (already an existing `orders.paid_at: date` column) into the `OrderRow` / `OrderDetailRow` types and the SELECT clauses for `listOrders`, `listOrdersFiltered`, `listTodayPendingOrders`, `getOrderDetail`. `BillInput.paidAt` is optional (`string | null`) — falls back to no caption when null. Existing tests fixtures continue to pass without setting `paidAt`.
+
+**Tests updated:** `billPdf.test.ts` replaced the "stamps PAID / UNPAID / PARTIAL" invariant with three new invariants:
+- PAID still renders the literal `PAID` text in the PDF stream
+- UNPAID renders `Payment due` but NOT the literal `UNPAID`
+- PARTIAL renders `balance due` but NOT the literal `PARTIAL`
+- Plus two new tests verifying the `Received on {date}` caption appears with `paidAt` and is omitted when null
+
+**Verified end-to-end via `scripts/verify-bill-flow.py`** (re-ran post-change; bill #1002 generated and rendered without console errors).
+
+**Cross-references:** `src/features/orders/billPdf.ts` (stamp/inline branch), `src/features/orders/billPdf.test.ts` (12 invariants), `src/features/orders/api.ts` (`paid_at` plumbing), `src/features/orders/BillPreviewModal.tsx` (`toBillInput` mapper).
+
+---
+
 ## Browser verification
 
 `scripts/verify-reports-flow.py` is the Sprint 8 smoke. Headless Playwright covering:

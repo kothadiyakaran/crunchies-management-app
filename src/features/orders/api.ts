@@ -8,6 +8,7 @@ export type OrderRow = {
   ordered_at: string;
   fulfilled_at: string | null;
   payment_status: 'unpaid' | 'paid' | 'partial';
+  paid_at: string | null;
   target_fulfilment_date: string | null;
   notes: string | null;
   source: 'whatsapp' | 'exhibition_form' | 'in_person' | 'phone';
@@ -39,7 +40,7 @@ export type OrderDetailRow = OrderRow & {
 export async function listOrders(): Promise<OrderRow[]> {
   const { data, error } = await supabase
     .from('orders')
-    .select('id, customer_id, ordered_at, fulfilled_at, payment_status, target_fulfilment_date, notes, source, bill_number')
+    .select('id, customer_id, ordered_at, fulfilled_at, payment_status, paid_at, target_fulfilment_date, notes, source, bill_number')
     .order('ordered_at', { ascending: false })
     .limit(100);
   if (error) throw new Error(error.message);
@@ -50,7 +51,7 @@ export async function listOrdersFiltered(filter: OrderFilter): Promise<OrderList
   let q = supabase
     .from('orders')
     .select(
-      'id, customer_id, ordered_at, fulfilled_at, payment_status, target_fulfilment_date, notes, source, bill_number, customers(name), order_items(qty, unit_price, products(name))',
+      'id, customer_id, ordered_at, fulfilled_at, payment_status, paid_at, target_fulfilment_date, notes, source, bill_number, customers(name), order_items(qty, unit_price, products(name))',
     )
     .order('ordered_at', { ascending: false })
     .limit(100);
@@ -93,6 +94,7 @@ function toListItem(r: OrderRow & {
     ordered_at: r.ordered_at,
     fulfilled_at: r.fulfilled_at,
     payment_status: r.payment_status,
+    paid_at: r.paid_at,
     target_fulfilment_date: r.target_fulfilment_date,
     notes: r.notes,
     source: r.source,
@@ -110,7 +112,7 @@ export async function listTodayPendingOrders(): Promise<OrderListItem[]> {
   const { data, error } = await supabase
     .from('orders')
     .select(
-      'id, customer_id, ordered_at, fulfilled_at, payment_status, target_fulfilment_date, notes, source, bill_number, customers(name), order_items(qty, unit_price, products(name))',
+      'id, customer_id, ordered_at, fulfilled_at, payment_status, paid_at, target_fulfilment_date, notes, source, bill_number, customers(name), order_items(qty, unit_price, products(name))',
     )
     .is('fulfilled_at', null)
     .or(`target_fulfilment_date.lte.${today},target_fulfilment_date.is.null`)
@@ -129,7 +131,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetailRow | null>
   const { data, error } = await supabase
     .from('orders')
     .select(
-      'id, customer_id, ordered_at, fulfilled_at, payment_status, target_fulfilment_date, notes, source, bill_number, customers(name, phone), order_items(id, product_id, qty, unit_price, products(name))',
+      'id, customer_id, ordered_at, fulfilled_at, payment_status, paid_at, target_fulfilment_date, notes, source, bill_number, customers(name, phone), order_items(id, product_id, qty, unit_price, products(name))',
     )
     .eq('id', id)
     .maybeSingle();
@@ -156,6 +158,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetailRow | null>
     ordered_at: r.ordered_at,
     fulfilled_at: r.fulfilled_at,
     payment_status: r.payment_status,
+    paid_at: r.paid_at,
     target_fulfilment_date: r.target_fulfilment_date,
     notes: r.notes,
     source: r.source,

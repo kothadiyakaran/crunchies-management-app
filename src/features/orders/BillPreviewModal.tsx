@@ -128,5 +128,6 @@ function toBillInput(o: OrderDetailRow, billNumber: number): BillInput {
     })),
     subtotal: o.subtotal,
     paymentStatus: o.payment_status,
+    paidAt: o.paid_at,
   };
 }

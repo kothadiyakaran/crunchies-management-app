@@ -16,6 +16,9 @@ export type BillInput = {
   items: BillItem[];
   subtotal: number;
   paymentStatus: 'unpaid' | 'paid' | 'partial';
+  /** `orders.paid_at` (Postgres `date`). Used only for the "Received on {date}"
+   *  caption under the PAID stamp; ignored when payment_status != 'paid' or null. */
+  paidAt?: string | null;
 };
 
 export type BuildBillOpts = {
@@ -197,20 +200,49 @@ export function buildBillPdf(input: BillInput, business: BusinessInfo, opts: Bui
   pdf.text(money(input.subtotal), colX[3]!, cursor, { align: 'right' });
   cursor += 14;
 
-  // Payment stamp box
-  const stampLabel = input.paymentStatus.toUpperCase(); // PAID / UNPAID / PARTIAL
-  const stampW = 38;
-  const stampH = 12;
-  const stampX = (PAGE_W - stampW) / 2;
-  const stampColor: [number, number, number] = input.paymentStatus === 'paid' ? [0x15, 0x80, 0x3d] : [0xb4, 0x53, 0x09];
-  pdf.setDrawColor(...stampColor);
-  pdf.setLineWidth(0.7);
-  pdf.rect(stampX, cursor, stampW, stampH);
-  pdf.setTextColor(...stampColor);
-  pdf.setFontSize(14);
-  setBold();
-  pdf.text(stampLabel, PAGE_W / 2, cursor + 8, { align: 'center' });
-  cursor += stampH + 18;
+  // Payment status — asymmetric treatment by design.
+  //
+  // PAID gets a green stamp box — a positive receipt acknowledgment mom WANTS
+  // her customer to see (and the customer wants for their own records).
+  //
+  // UNPAID / PARTIAL get a small inline line under the Total, not a stamp.
+  // The customer already knows they haven't paid; stamping UNPAID across the
+  // bottom of the bill she hands them feels accusatory. This line is neutral
+  // ink-700 typography in the same column as the Total — informational, not
+  // a warning. See docs/decisions/2026-05-22-sprint-8-architecture-decisions.md
+  // for the design rationale.
+  if (input.paymentStatus === 'paid') {
+    const stampW = 32;
+    const stampH = 10;
+    const stampX = (PAGE_W - stampW) / 2;
+    const stampColor: [number, number, number] = [0x15, 0x80, 0x3d]; // status.ok.border
+    pdf.setDrawColor(...stampColor);
+    pdf.setLineWidth(0.6);
+    pdf.rect(stampX, cursor, stampW, stampH);
+    pdf.setTextColor(...stampColor);
+    pdf.setFontSize(12);
+    setBold();
+    pdf.text('PAID', PAGE_W / 2, cursor + 7, { align: 'center' });
+    cursor += stampH;
+    if (input.paidAt) {
+      pdf.setTextColor(...INK_500);
+      pdf.setFontSize(9);
+      setNormal();
+      pdf.text(`Received on ${formatDate(input.paidAt)}`, PAGE_W / 2, cursor + 5, { align: 'center' });
+      cursor += 5;
+    }
+    cursor += 14;
+  } else {
+    // Right-aligned to match the Total column; neutral typography.
+    const msg = input.paymentStatus === 'partial'
+      ? 'Partial payment received · balance due on collection'
+      : 'Payment due on collection';
+    pdf.setTextColor(...INK_700);
+    pdf.setFontSize(10);
+    setNormal();
+    pdf.text(msg, contentRight, cursor, { align: 'right' });
+    cursor += 18;
+  }
 
   // Signature line
   const sigW = 60;
