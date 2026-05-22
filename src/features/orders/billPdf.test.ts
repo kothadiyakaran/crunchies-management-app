@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { jsPDF } from 'jspdf';
 import { buildBillPdf, formatBillCurrency, type BillInput, type BusinessInfo } from './billPdf';
 
 const business: BusinessInfo = {
@@ -32,14 +33,14 @@ const baseInput: BillInput = {
 
 describe('buildBillPdf', () => {
   it('includes business name and bill number in the rendered text', () => {
-    const pdf = buildBillPdf(baseInput, business);
+    const pdf = buildBillPdf(baseInput, business, jsPDF);
     const text = extractAllText(pdf);
     expect(text).toContain('Test Snacks');
     expect(text).toContain('#1042');
   });
 
   it('renders every item with name, qty and line total', () => {
-    const pdf = buildBillPdf(baseInput, business);
+    const pdf = buildBillPdf(baseInput, business, jsPDF);
     const text = extractAllText(pdf);
     expect(text).toContain('Laddu box');
     expect(text).toContain('Chivda kg');
@@ -48,13 +49,13 @@ describe('buildBillPdf', () => {
   });
 
   it('renders the subtotal as Total', () => {
-    const pdf = buildBillPdf(baseInput, business);
+    const pdf = buildBillPdf(baseInput, business, jsPDF);
     const text = extractAllText(pdf);
     expect(text).toContain('580');
   });
 
   it('falls back to "Rs." when no font is provided (test environment)', () => {
-    const pdf = buildBillPdf(baseInput, business);
+    const pdf = buildBillPdf(baseInput, business, jsPDF);
     expect(extractAllText(pdf)).toContain('Rs.');
   });
 
@@ -62,7 +63,7 @@ describe('buildBillPdf', () => {
     // Real base64 would be ~700KB; a stub will fail addFont parsing internally.
     // The generator catches the failure and falls back to helvetica — verify
     // it still produces a valid PDF rather than throwing.
-    const pdf = buildBillPdf(baseInput, business, { fontBase64: { regular: 'STUB', bold: 'STUB' } });
+    const pdf = buildBillPdf(baseInput, business, jsPDF, { fontBase64: { regular: 'STUB', bold: 'STUB' } });
     expect(pdf.output('blob')).toBeInstanceOf(Blob);
   });
 
@@ -73,24 +74,24 @@ describe('buildBillPdf', () => {
 
   it('renders PAID stamp when payment_status=paid; no UNPAID/PARTIAL stamp otherwise', () => {
     // PAID is a positive customer-facing receipt and keeps a prominent stamp.
-    const paid = extractAllText(buildBillPdf({ ...baseInput, paymentStatus: 'paid' }, business));
+    const paid = extractAllText(buildBillPdf({ ...baseInput, paymentStatus: 'paid' }, business, jsPDF));
     expect(paid).toContain('PAID');
 
     // UNPAID/PARTIAL get a small inline payment-status line under the Total
     // instead of the prominent stamp — see redesign rationale in billPdf.ts.
     // The literal strings "UNPAID" / "PARTIAL" must NOT appear in the rendered PDF.
-    const unpaid = extractAllText(buildBillPdf({ ...baseInput, paymentStatus: 'unpaid' }, business));
+    const unpaid = extractAllText(buildBillPdf({ ...baseInput, paymentStatus: 'unpaid' }, business, jsPDF));
     expect(unpaid).not.toContain('UNPAID');
     expect(unpaid).toContain('Payment due');
 
-    const partial = extractAllText(buildBillPdf({ ...baseInput, paymentStatus: 'partial' }, business));
+    const partial = extractAllText(buildBillPdf({ ...baseInput, paymentStatus: 'partial' }, business, jsPDF));
     expect(partial).not.toContain('PARTIAL');
     expect(partial).toContain('balance due');
   });
 
   it('renders "Received on {date}" under the PAID stamp when paidAt is set', () => {
     const text = extractAllText(
-      buildBillPdf({ ...baseInput, paymentStatus: 'paid', paidAt: '2026-05-22' }, business),
+      buildBillPdf({ ...baseInput, paymentStatus: 'paid', paidAt: '2026-05-22' }, business, jsPDF),
     );
     expect(text).toMatch(/Received on/i);
     // The formatted date renderer produces "22 May 2026" in en-IN locale.
@@ -99,7 +100,7 @@ describe('buildBillPdf', () => {
 
   it('omits the "Received on" caption when paidAt is null', () => {
     const text = extractAllText(
-      buildBillPdf({ ...baseInput, paymentStatus: 'paid', paidAt: null }, business),
+      buildBillPdf({ ...baseInput, paymentStatus: 'paid', paidAt: null }, business, jsPDF),
     );
     expect(text).not.toMatch(/Received on/i);
     // The PAID stamp itself still renders.
@@ -111,17 +112,17 @@ describe('buildBillPdf', () => {
     // U+2014 em-dash; production runs with NotoSans which handles it. The
     // invariant we want to verify is that signatureLine flows into the PDF
     // at all, not the exact glyph encoding.
-    const pdf = buildBillPdf(baseInput, business);
+    const pdf = buildBillPdf(baseInput, business, jsPDF);
     expect(extractAllText(pdf)).toContain('-- Mom');
   });
 
   it('omits the GST line when business.gstLine is null', () => {
-    const pdf = buildBillPdf(baseInput, { ...business, gstLine: null });
+    const pdf = buildBillPdf(baseInput, { ...business, gstLine: null }, jsPDF);
     expect(extractAllText(pdf)).not.toContain('GSTIN');
   });
 
   it('returns a Blob from .output("blob")', () => {
-    const pdf = buildBillPdf(baseInput, business);
+    const pdf = buildBillPdf(baseInput, business, jsPDF);
     const blob = pdf.output('blob');
     expect(blob).toBeInstanceOf(Blob);
     expect(blob.type).toBe('application/pdf');

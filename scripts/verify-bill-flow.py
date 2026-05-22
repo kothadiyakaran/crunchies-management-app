@@ -94,6 +94,10 @@ def main() -> int:
         print(f"OK found order link {target}")
         page.locator(f'a[href="{target}"]').first.click()
         page.wait_for_load_state("networkidle")
+        # `networkidle` returns as soon as the route-level lazy chunk finishes,
+        # but the order-detail data fetch may still be in flight (and the button
+        # only renders once `order` state is populated). Wait explicitly.
+        page.get_by_role("button", name=re.compile(r"^Generate bill")).wait_for(timeout=15000)
         page.screenshot(path=str(OUT_DIR / "sprint5-order-detail.png"), full_page=True)
 
         # 4) Click Generate bill

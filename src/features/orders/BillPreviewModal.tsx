@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { buildBillPdf, loadNotoSansBase64, type BillInput } from './billPdf';
+import { buildBillPdf, loadJsPDF, loadNotoSansBase64, type BillInput } from './billPdf';
 import { useSettings } from '@/features/settings/SettingsContext';
 import type { OrderDetailRow } from './api';
 import { allocateBillNumber } from './api';
@@ -30,16 +30,19 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
     let cancelled = false;
     (async () => {
       try {
-        const [n, fontBase64] = await Promise.all([
+        // jspdf is now a dynamic chunk (Sprint 10 T10.3) — fetched in parallel
+        // with the bill-number allocation + font load so we don't add latency.
+        const [n, fontBase64, jsPDFCtor] = await Promise.all([
           billNumber ?? allocateBillNumber(order.id),
           loadNotoSansBase64().catch(() => undefined), // ₹ degrades to "Rs." if font load fails
+          loadJsPDF(),
         ]);
         if (cancelled) return;
         if (n !== billNumber) {
           setBillNumber(n);
           onAllocated(n);
         }
-        const pdf = buildBillPdf(toBillInput(order, n), settings, { fontBase64 });
+        const pdf = buildBillPdf(toBillInput(order, n), settings, jsPDFCtor, { fontBase64 });
         const blob = pdf.output('blob');
         createdUrl = URL.createObjectURL(blob);
         setPdfUrl(createdUrl);
@@ -59,8 +62,13 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
     setSharing(true);
     let dlUrl: string | null = null;
     try {
-      const fontBase64 = await loadNotoSansBase64().catch(() => undefined);
-      const pdf = buildBillPdf(toBillInput(order, billNumber), settings, { fontBase64 });
+      // jspdf chunk already in browser cache from the preview effect — second
+      // dynamic import resolves instantly from module cache, no extra fetch.
+      const [fontBase64, jsPDFCtor] = await Promise.all([
+        loadNotoSansBase64().catch(() => undefined),
+        loadJsPDF(),
+      ]);
+      const pdf = buildBillPdf(toBillInput(order, billNumber), settings, jsPDFCtor, { fontBase64 });
       const blob = pdf.output('blob');
       const file = new File([blob], `bill-${billNumber}.pdf`, { type: 'application/pdf' });
       const shareData: ShareData = {

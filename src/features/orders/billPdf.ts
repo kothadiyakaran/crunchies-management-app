@@ -1,4 +1,18 @@
-import { jsPDF } from 'jspdf';
+// TYPE-only import — erased at compile time, does NOT trigger the jspdf chunk
+// to be bundled into modules that import this file. Runtime callers must
+// obtain the jsPDF constructor via `loadJsPDF()` (dynamic import → its own
+// chunk) and pass it as the third arg to `buildBillPdf`. See ADR-42 +
+// Sprint 10 T10.3 — the goal is that jspdf only downloads when mom actually
+// taps "Generate bill", not when she opens an order detail page.
+import type { jsPDF } from 'jspdf';
+
+/** Dynamically imports jspdf and returns the constructor. Use this at the
+ *  call site (e.g. when the user taps "Generate bill") so Vite splits jspdf
+ *  into its own chunk that is fetched on demand. */
+export async function loadJsPDF(): Promise<typeof jsPDF> {
+  const mod = await import('jspdf');
+  return mod.jsPDF;
+}
 
 /** Business identity rendered on the bill. Sourced from the `business_settings`
  *  row (Sprint 9 T9.1) and consumed by `buildBillPdf` below. Also re-exported
@@ -80,8 +94,13 @@ const PAGE_H = 297;
 const MARGIN = 12;
 const INNER_PAD = 4;
 
-export function buildBillPdf(input: BillInput, business: BusinessInfo, opts: BuildBillOpts = {}): jsPDF {
-  const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+export function buildBillPdf(
+  input: BillInput,
+  business: BusinessInfo,
+  jsPDFCtor: typeof jsPDF,
+  opts: BuildBillOpts = {},
+): jsPDF {
+  const pdf = new jsPDFCtor({ unit: 'mm', format: 'a4' });
   // Font: when fontBase64 supplied (runtime), embed NotoSans and use ₹.
   // Otherwise (tests / no font available) fall back to Helvetica + "Rs.".
   //
