@@ -128,34 +128,34 @@ export function PublicOrderFormPage() {
         </p>
       </header>
 
-      {/* Progress bar */}
-      <div className="px-4 pt-3">
-        <div className="flex gap-1">
-          {[1, 2, 3].map((n) => (
-            <div
-              key={n}
-              className={`h-1 flex-1 rounded-full ${
-                n <= step ? 'bg-brand-orange' : 'bg-ink-900/10'
-              }`}
-            />
-          ))}
-        </div>
-        <p className="mt-1 text-body-sm text-ink-500">Step {step} of 3</p>
-      </div>
-
-      {/* Honeypot — CSS-hidden, must remain empty */}
-      <input
-        type="text"
-        name="company"
-        value={honeypot}
-        onChange={(e) => setHoneypot(e.target.value)}
-        className="absolute left-[-9999px] h-0 w-0 opacity-0"
-        tabIndex={-1}
-        autoComplete="off"
-        aria-hidden="true"
-      />
-
       <main className="px-4 py-4">
+        {/* Progress bar */}
+        <div className="pt-1 pb-3">
+          <div className="flex gap-1">
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className={`h-1 flex-1 rounded-full ${
+                  n <= step ? 'bg-brand-orange' : 'bg-ink-900/10'
+                }`}
+              />
+            ))}
+          </div>
+          <p className="mt-1 text-body-sm text-ink-500">Step {step} of 3</p>
+        </div>
+
+        {/* Honeypot — CSS-hidden, must remain empty */}
+        <input
+          type="text"
+          name="company"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          className="absolute left-[-9999px] h-0 w-0 opacity-0"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+        />
+
         {step === 1 && (
           <PickStep
             products={products}
