@@ -140,7 +140,7 @@ const business: BusinessInfo = {
   whatsapp: null,
   email: null,
   billFooter: 'Thanks!',
-  signatureLine: '— Mom',
+  signatureLine: '-- Mom',
 };
 
 const baseInput: BillInput = {
@@ -149,8 +149,12 @@ const baseInput: BillInput = {
   customerName: 'Sunita Patil',
   customerPhone: '9876543210',
   items: [
-    { name: 'Laddu (box)', qty: 2, unitPrice: 200, lineTotal: 400 },
-    { name: 'Chivda (kg)', qty: 1, unitPrice: 180, lineTotal: 180 },
+    // Fixture names deliberately avoid parentheses: jsPDF text strings encode
+    // `(` and `)` as `\(` / `\)` in the content stream, which breaks the raw
+    // substring check in extractAllText. Production has no such restriction
+    // because the iframe-rendered PDF un-escapes them visually.
+    { name: 'Laddu box', qty: 2, unitPrice: 200, lineTotal: 400 },
+    { name: 'Chivda kg', qty: 1, unitPrice: 180, lineTotal: 180 },
   ],
   subtotal: 580,
   paymentStatus: 'unpaid',
@@ -169,8 +173,8 @@ describe('buildBillPdf', () => {
   it('renders every item with name, qty and line total', () => {
     const pdf = buildBillPdf(baseInput, business);
     const text = extractAllText(pdf);
-    expect(text).toContain('Laddu (box)');
-    expect(text).toContain('Chivda (kg)');
+    expect(text).toContain('Laddu box');
+    expect(text).toContain('Chivda kg');
     expect(text).toContain('400');
     expect(text).toContain('180');
   });
@@ -209,8 +213,12 @@ describe('buildBillPdf', () => {
   });
 
   it('includes the signature line', () => {
+    // ASCII fixture: Helvetica (test fallback) is WinAnsi-encoded and strips
+    // U+2014 em-dash; production runs with NotoSans which handles it. The
+    // invariant we want to verify is that signatureLine flows into the PDF
+    // at all, not the exact glyph encoding.
     const pdf = buildBillPdf(baseInput, business);
-    expect(extractAllText(pdf)).toContain('— Mom');
+    expect(extractAllText(pdf)).toContain('-- Mom');
   });
 
   it('omits the GST line when business.gstLine is null', () => {
@@ -317,8 +325,17 @@ export function buildBillPdf(input: BillInput, business: BusinessInfo, opts: Bui
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
   // Font: when fontBase64 supplied (runtime), embed NotoSans and use ₹.
   // Otherwise (tests / no font available) fall back to Helvetica + "Rs.".
+  //
+  // Gotcha: jsPDF 2.5.x publishes addFont parse errors via its internal PubSub
+  // system rather than throwing — a plain try/catch is insufficient. We sanity-
+  // check the payload size up-front (real NotoSans base64 is ~830KB; stubs and
+  // truncated downloads are orders of magnitude smaller) so obvious garbage
+  // never reaches addFont. Anything that slips through and produces a half-
+  // registered font would later fail inside pdf.text() — the runtime BillPreview
+  // modal still degrades gracefully because it wraps loadNotoSansBase64() in
+  // .catch(() => undefined).
   let fontHasRupee = false;
-  if (opts.fontBase64) {
+  if (opts.fontBase64 && opts.fontBase64.length >= 1000) {
     try {
       pdf.addFileToVFS('NotoSans-Regular.ttf', opts.fontBase64);
       pdf.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
