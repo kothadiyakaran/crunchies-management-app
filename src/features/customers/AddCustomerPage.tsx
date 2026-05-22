@@ -179,7 +179,20 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
         <div>
           <span className={labelSpan}>Channel</span>
           <div className="mt-1">
-            <ChannelChipPicker value={channelId} onChange={setChannelId} />
+            <ChannelChipPicker
+              value={channelId}
+              onChange={(newId) => {
+                if (newId === channelId) return;
+                setChannelId(newId);
+                // Reset source-event selection on actual channel change so a user can't
+                // strand a non-Exhibition channel with an exhibition source_event_id
+                // they can no longer see/edit in the UI (the dropdown only renders
+                // when channelLower === 'exhibition'). Provenance is intentionally
+                // tied to user-initiated channel changes, not hydration in edit mode
+                // (that runs in its own effect that fires before any chip click).
+                setSourceEventId(null);
+              }}
+            />
           </div>
         </div>
 
