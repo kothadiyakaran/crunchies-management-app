@@ -8,6 +8,7 @@ import { composeWithPlan, type ProductionWeekRowFull } from './planLayer';
 import { ProductDetailSheet } from './ProductDetailSheet';
 import { SeedEstimateModal } from './SeedEstimateModal';
 import { AggregatedSection } from './AggregatedSection';
+import { UpcomingEventsSection } from '@/features/events/UpcomingEventsSection';
 import { weekStartFor } from '@/lib/week';
 import { todayInTz } from '@/lib/utils';
 
@@ -60,6 +61,8 @@ export function ProductionPage() {
       </header>
 
       {error && <p className="mt-4 text-body-sm text-status-danger-fg">{error}</p>}
+
+      <UpcomingEventsSection />
 
       <section className="mt-6">
         {/* Planning entry point — prominent when no plans, subtle "Edit plan →" once plans exist (per §5 spec) */}

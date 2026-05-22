@@ -21,6 +21,10 @@ import { ReportsPage } from '@/features/reports/ReportsPage';
 import { ProductsPage } from '@/features/products/ProductsPage';
 import { AddProductPage } from '@/features/products/AddProductPage';
 import { EditProductPage } from '@/features/products/EditProductPage';
+import { EventsPage } from '@/features/events/EventsPage';
+import { EventDetailPage } from '@/features/events/EventDetailPage';
+import { PublicOrderFormPage } from '@/features/public/PublicOrderFormPage';
+import { OrderConfirmationPage } from '@/features/public/OrderConfirmationPage';
 
 function Protected() {
   return (
@@ -48,6 +52,9 @@ export default function App() {
           <Route path="/customers/new" element={<AddCustomerPage />} />
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="/customers/:id/edit" element={<EditCustomerPage />} />
+          <Route path="/events" element={<EventsPage />} />
+          <Route path="/events/new" element={<EventDetailPage />} />
+          <Route path="/events/:id" element={<EventDetailPage />} />
           <Route path="/production" element={<ProductionPage />} />
           <Route path="/production/new" element={<LogProductionPage />} />
           <Route path="/production/plan-this-week" element={<PlanWeekPage />} />
@@ -57,6 +64,8 @@ export default function App() {
           <Route path="/products/new" element={<AddProductPage />} />
           <Route path="/products/:id" element={<EditProductPage />} />
         </Route>
+        <Route path="/order/:slug" element={<PublicOrderFormPage />} />
+        <Route path="/order/:slug/confirmed" element={<OrderConfirmationPage />} />
         <Route path="/" element={<Navigate to="/today" replace />} />
         <Route path="*" element={<Navigate to="/today" replace />} />
       </Routes>
