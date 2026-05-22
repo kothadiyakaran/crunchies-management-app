@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Settings as SettingsIcon } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthProvider';
 import {
   getProductionThisWeek,
@@ -47,9 +48,18 @@ export function TodayPage() {
     <>
       <header className="flex items-baseline justify-between">
         <h1 className="text-title text-ink-900">Today</h1>
-        <span className="text-label uppercase text-ink-500">
-          {isAdmin ? 'Admin' : 'Signed in'}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-label uppercase text-ink-500">
+            {isAdmin ? 'Admin' : 'Signed in'}
+          </span>
+          <Link
+            to="/settings"
+            aria-label="Settings"
+            className="flex h-9 w-9 items-center justify-center rounded-btn-sm text-ink-700"
+          >
+            <SettingsIcon size={20} aria-hidden="true" />
+          </Link>
+        </div>
       </header>
 
       {error && <p className="mt-4 text-body-sm text-status-danger-fg">{error}</p>}

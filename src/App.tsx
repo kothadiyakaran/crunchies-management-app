@@ -25,6 +25,7 @@ import { EventsPage } from '@/features/events/EventsPage';
 import { EventDetailPage } from '@/features/events/EventDetailPage';
 import { PublicOrderFormPage } from '@/features/public/PublicOrderFormPage';
 import { OrderConfirmationPage } from '@/features/public/OrderConfirmationPage';
+import { SettingsPage } from '@/features/settings/SettingsPage';
 
 function Protected() {
   return (
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/products/new" element={<AddProductPage />} />
           <Route path="/products/:id" element={<EditProductPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
         <Route path="/order/:slug" element={<PublicOrderFormPage />} />
         <Route path="/order/:slug/confirmed" element={<OrderConfirmationPage />} />
