@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Crunchies — A Guide for Archana</title>
+<style>
+  /* Tokens lifted from tailwind.config.ts to match the app exactly */
+  :root {
+    --brand-orange: #B8450F;
+    --brand-orange-soft: #FDE2C8;
+    --brand-mustard: #F4C56F;
+    --brand-brown: #4A2912;
+    --ink-900: #2A241F;
+    --ink-700: #5A5048;
+    --ink-500: #6E655E;
+    --paper-surface: #FBF8F1;
+    --paper-elevated: #FFFFFF;
+    --paper-muted: #F1ECE1;
+  }
+
+  @page {
+    size: A5 portrait;
+    margin: 0;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--ink-900);
+    background: var(--paper-surface);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .slide {
+    width: 148mm;
+    height: 210mm;
+    padding: 18mm 16mm;
+    background: var(--paper-surface);
+    page-break-after: always;
+    page-break-inside: avoid;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .slide:last-child { page-break-after: auto; }
+
+  /* Slide number footer */
+  .slide::after {
+    content: attr(data-num);
+    position: absolute;
+    bottom: 8mm;
+    right: 16mm;
+    font-size: 9pt;
+    color: var(--ink-500);
+    letter-spacing: 0.05em;
+  }
+
+  /* Typography scale */
+  h1.cover-title {
+    font-size: 44pt;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    color: var(--brand-orange);
+    margin: 0 0 4mm 0;
+  }
+  h1.section {
+    font-size: 24pt;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--ink-900);
+    margin: 0 0 6mm 0;
+  }
+  h2.eyebrow {
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--brand-orange);
+    margin: 0 0 4mm 0;
+  }
+  p {
+    font-size: 13pt;
+    line-height: 1.55;
+    color: var(--ink-700);
+    margin: 0 0 4mm 0;
+  }
+  p.lede {
+    font-size: 15pt;
+    color: var(--ink-900);
+    font-weight: 500;
+  }
+  p.small {
+    font-size: 11pt;
+    color: var(--ink-500);
+  }
+  p.tiny {
+    font-size: 9.5pt;
+    color: var(--ink-500);
+    line-height: 1.4;
+  }
+  strong { color: var(--ink-900); font-weight: 600; }
+  em.orange { color: var(--brand-orange); font-style: normal; font-weight: 600; }
+
+  /* Cover */
+  .cover {
+    background: linear-gradient(180deg, var(--paper-surface) 0%, var(--brand-orange-soft) 100%);
+    justify-content: space-between;
+  }
+  .cover-mark {
+    width: 22mm;
+    height: 4mm;
+    background: var(--brand-orange);
+    border-radius: 2mm;
+    margin-bottom: 16mm;
+  }
+  .cover-name-block {
+    border-top: 1px solid var(--ink-500);
+    padding-top: 8mm;
+    color: var(--ink-700);
+    font-size: 12pt;
+  }
+  .cover-name-block strong {
+    display: block;
+    color: var(--ink-900);
+    font-size: 16pt;
+    margin-bottom: 1mm;
+  }
+
+  /* Three-problem card list */
+  ul.problem-list {
+    list-style: none;
+    padding: 0;
+    margin: 6mm 0 0 0;
+  }
+  ul.problem-list li {
+    background: var(--paper-elevated);
+    border-left: 3px solid var(--brand-orange);
+    padding: 5mm 6mm;
+    margin-bottom: 4mm;
+    border-radius: 0 3mm 3mm 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  ul.problem-list .pn {
+    color: var(--brand-orange);
+    font-weight: 700;
+    font-size: 11pt;
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 1mm;
+  }
+  ul.problem-list .pt {
+    font-size: 14pt;
+    color: var(--ink-900);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 1mm;
+  }
+  ul.problem-list .pd {
+    font-size: 11pt;
+    color: var(--ink-700);
+    line-height: 1.45;
+  }
+
+  /* Tab strip explanation */
+  table.tabs {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4mm;
+  }
+  table.tabs td {
+    vertical-align: top;
+    padding: 3mm 0;
+    border-bottom: 1px solid var(--paper-muted);
+    font-size: 11pt;
+  }
+  table.tabs td.label {
+    color: var(--brand-orange);
+    font-weight: 700;
+    width: 28mm;
+    padding-right: 4mm;
+  }
+  table.tabs td.desc { color: var(--ink-700); }
+  table.tabs tr:last-child td { border-bottom: none; }
+
+  /* Screenshot + caption layout */
+  .screen {
+    margin: 4mm 0;
+    text-align: center;
+  }
+  .screen img {
+    max-width: 100%;
+    max-height: 105mm;
+    border: 1px solid var(--paper-muted);
+    border-radius: 3mm;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+  .screen-cap {
+    margin-top: 2mm;
+    font-size: 9.5pt;
+    color: var(--ink-500);
+    font-style: italic;
+  }
+
+  /* Step list */
+  ol.steps {
+    list-style: none;
+    counter-reset: step;
+    padding: 0;
+    margin: 4mm 0;
+  }
+  ol.steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 4mm 12mm;
+    font-size: 12pt;
+    color: var(--ink-700);
+    line-height: 1.5;
+  }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 8mm;
+    height: 8mm;
+    border-radius: 50%;
+    background: var(--brand-orange);
+    color: white;
+    text-align: center;
+    line-height: 8mm;
+    font-size: 11pt;
+    font-weight: 700;
+  }
+  ol.steps li strong { color: var(--ink-900); }
+
+  /* Habit blocks */
+  .habit {
+    background: var(--paper-elevated);
+    border-radius: 3mm;
+    padding: 5mm 6mm;
+    margin-bottom: 4mm;
+    border-top: 3px solid var(--brand-orange);
+  }
+  .habit h3 {
+    margin: 0 0 2mm 0;
+    font-size: 12pt;
+    color: var(--ink-900);
+  }
+  .habit .time {
+    font-size: 10pt;
+    color: var(--brand-orange);
+    font-weight: 600;
+    margin-bottom: 2mm;
+  }
+  .habit ul {
+    margin: 0;
+    padding-left: 5mm;
+    color: var(--ink-700);
+    font-size: 11pt;
+    line-height: 1.55;
+  }
+
+  /* Tips */
+  .tip {
+    background: var(--brand-orange-soft);
+    border-radius: 2mm;
+    padding: 4mm 5mm;
+    margin-top: 4mm;
+    font-size: 11pt;
+    color: var(--brand-brown);
+  }
+  .tip strong { color: var(--brand-brown); }
+  .tip::before {
+    content: '★ ';
+    color: var(--brand-orange);
+    font-weight: 700;
+  }
+
+  /* Note (smaller, gentler) */
+  .note {
+    margin-top: auto;
+    font-size: 10pt;
+    color: var(--ink-500);
+    font-style: italic;
+    line-height: 1.45;
+    padding-top: 6mm;
+    border-top: 1px solid var(--paper-muted);
+  }
+
+  /* Closing slide */
+  .closing-mark {
+    width: 22mm;
+    height: 4mm;
+    background: var(--brand-orange);
+    border-radius: 2mm;
+    margin: 8mm 0 6mm 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- SLIDE 1 — COVER -->
+<!-- ============================================================ -->
+<section class="slide cover" data-num="">
+  <div>
+    <div class="cover-mark"></div>
+    <h1 class="cover-title">Crunchies</h1>
+    <p class="lede" style="color: var(--ink-900); margin-top: 4mm; font-size: 18pt;">
+      Your business,<br/>in one place.
+    </p>
+  </div>
+  <div class="cover-name-block">
+    A guide for
+    <strong>Archana Kothadiya</strong>
+    Crunchies by Archana · Pune
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 2 — WHY THIS APP -->
+<!-- ============================================================ -->
+<section class="slide" data-num="2">
+  <h2 class="eyebrow">Why this app</h2>
+  <h1 class="section">Your work deserves a tool that respects your time.</h1>
+  <p>
+    You make beautiful snacks. You handle orders, customers, and the team.
+    The thinking part — <em class="orange">what to make, who to call, what was paid</em> —
+    can live in this app, not in your notebook.
+  </p>
+  <p>
+    Three small problems. This app solves all three.
+  </p>
+
+  <ul class="problem-list">
+    <li>
+      <span class="pn">1</span>
+      <span class="pt">Plan what to make</span>
+      <span class="pd">No more guessing. The app suggests quantities each week.</span>
+    </li>
+    <li>
+      <span class="pn">2</span>
+      <span class="pt">Remember every customer</span>
+      <span class="pd">Especially new ones from exhibitions. Nothing is lost.</span>
+    </li>
+    <li>
+      <span class="pn">3</span>
+      <span class="pt">Track every order</span>
+      <span class="pd">Every WhatsApp message becomes a clean record.</span>
+    </li>
+  </ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 3 — FIVE TABS -->
+<!-- ============================================================ -->
+<section class="slide" data-num="3">
+  <h2 class="eyebrow">The map</h2>
+  <h1 class="section">Five tabs at the bottom.</h1>
+  <p>Every screen lives under one of these five.</p>
+
+  <table class="tabs">
+    <tr>
+      <td class="label">Today</td>
+      <td class="desc">What to do right now. Open here every morning.</td>
+    </tr>
+    <tr>
+      <td class="label">Orders</td>
+      <td class="desc">Every order, ever. Search, filter, log new ones.</td>
+    </tr>
+    <tr>
+      <td class="label">Customers</td>
+      <td class="desc">Every person who has bought from you.</td>
+    </tr>
+    <tr>
+      <td class="label">Production</td>
+      <td class="desc">What to make this week. Log each batch when done.</td>
+    </tr>
+    <tr>
+      <td class="label">Reports</td>
+      <td class="desc">Look back at the week, month, or longer.</td>
+    </tr>
+  </table>
+
+  <p class="tip">
+    The <strong>gear icon</strong> on the Today screen (top-right corner) opens
+    your business settings — name, address, bill footer. Set it once.
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 4 — TODAY SCREEN -->
+<!-- ============================================================ -->
+<section class="slide" data-num="4">
+  <h2 class="eyebrow">Today</h2>
+  <h1 class="section">Open the app. See what to do.</h1>
+
+  <div class="screen">
+    <img src="screenshots/today.png" alt="Today screen" />
+    <div class="screen-cap">The Today screen, showing this week's plan and pending orders.</div>
+  </div>
+
+  <p class="small">
+    <strong>Top half:</strong> "This week, make." Each row tells you how much to cook.
+  </p>
+  <p class="small">
+    <strong>Bottom half:</strong> "Pending today." Who needs their order today.
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 5 — LOG A NEW ORDER -->
+<!-- ============================================================ -->
+<section class="slide" data-num="5">
+  <h2 class="eyebrow">Daily flow</h2>
+  <h1 class="section">A new order from WhatsApp.</h1>
+  <p>
+    Tap <em class="orange">+ Log new order</em> from anywhere. Fill in the steps.
+    The app saves it.
+  </p>
+
+  <ol class="steps">
+    <li><strong>Pick the customer.</strong> Type 2 letters of their name. Or add a new one inline.</li>
+    <li><strong>Pick the items.</strong> Tap the products. Type the quantity.</li>
+    <li><strong>Set the day they need it.</strong> Today by default. Change if it's later in the week.</li>
+    <li><strong>Mark paid or unpaid.</strong> Tap Save.</li>
+  </ol>
+
+  <div class="tip">
+    <strong>End of day with many messages?</strong> Open the Orders tab → tap <em>Batch</em>.
+    Log all 5–10 orders one after another.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 6 — PRODUCTION TAB -->
+<!-- ============================================================ -->
+<section class="slide" data-num="6">
+  <h2 class="eyebrow">Production</h2>
+  <h1 class="section">How much to make. Tracked.</h1>
+
+  <div class="screen">
+    <img src="screenshots/production.png" alt="Production screen" />
+    <div class="screen-cap">The Production screen with this week's targets.</div>
+  </div>
+
+  <p class="small">
+    For each product, the app shows: <strong>plan</strong> (your target),
+    <strong>suggested</strong> (what the app thinks), and <strong>made</strong> (what you've done so far).
+  </p>
+  <p class="tiny">
+    <strong>First few weeks:</strong> the app uses the numbers you set during setup.
+    <br/>
+    <strong>After a month of real orders:</strong> the app learns your real rhythm. No work from you.
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 7 — PLAN THIS WEEK -->
+<!-- ============================================================ -->
+<section class="slide" data-num="7">
+  <h2 class="eyebrow">Monday morning</h2>
+  <h1 class="section">Plan the week. Once.</h1>
+
+  <div class="screen">
+    <img src="screenshots/plan-this-week.png" alt="Plan this week page" />
+    <div class="screen-cap">The "Plan this week" screen — saved once each Monday.</div>
+  </div>
+
+  <p>
+    Every Monday, open Production → <em class="orange">Plan this week</em>.
+    Look at the suggestions. Change them if you know better. Tap Save.
+  </p>
+
+  <p class="small">
+    By Sunday you'll see how close your plan came. That's how the app learns.
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 8 — CUSTOMERS -->
+<!-- ============================================================ -->
+<section class="slide" data-num="8">
+  <h2 class="eyebrow">Customers</h2>
+  <h1 class="section">Everyone you've sold to.</h1>
+
+  <div class="screen">
+    <img src="screenshots/customer-detail.png" alt="Customer detail" />
+    <div class="screen-cap">A customer's full history — orders, notes, contact.</div>
+  </div>
+
+  <p class="small">
+    <strong>Search</strong> by name or phone. Filter by channel (Personal, Reseller, Exhibition).
+  </p>
+  <p class="small">
+    Tap a customer to see all their orders. <em class="orange">Send WhatsApp</em> opens
+    a chat with them. <em class="orange">Tap the phone number</em> to copy it.
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 9 — EVENTS -->
+<!-- ============================================================ -->
+<section class="slide" data-num="9">
+  <h2 class="eyebrow">Events</h2>
+  <h1 class="section">Festivals and exhibitions.</h1>
+
+  <p>
+    Add upcoming events (Diwali, Ganpati, mela stalls, etc).
+    The app will <em class="orange">increase production suggestions</em>
+    in the weeks before, so you're not caught short.
+  </p>
+
+  <p class="small" style="margin-top: 6mm;">
+    <strong>For exhibitions:</strong> the app gives you a special web link for that event.
+    Print it. Share it on the stall. Customers fill the form themselves —
+    their order and contact details come into your app automatically.
+  </p>
+
+  <div class="tip">
+    No more lost slips of paper after a busy weekend at a mela.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 10 — REPORTS -->
+<!-- ============================================================ -->
+<section class="slide" data-num="10">
+  <h2 class="eyebrow">Reports</h2>
+  <h1 class="section">Look back. Learn the rhythm.</h1>
+
+  <div class="screen">
+    <img src="screenshots/reports.png" alt="Reports week tab" />
+    <div class="screen-cap">Reports — Week tab. Plan vs what got ordered.</div>
+  </div>
+
+  <p class="small">
+    Three views at the top: <strong>Week</strong>, <strong>Month</strong>, <strong>Trends</strong>.
+  </p>
+  <p class="small">
+    The numbers tell you: did you make enough? Too much? Which products are growing?
+    No pressure — just the truth, gently.
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 11 — BILLS -->
+<!-- ============================================================ -->
+<section class="slide" data-num="11">
+  <h2 class="eyebrow">Bills</h2>
+  <h1 class="section">Send a bill on WhatsApp in 5 seconds.</h1>
+
+  <p>
+    Open any order. Tap <em class="orange">Generate bill</em>. A neat PDF appears.
+    Tap <em class="orange">Share</em>. Send it to the customer on WhatsApp.
+  </p>
+
+  <p class="small">
+    The bill carries your name, address, signature, and (if you have one) your GSTIN.
+    Set these once in <strong>Settings</strong>.
+  </p>
+
+  <p class="small">
+    Paid bills show a small <strong>PAID</strong> stamp with the date you received the money.
+    Unpaid bills show a polite "payment due on collection" line — never accusatory.
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 12 — DAILY / WEEKLY HABIT -->
+<!-- ============================================================ -->
+<section class="slide" data-num="12">
+  <h2 class="eyebrow">A small habit</h2>
+  <h1 class="section">Three short visits per week.</h1>
+
+  <div class="habit">
+    <div class="time">Every morning · 3 minutes</div>
+    <h3>Open Today.</h3>
+    <ul>
+      <li>See pending orders.</li>
+      <li>Log any new WhatsApp orders.</li>
+      <li>Mark fulfilled and paid as you go.</li>
+    </ul>
+  </div>
+
+  <div class="habit">
+    <div class="time">Monday · 5 minutes</div>
+    <h3>Plan the week.</h3>
+    <ul>
+      <li>Production tab → Plan this week.</li>
+      <li>Adjust the numbers if needed. Save.</li>
+    </ul>
+  </div>
+
+  <div class="habit">
+    <div class="time">Sunday evening · 5 minutes</div>
+    <h3>Look at Reports.</h3>
+    <ul>
+      <li>Reports → Week. How did it go?</li>
+      <li>That's it.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 13 — A NOTE -->
+<!-- ============================================================ -->
+<section class="slide" data-num="">
+  <div style="margin-top: 30mm;">
+    <h2 class="eyebrow">A note</h2>
+    <h1 class="section">This app is yours.</h1>
+    <p>
+      It will feel new. That's normal. The first week, just open Today every morning
+      and try to log one order. By the second week, the small habits will start
+      to feel natural.
+    </p>
+    <p>
+      When something feels slow, or a button is in the wrong place,
+      or you need a feature it doesn't have — <em class="orange">tell me</em>.
+      We'll keep adjusting it until it fits you.
+    </p>
+  </div>
+
+  <div class="closing-mark"></div>
+  <p class="small" style="color: var(--ink-700); font-weight: 500;">
+    With love,<br/>Karan
+  </p>
+
+  <p class="note" style="border: none; padding-top: 4mm; margin-top: 10mm;">
+    The screenshots in this booklet use example customers and products,
+    not your real records.
+  </p>
+</section>
+
+</body>
+</html>
