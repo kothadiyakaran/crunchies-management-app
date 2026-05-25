@@ -84,6 +84,8 @@
 
 ## ADR-44 — Backfill script architecture: idempotent, dry-run default, service-role required
 
+> **Superseded 2026-05-25.** The backfill was never run. Karan decided mom starts from a clean slate rather than importing notebook history. The script + tests + fixture are archived at `docs/archive/build-artifacts/backfill/`; see `ARCHIVE_NOTE.md` there for decision context and revival instructions. The decision below documents what was built and why, faithful to the Sprint 9 design moment — it does not reflect current intent.
+
 **Context:** §14 Sprint 9 line 1613: "Backfill script: import mom's notebook history into customers + orders (one-time, idempotent, dry-run before commit)."
 
 **Decision:** `scripts/backfill-notebook.ts` — Node + tsx (added as devDep). CSV input. Three idempotency primitives:

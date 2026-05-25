@@ -85,6 +85,8 @@ These don't change product behaviour — the script asserts the actual UX. Spec 
 
 ## ADR-49 — Backfill `--apply` path live-smoke deferred to launch session
 
+> **Superseded 2026-05-25.** Backfill was dropped entirely (see ADR-44 supersession header). The launch-session live smoke never ran because the backfill itself never ran. The deferral logic below is preserved for traceability of the Sprint 10 thinking.
+
 **Context:** Sprint 9 ADR-44 documented that `scripts/backfill-notebook.ts` was tested in dry-run only — `SUPABASE_SERVICE_KEY` is not provisioned in this env.
 
 **Decision:** Live `--apply` smoke runs at the launch session, with Karan present, against a small fixture CSV (3-4 rows representing distinct mom-notebook patterns). Idempotency proof: run twice, second run reports 100% EXISTS. Only then commit the full backfill of mom's notebook history. The script's 23 unit tests against a fake supabase client provide structural coverage; the launch-session smoke is the live-environment proof.
@@ -108,7 +110,7 @@ All 10 build sprints complete. Test count 258 across 36 vitest files; build clea
 Outstanding (none block launch):
 - Push Sprint 9-10 commits (13 commits ahead of `origin/main`).
 - Color-contrast retune awaiting Karan's decision.
-- Live backfill smoke at launch session.
+- ~~Live backfill smoke at launch session.~~ *(Backfill dropped 2026-05-25; see ADR-44/49 supersession headers.)*
 - PWA install on mom's Android.
 - Settings inputs from mom at launch session.
 - Post-launch backlog: complaint deletion UI; spec-doc cleanup to match implementation drift (ADR-45 list).
