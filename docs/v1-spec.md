@@ -1526,7 +1526,7 @@ Incorporate ergonomic feedback into the spec. Anything that requires changing a 
 
 Each sprint = a focused unit of work CC and Karan complete together, paced by Karan's review cadence. Sprints are sequential, not calendar-locked. Walking-skeleton first sprint, then breadth-first feature completion.
 
-**Sample data discipline (throughout Phase 1):** development uses **entirely synthetic data** — CC generates ~50–100 plausible orders, customers, and events drawn from mom's notebook patterns (Karan provides patterns, CC fabricates rows). Mom's real history does NOT enter the dev database. At launch, a one-time backfill script (Sprint 9) imports cleaned real data. This keeps the dev environment from accumulating Karan's testing noise.
+**Sample data discipline (throughout Phase 1):** development uses **entirely synthetic data** — CC generates ~50–100 plausible orders, customers, and events drawn from mom's notebook patterns (Karan provides patterns, CC fabricates rows). Mom's real history does NOT enter the dev database. *(Original spec called for a one-time backfill of mom's notebook history at launch; Karan dropped backfill on 2026-05-25 — mom starts from a clean slate. Archived script preserved at `docs/archive/build-artifacts/backfill/` for reference.)*
 
 **Mom's visibility during Phase 1: zero.** No interim demos. Karan gives her verbal progress updates ("orders screen is done, working on customers next") to keep anticipation up. She sees the app once, at launch, in a state she'll trust.
 
@@ -1607,7 +1607,7 @@ Each sprint = a focused unit of work CC and Karan complete together, paced by Ka
 - Monday banner on Today (Block 0)
 - All metric definitions per §9 (reactivated, exhibition→repeat conversion, etc.)
 
-#### Sprint 9 — Settings, onboarding, polish, real-data backfill
+#### Sprint 9 — Settings, onboarding, polish (real-data backfill dropped post-launch)
 
 - Settings (§13) — populate once mom provides the open items
 - Bill PDF template wired to settings (logo, business name, address, GST, footer)
@@ -1618,7 +1618,7 @@ Each sprint = a focused unit of work CC and Karan complete together, paced by Ka
 
 #### Sprint 10 — Internal QA + buffer
 
-- CC + Karan run every flow in §3's 8-flow list with synthetic data first, then with backfilled real data
+- CC + Karan run every flow in §3's 8-flow list with synthetic data (backfill of real data was originally scoped here; dropped 2026-05-25)
 - Cross-browser smoke (Karan's phone, mom's phone, desktop preview)
 - Buffer absorbs whatever Sprint 1–9 didn't fully close
 

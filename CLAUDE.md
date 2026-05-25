@@ -28,7 +28,7 @@ A PWA for Karan's mother (Archana) to manage her small artisanal snacks business
 | `src/features/orders/billPdf.ts` | Pure bill generator. Uses dynamically-imported jsPDF via `loadJsPDF()`. |
 | `src/lib/` | Cross-cutting: supabase client, week math, a11y helpers, todayInTz |
 | `supabase/migrations/` | Sequential SQL migrations (0001-0007). All schema + RLS + RPCs live here. |
-| `scripts/` | Backfill (`backfill-notebook.ts`) + Playwright smokes (`verify-*.py`) + `dev-seed.sql` |
+| `scripts/` | Playwright smokes (`verify-*.py`) + `dev-seed.sql` |
 | `docs/v1-spec.md` | Comprehensive feature spec (§1-§14) with implementation pointers |
 | `docs/BUILD_HISTORY.md` | Sprint-by-sprint Phase 1 narrative |
 | `docs/decisions/` | ADRs by sprint — read when investigating "why is X this way" |

@@ -84,7 +84,7 @@ Full §9 surface at `/reports`. Single page with `?tab=week|month|trends` URL st
 
 **First-run empty states:** Today / Customers / WeekTab / TrendsTab copy polished to match spec §3-§9.
 
-**Backfill (ADR-44):** `scripts/backfill-notebook.ts` (tsx) — CSV importer. `--dry-run` default, requires `SUPABASE_SERVICE_KEY` for `--apply`. Idempotency primitives: customer lookup by `cleanPhone`, product lookup by lowercase name (aborts row with clear error if missing — backfill doesn't invent products), order composite fingerprint `(customer_id, ordered_on, sorted item composition)`. Defaulted fields documented in README. 23 unit tests against a fake supabase client.
+**Backfill (ADR-44):** `scripts/backfill-notebook.ts` (tsx) — CSV importer. `--dry-run` default, requires `SUPABASE_SERVICE_KEY` for `--apply`. Idempotency primitives: customer lookup by `cleanPhone`, product lookup by lowercase name (aborts row with clear error if missing — backfill doesn't invent products), order composite fingerprint `(customer_id, ordered_on, sorted item composition)`. Defaulted fields documented in README. 23 unit tests against a fake supabase client. *(Note 2026-05-25: backfill was never run live. Karan decided mom starts from a clean slate rather than importing notebook history. Script archived to `docs/archive/build-artifacts/backfill/`; `tsconfig.scripts.json` removed alongside since no `.ts` scripts remain in `scripts/`.)*
 
 `scripts/verify-settings-flow.py` is the smoke. ADRs in `docs/decisions/2026-05-22-sprint-9-architecture-decisions.md` (ADRs 40-44).
 
