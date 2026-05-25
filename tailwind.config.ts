@@ -6,7 +6,10 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          orange: '#D9591A',
+          // orange darkened from #D9591A → #B8450F (contrast retune Sprint 10
+          // close): #D9591A on white was 3.89:1, fails WCAG AA 4.5:1; #B8450F
+          // hits ~5.1:1. orangeSoft / mustard / brown unchanged.
+          orange: '#B8450F',
           orangeSoft: '#FDE2C8',
           mustard: '#F4C56F',
           brown: '#4A2912',
@@ -14,7 +17,12 @@ const config: Config = {
         ink: {
           900: '#2A241F',
           700: '#5A5048',
-          500: '#8A8079',
+          // 500 darkened from #8A8079 → #6E655E (contrast retune Sprint 10
+          // close): #8A8079 on paper-surface (#FBF8F1) was 3.63:1, fails
+          // WCAG AA 4.5:1; #6E655E hits ~5.0:1 on paper-surface and 5.4:1
+          // on white. Used for secondary text / labels — 108 nodes across
+          // 8 routes were failing pre-retune.
+          500: '#6E655E',
         },
         paper: {
           surface: '#FBF8F1',

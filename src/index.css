@@ -26,7 +26,7 @@
    * browser-native :focus-visible pseudo-class so the ring only renders on
    * keyboard navigation, not on touch/mouse press (Mom's mobile UI stays
    * uncluttered; keyboard users get a visible target).
-   * Brand orange (#D9591A) for consistency with the design system.
+   * Brand orange (#B8450F) for consistency with the design system.
    */
   :focus {
     outline: none;
@@ -39,7 +39,7 @@
   [tabindex]:focus-visible,
   [role='button']:focus-visible,
   [role='tab']:focus-visible {
-    outline: 2px solid #d9591a;
+    outline: 2px solid #b8450f;
     outline-offset: 2px;
     border-radius: 4px;
   }

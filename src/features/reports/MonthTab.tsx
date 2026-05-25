@@ -148,7 +148,7 @@ function shortMonthLabel(yyyymm: string): string {
 function channelColor(name: string, index: number): string {
   const key = name.trim().toLowerCase();
   if (key === 'personal') return '#F4C56F'; // brand-mustard
-  if (key === 'reseller') return '#D9591A'; // brand-orange
+  if (key === 'reseller') return '#B8450F'; // brand-orange
   if (key === 'exhibition') return '#4A2912'; // brand-brown
   const palette = ['#5A5048', '#FFF7C2']; // ink-700, sticky-yellow
   return palette[index % palette.length] ?? '#5A5048';

@@ -29,7 +29,12 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", line_buffering=True)
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", line_buffering=True)
 
-BASE = "http://localhost:5173"
+BASE = os.environ.get("SMOKE_URL", "http://localhost:5173")
+# CLI override: --url <url>. Argparse is overkill for a single optional flag.
+for _i, _arg in enumerate(sys.argv):
+    if _arg == "--url" and _i + 1 < len(sys.argv):
+        BASE = sys.argv[_i + 1]
+        break
 OUT_DIR = pathlib.Path("scripts/screenshots")
 AXE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.0/axe.min.js"
 
@@ -133,28 +138,17 @@ def run_axe(page) -> dict:
 def summarise(label: str, result: dict) -> tuple[int, int]:
     """
     Return (serious_or_critical_count, moderate_or_minor_count).
-    `color-contrast` violations are reported separately and excluded from
-    the serious count; the script does not block on them. The Sprint 9 plan
-    is explicit about not mutating design tokens without Karan's approval
-    ("If any combo fails, log in the ADR — flag in your report"). The
-    DESIGN_HANDOFF tokens (ink-500 #8a8079 on paper-surface #fbf8f1 = 3.63;
-    brand-orange #d9591a on white = 3.89) sit just under the 4.5:1 WCAG AA
-    threshold but match the chosen design language. Logged here as
-    design-debt for the ADR.
+    Color-contrast violations are counted into serious/critical normally —
+    Sprint 10 close retuned the design tokens to clear WCAG AA 4.5:1
+    (ink-500 #6E655E, brand-orange #B8450F) so contrast is no longer
+    carved out.
     Prints a human-readable summary to stdout.
     """
-    # TODO Sprint 10: if Karan retunes ink-500/brand-orange tokens to clear
-    # WCAG AA 4.5:1, drop this carve-out and let color-contrast block again.
-    contrast = [v for v in result["violations"] if v["id"] == "color-contrast"]
-    other = [v for v in result["violations"] if v["id"] != "color-contrast"]
+    other = result["violations"]
     serious = [v for v in other if v["impact"] in ("serious", "critical")]
     moderate = [v for v in other if v["impact"] in ("moderate", "minor")]
-    if contrast:
-        nodes = sum(v["nodes"] for v in contrast)
-        print(f"  {label}: design-debt contrast ({nodes}x nodes — see ADR)")
     if not other:
-        if not contrast:
-            print(f"  {label}: axe clean (0 violations)")
+        print(f"  {label}: axe clean (0 violations)")
     else:
         print(
             f"  {label}: {len(serious)} serious/critical, "

@@ -66,9 +66,9 @@ function formatDayMonthYear(ymd: string): string {
 export function channelColor(name: string): string {
   const n = name.trim().toLowerCase();
   if (n === 'personal') return '#F4C56F'; // brand-mustard
-  if (n === 'reseller') return '#D9591A'; // brand-orange
+  if (n === 'reseller') return '#B8450F'; // brand-orange
   if (n === 'exhibition') return '#4A2912'; // brand-brown
-  const palette = ['#5A5048', '#FFF7C2', '#F1ECE1', '#8A8079', '#FDE2C8'];
+  const palette = ['#5A5048', '#FFF7C2', '#F1ECE1', '#6E655E', '#FDE2C8'];
   let h = 0;
   for (let i = 0; i < n.length; i += 1) h = (h * 31 + n.charCodeAt(i)) >>> 0;
   return palette[h % palette.length] ?? '#5A5048';
