@@ -1,29 +1,31 @@
 # Crunchies Management App — v1 Detailed Spec
 
-This is the growing detailed design specification for v1. It accumulates section by section as each is locked through the design walkthrough. Companion to `CLAUDE.md` at the project root — that file gives the high-level context and pointers; this one is the working detail.
+The locked feature spec for v1. Companion to `CLAUDE.md` — that file gives high-level context, current state, and how to work; this file gives the locked behavioural detail.
 
-**For a Claude session resuming this work:** read `CLAUDE.md` first for context, then this file for the locked design detail. Status checklist below shows what's locked and what's pending. Continue the walkthrough on the next pending section by proposing detail for the user's review, surface tradeoffs explicitly, and only write to this file after the user locks the section. Recommended order for remaining work: §11 → §12 → §9 → §13 → §14.
+## Implementation status (2026-05-22)
+
+**Phase 1 build complete.** All 14 sections below are implemented and deployed to `https://www.crunchies.app`. Each section header below lists `→ Implementation:` pointers to the relevant files. Where implementation differs from the original spec text, the implementation is the source of truth and the spec text below is annotated `[Drift — see ADR-45]` with the correction.
 
 Outcomes referenced throughout:
 - **O1** — production matches demand (mom stops underproducing)
 - **O2** — zero lost customers/orders (every WhatsApp order captured, every exhibition contact retained)
 - **O3** — mom feels mastery + clarity (qualitative — opens daily, talks about it, trusts it)
 
-Design walkthrough status:
-- [x] §1 Architecture & integration thesis
-- [x] §2 Data model
-- [x] §3 Mom's app: navigation, daily flows, common UI patterns
-- [x] §4 Today screen
-- [x] §5 Production screen
-- [x] §6 Events screen
-- [x] §7 Orders screen
-- [x] §8 Customers screen
-- [x] §9 Reports screen
-- [x] §10 Customer-facing exhibition form
-- [x] §11 Production rhythm: algorithm & seed flow
-- [x] §12 Production planning loop
-- [ ] §13 Settings & onboarding (specifics from builder pending)
-- [x] §14 Phase 0 plan + build sequencing
+Section status:
+- [x] §1 Architecture — `src/App.tsx`, `src/lib/supabase.ts`
+- [x] §2 Data model — `supabase/migrations/0001_*.sql` through `0007_*.sql`
+- [x] §3 Mom's app — `src/components/AppShell.tsx` + `src/components/BottomNav.tsx`
+- [x] §4 Today screen — `src/features/today/TodayPage.tsx`
+- [x] §5 Production screen — `src/features/production/`
+- [x] §6 Events screen — `src/features/events/`
+- [x] §7 Orders screen — `src/features/orders/`
+- [x] §8 Customers screen — `src/features/customers/`
+- [x] §9 Reports screen — `src/features/reports/`
+- [x] §10 Customer-facing exhibition form — `src/features/public/`
+- [x] §11 Production rhythm — `src/features/production/algorithm.ts` + `planLayer.ts`
+- [x] §12 Production planning loop — `src/features/production/PlanWeekPage.tsx`
+- [x] §13 Settings — `src/features/settings/` (single-row `business_settings` + RPC)
+- [x] §14 Phase 0 + build sequencing — closed; full sprint narrative in `docs/BUILD_HISTORY.md`
 
 ---
 
@@ -565,7 +567,7 @@ RETROSPECTIVE (Diwali 2025 — closed)
 - Tap `+ Add event` → opens detail/edit view in empty state
 - Required: name, kind, dates
 - Optional at create: lead_weeks (default per kind), expected demand per product, notes
-- After save → returns to events list with new event at top
+- After save → navigates to the event's detail page (`/events/:id`) so the user can immediately copy the public URL or add expected demand. *(Implementation source of truth: `EventDetailPage.tsx`. Earlier spec said "returns to events list" — implementation landed on the detail page.)*
 
 ### Empty states
 
@@ -711,7 +713,7 @@ Step list (top to bottom in the accordion):
 6. **Payment status** — defaults `Unpaid`. Auto-completes since it has a default.
 7. **Notes** — optional, no completion gate.
 
-**Save** button at the bottom of the screen — full-width, primary. Disabled until customer + items are valid. Save returns to wherever the form was launched from.
+**Save** button at the bottom of the screen — full-width, primary. Disabled until customer + items are valid. Save navigates to `/orders` (the orders list). *(Implementation source of truth: `AddOrderPage.tsx`. Earlier spec drafts said "returns to wherever launched from" — that behaviour was not implemented; landing on the orders list gives mom one consistent post-save location.)*
 
 **Validation behaviour:** when the user taps `Save` with steps incomplete, the accordion auto-jumps to the first invalid step and shows an inline error. No modal interruption.
 
@@ -888,7 +890,7 @@ Fields:
 
 **Duplicate detection on save:** if phone matches an existing customer, modal: *"Sunita Patil already exists — use existing?"* with `Use existing` / `Save as new` buttons. v2 will add full merge UI.
 
-Save → returns to directory with new customer at top.
+Save navigates to the new customer's detail page (`/customers/:id`). *(Implementation source of truth: `AddCustomerPage.tsx`. Earlier spec said "returns to directory" — implementation landed on the detail page so the user can immediately edit notes or log the first order without an extra tap.)*
 
 (Inline `+ New customer` mini-form from order flows — already in §7 — collects only name + phone + channel chip. Profile completion happens from the detail screen later.)
 
