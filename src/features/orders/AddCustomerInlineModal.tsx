@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { createCustomerQuick } from '@/features/customers/api';
 import { ChannelChipPicker } from '@/features/customers/ChannelChipPicker';
 import { useDialogA11y } from '@/lib/a11y';
@@ -41,7 +42,7 @@ export function AddCustomerInlineModal({ onClose, onCreated }: Props) {
   const inputClass = 'mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body';
   const labelSpan = 'text-label uppercase text-ink-500';
 
-  return (
+  return createPortal(
     <>
       <div className="fixed inset-0 z-40 bg-ink-900/40" onClick={onClose} aria-hidden="true" />
       <div
@@ -100,6 +101,7 @@ export function AddCustomerInlineModal({ onClose, onCreated }: Props) {
           </div>
         </form>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
