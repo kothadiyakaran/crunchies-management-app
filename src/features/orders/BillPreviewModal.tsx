@@ -28,6 +28,7 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
     // Wait until settings have loaded — buildBillPdf needs the business identity.
     if (!settings) return;
     let cancelled = false;
+    setError(null);
     (async () => {
       try {
         // jspdf is a dynamic chunk (Sprint 10 T10.3) — fetched in parallel
@@ -62,6 +63,7 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
   useEffect(() => {
     if (!pdfBlob || !canvasRef.current) return;
     let cancelled = false;
+    setError(null);
     const canvas = canvasRef.current;
     (async () => {
       try {
