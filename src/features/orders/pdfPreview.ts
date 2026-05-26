@@ -24,7 +24,7 @@ export async function renderPdfFirstPage(
   const pdf = await loadingTask.promise;
   const page = await pdf.getPage(1);
 
-  const dpr = Math.min(window.devicePixelRatio ?? 1, 2);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const viewport = page.getViewport({ scale: (cssWidth / page.getViewport({ scale: 1 }).width) * dpr });
 
   canvas.width = viewport.width;
