@@ -60,9 +60,14 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
   // Canvas element must already be mounted (settings truthy) before this runs.
   // Using canvas instead of <iframe src={blob:}> because Android WebView can't
   // render blob: PDF URLs — it shows a dead "PDF + Open" placeholder.
+  //
+  // AbortController lets us cancel an in-progress pdfjs render on unmount,
+  // preventing the Firefox InvalidStateError that occurs when pdfjs keeps
+  // drawing to a detached canvas after the modal closes.
   useEffect(() => {
     if (!pdfBlob || !canvasRef.current) return;
     let cancelled = false;
+    const controller = new AbortController();
     setError(null);
     const canvas = canvasRef.current;
     (async () => {
@@ -72,7 +77,7 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
           if (!cancelled) setError('Preview container has no width');
           return;
         }
-        await renderPdfFirstPage(pdfBlob, canvas, width);
+        await renderPdfFirstPage(pdfBlob, canvas, width, controller.signal);
         if (!cancelled) setRendered(true);
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
@@ -80,6 +85,7 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
     })();
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [pdfBlob]);
 
@@ -148,15 +154,17 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
             {!rendered && (
               <p className="text-body-sm text-ink-500">Generating…</p>
             )}
-            {/* Canvas stays mounted once settings load so the ref is available
-                when pdfBlob arrives. visibility:hidden (not display:none) keeps
-                the canvas in layout so clientWidth is non-zero when pdfjs sizes
-                the viewport. */}
-            <canvas
-              ref={canvasRef}
-              className="w-full rounded border border-ink-900/10"
-              style={{ visibility: rendered ? 'visible' : 'hidden' }}
-            />
+            {/* Scroll wrapper caps the A4-tall canvas at 60vh so the Close and
+                Share buttons stay reachable on small phones. The canvas keeps
+                visibility:hidden (not display:none) until rendered so
+                clientWidth is non-zero when pdfjs sizes the viewport. */}
+            <div className="max-h-[60vh] overflow-y-auto">
+              <canvas
+                ref={canvasRef}
+                className="w-full rounded border border-ink-900/10"
+                style={{ visibility: rendered ? 'visible' : 'hidden' }}
+              />
+            </div>
           </div>
         ) : (
           <p className="mt-3 text-body-sm text-ink-500">Loading business details…</p>

@@ -10,9 +10,15 @@ What this asserts (against the running app, default http://localhost:5173):
   6. A <canvas> inside the bill modal is rendered with non-zero width/height
      (pdfjs rasterised page 1 — replaces the old iframe blob-src check).
   7. The bill_number badge appears in the modal header (#NNNN).
-  8. The Share button is present and wired.
-  9. pdfjs chunks are NOT fetched before "Generate bill" is tapped (lazy-load
-     guard), and ARE fetched after (confirming on-demand splitting).
+  8. The Share button is present and REACHABLE via a normal (non-forced) click
+     at mom's mobile viewport (360×640).
+  9. The Close button is REACHABLE via a normal (non-forced) click at the same
+     mobile viewport — proving the 60vh scroll container keeps it on-screen.
+  10. pdfjs chunks are NOT fetched before "Generate bill" is tapped (lazy-load
+      guard), and ARE fetched after (confirming on-demand splitting).
+
+Runs at a 360×640 viewport (mom's design target) so Close/Share reachability
+is verified under the constraint that caused the layout regression.
 
 Use --url to target a different server (e.g. http://localhost:4173 for the
 prod preview build).
@@ -87,7 +93,9 @@ def main() -> int:
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        ctx = browser.new_context()
+        # Run at mom's design-target mobile viewport so Close/Share reachability
+        # is verified under the same constraint that caused the layout regression.
+        ctx = browser.new_context(viewport={"width": 360, "height": 640})
         page = ctx.new_page()
 
         page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
@@ -180,17 +188,43 @@ def main() -> int:
         bill_text = header.first.text_content() or ""
         print(f"OK bill header text: {bill_text!r}")
 
-        # 7) Share button is present and wired
+        # 7) Share button is present and REACHABLE (normal click, no force).
+        # In headless Chromium navigator.canShare is falsy so onShare falls
+        # through to the anchor download branch — wrap in expect_download so
+        # the test doesn't hang waiting for a file dialog.
         share_btn = page.locator('[role="dialog"] button', has_text=re.compile(r"^Shar"))
         if share_btn.count() == 0:
             page.screenshot(path=str(OUT_DIR / "sprint5-no-share.png"), full_page=True)
             print("FAIL Share button not found in bill modal", file=sys.stderr)
             return 1
-        print("OK Share button present")
+
+        # Verify Share is reachable (not clipped off-screen) via a real click.
+        try:
+            with page.expect_download(timeout=10000):
+                share_btn.first.click()  # normal click — NOT force=True
+        except Exception as e:
+            page.screenshot(path=str(OUT_DIR / "sprint5-share-unreachable.png"), full_page=True)
+            print(f"FAIL Share button not reachable at 360×640 via normal click: {e}", file=sys.stderr)
+            return 1
+        print("OK Share button reachable and clickable at 360×640 mobile viewport")
 
         page.screenshot(path=str(OUT_DIR / "sprint5-bill-modal.png"), full_page=True)
 
-        # 8) Font fetches
+        # 8) Close button is REACHABLE (normal click, no force) — proves the
+        # 60vh scroll container keeps the header on-screen on small phones.
+        close_btn = page.locator('[role="dialog"] button[aria-label="Close bill preview"]')
+        if close_btn.count() == 0:
+            print("FAIL Close bill preview button not found", file=sys.stderr)
+            return 1
+        try:
+            close_btn.first.click()  # normal click — NOT force=True
+        except Exception as e:
+            page.screenshot(path=str(OUT_DIR / "sprint5-close-unreachable.png"), full_page=True)
+            print(f"FAIL Close button not reachable at 360×640 via normal click: {e}", file=sys.stderr)
+            return 1
+        print("OK Close button reachable and clickable at 360×640 mobile viewport")
+
+        # 9) Font fetches
         regular_ok = any("NotoSans-Regular.ttf" in u and s == 200 for u, s in font_requests)
         bold_ok = any("NotoSans-Bold.ttf" in u and s == 200 for u, s in font_requests)
         for u, s in font_requests:
@@ -203,7 +237,7 @@ def main() -> int:
             return 1
         print("OK both font weights fetched 200")
 
-        # 9) pdfjs WAS fetched after bill tap (confirms on-demand chunk load)
+        # 10) pdfjs WAS fetched after bill tap (confirms on-demand chunk load)
         pdfjs_after = [u for u in requests_after_bill if is_pdfjs_url(u)]
         if not pdfjs_after:
             print("WARN pdfjs request not observed after bill tap (may have been cached from a prior run)")
