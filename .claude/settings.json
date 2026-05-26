@@ -67,7 +67,8 @@
       "mcp__supabase__get_logs",
       "mcp__supabase__get_edge_function",
       "mcp__supabase__generate_typescript_types",
-      "mcp__supabase__search_docs"
+      "mcp__supabase__search_docs",
+      "mcp__supabase__execute_sql"
     ],
     "ask": [
       "Bash(git push --force*)",
@@ -76,13 +77,13 @@
       "Bash(git reset --hard*)",
       "Bash(git branch -D*)",
       "Bash(supabase db reset*)",
+      "Bash(supabase db push*)",
       "Bash(gh pr merge*)",
       "Bash(gh release create*)",
       "Bash(npm publish*)",
       "Bash(rm -rf*)",
       "Bash(rm -fr*)",
       "mcp__supabase__apply_migration",
-      "mcp__supabase__execute_sql",
       "mcp__supabase__deploy_edge_function",
       "mcp__supabase__create_branch",
       "mcp__supabase__delete_branch",
