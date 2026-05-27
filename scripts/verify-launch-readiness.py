@@ -84,6 +84,23 @@ CONSOLE_ALLOWLIST_PATTERNS = [
     re.compile(r"^Error$"),
 ]
 
+# Known PRE-EXISTING cross-browser teardown noise. Tolerated (does not fail the
+# gate) but surfaced as a visible WARN on every run — so its disappearance, or a
+# differently-shaped new error, still gets noticed rather than silently swallowed.
+# Both reproduce on a plain `main` build, sit in code unrelated to any given
+# change, and never appear in chromium (mom's only runtime). Confirmed at the
+# Part C pre-push gate (2026-05-27); see docs/superpowers/SESSION_STATE.md.
+CONSOLE_KNOWN_FLAKY_PATTERNS = [
+    # firefox: a fetch/object used after its context began tearing down at the
+    # end of the run. Flaky (count varies run-to-run); chromium swallows it.
+    re.compile(r"InvalidStateError: An attempt was made to use an object", re.I),
+    # webkit: the newOrderBadge poll (orders?source=eq.exhibition_form&created_at=gt…)
+    # aborted at context teardown — webkit reports an aborted request as
+    # "due to access control checks". Scoped to that exact query so unrelated
+    # CORS/security errors still fail the gate.
+    re.compile(r"exhibition_form.*due to access control checks", re.I),
+]
+
 
 def load_creds() -> tuple[str, str]:
     env_email = os.environ.get("SMOKE_EMAIL")
@@ -112,6 +129,10 @@ def load_creds() -> tuple[str, str]:
 
 def is_allowed_console_msg(text: str) -> bool:
     return any(p.search(text) for p in CONSOLE_ALLOWLIST_PATTERNS)
+
+
+def is_known_flaky_console_msg(text: str) -> bool:
+    return any(p.search(text) for p in CONSOLE_KNOWN_FLAKY_PATTERNS)
 
 
 def do_login(page, base: str, email: str, password: str) -> None:
@@ -900,8 +921,13 @@ def main() -> int:
                 print(f"WARN cleanup raised: {e}", file=sys.stderr)
             browser.close()
 
-    # Console-error gate
-    unexpected = [e for e in console_errors if not is_allowed_console_msg(e)]
+    # Console-error gate. Known pre-existing teardown noise is split out so it
+    # is reported but does NOT fail the gate; everything else still fails.
+    known_flaky = [e for e in console_errors if is_known_flaky_console_msg(e)]
+    unexpected = [
+        e for e in console_errors
+        if not is_allowed_console_msg(e) and not is_known_flaky_console_msg(e)
+    ]
 
     # Summary
     print()
@@ -912,8 +938,13 @@ def main() -> int:
     lf_pass = sum(1 for _, ok, _ in lf if ok)
     print(
         f"{daily_pass}/{len(daily)} daily flows + {lf_pass}/{len(lf)} lower-frequency passed. "
-        f"{len(unexpected)} console errors."
+        f"{len(unexpected)} unexpected console errors ({len(known_flaky)} tolerated pre-existing)."
     )
+    if known_flaky:
+        # Visible on every run by design — keeps the tolerated noise under watch.
+        print("Tolerated pre-existing console noise (does NOT fail the gate):")
+        for e in known_flaky[:10]:
+            print(f"  WARN {e}")
     if unexpected:
         print("Unexpected console errors:")
         # Surface PAGEERROR (uncaught exceptions) first — these carry the
