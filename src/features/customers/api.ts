@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { orderTotal } from '@/features/orders/discount';
 
 export type CustomerRow = {
   id: string;
@@ -78,6 +79,7 @@ export type CustomerFullRow = CustomerRow & {
   last_ordered_at: string | null;
   created_at: string;
   channel_name: string;
+  discount_percent: number | null;
 };
 
 export type CustomerDetailRow = CustomerFullRow & {
@@ -106,7 +108,7 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetailRow |
   const { data, error } = await supabase
     .from('customers')
     .select(
-      'id, name, phone, channel_id, size_tier, source_event_id, notes, active, last_contacted_at, last_ordered_at, created_at, channels(name), events:source_event_id(name), orders(payment_status, order_items(qty, unit_price))',
+      'id, name, phone, channel_id, size_tier, source_event_id, notes, active, last_contacted_at, last_ordered_at, created_at, discount_percent, channels(name), events:source_event_id(name), orders(payment_status, discount_percent, order_items(qty, unit_price))',
     )
     .eq('id', id)
     .maybeSingle();
@@ -116,16 +118,18 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetailRow |
   type Raw = CustomerFullRow & {
     channels: { name: string } | null;
     events: { name: string } | null;
-    orders: { payment_status: string; order_items: { qty: number; unit_price: number }[] | null }[] | null;
+    orders:
+      | { payment_status: string; discount_percent: number; order_items: { qty: number; unit_price: number }[] | null }[]
+      | null;
   };
   const r = data as unknown as Raw;
   const orders = r.orders ?? [];
   const outstanding_total = orders
     .filter((o) => o.payment_status === 'unpaid' || o.payment_status === 'partial')
-    .reduce(
-      (sum, o) => sum + (o.order_items ?? []).reduce((s, i) => s + Number(i.qty) * Number(i.unit_price), 0),
-      0,
-    );
+    .reduce((sum, o) => {
+      const orderSubtotal = (o.order_items ?? []).reduce((s, i) => s + Number(i.qty) * Number(i.unit_price), 0);
+      return sum + orderTotal(orderSubtotal, Number(o.discount_percent)).total;
+    }, 0);
   return {
     id: r.id,
     name: r.name,
@@ -139,6 +143,7 @@ export async function getCustomerDetail(id: string): Promise<CustomerDetailRow |
     last_ordered_at: r.last_ordered_at,
     created_at: r.created_at,
     channel_name: r.channels?.name ?? '(unknown)',
+    discount_percent: r.discount_percent == null ? null : Number(r.discount_percent),
     source_event_name: r.events?.name ?? null,
     order_count: orders.length,
     outstanding_total,
@@ -159,7 +164,7 @@ export async function listOrdersForCustomer(customerId: string): Promise<
   const { data, error } = await supabase
     .from('orders')
     .select(
-      'id, ordered_at, target_fulfilment_date, fulfilled_at, payment_status, order_items(qty, unit_price, products(name))',
+      'id, ordered_at, target_fulfilment_date, fulfilled_at, payment_status, discount_percent, order_items(qty, unit_price, products(name))',
     )
     .eq('customer_id', customerId)
     .order('ordered_at', { ascending: false });
@@ -171,11 +176,13 @@ export async function listOrdersForCustomer(customerId: string): Promise<
     target_fulfilment_date: string | null;
     fulfilled_at: string | null;
     payment_status: 'unpaid' | 'paid' | 'partial';
+    discount_percent: number;
     order_items: { qty: number; unit_price: number; products: { name: string } | null }[] | null;
   };
   return (data as unknown as Raw[]).map((r) => {
     const items = r.order_items ?? [];
-    const total = items.reduce((s, i) => s + Number(i.qty) * Number(i.unit_price), 0);
+    const subtotal = items.reduce((s, i) => s + Number(i.qty) * Number(i.unit_price), 0);
+    const total = orderTotal(subtotal, Number(r.discount_percent)).total;
     const names = items.map((i) => `${i.qty} ${i.products?.name ?? '?'}`);
     const item_summary =
       names.slice(0, 2).join(', ') + (names.length > 2 ? `, +${names.length - 2} more` : '');
@@ -213,7 +220,7 @@ export async function listCustomersFiltered(
   let q = supabase
     .from('customers')
     .select(
-      'id, name, phone, channel_id, size_tier, source_event_id, notes, active, last_contacted_at, last_ordered_at, created_at, channels(name), orders(id)',
+      'id, name, phone, channel_id, size_tier, source_event_id, notes, active, last_contacted_at, last_ordered_at, created_at, discount_percent, channels(name), orders(id)',
     )
     .eq('active', true);
 
@@ -240,6 +247,7 @@ export async function listCustomersFiltered(
   type Raw = CustomerFullRow & {
     channels: { name: string } | null;
     orders: { id: string }[] | null;
+    discount_percent: number | null;
   };
   let rows: CustomerListItem[] = (data as unknown as Raw[]).map((r) => ({
     id: r.id,
@@ -254,6 +262,7 @@ export async function listCustomersFiltered(
     last_ordered_at: r.last_ordered_at,
     created_at: r.created_at,
     channel_name: r.channels?.name ?? '(unknown)',
+    discount_percent: r.discount_percent == null ? null : Number(r.discount_percent),
     order_count: (r.orders ?? []).length,
   }));
 
@@ -318,6 +327,7 @@ export async function createCustomerFull(input: {
   size_tier: 'small' | 'large' | null;
   source_event_id: string | null;
   notes: string | null;
+  discount_percent?: number | null;
 }): Promise<string> {
   const { data, error } = await supabase.from('customers').insert(input).select('id').single();
   if (error || !data) throw new Error(error?.message ?? 'customer insert failed');
@@ -334,6 +344,7 @@ export async function updateCustomer(
     source_event_id: string | null;
     notes: string | null;
     active: boolean;
+    discount_percent: number | null;
   }>,
 ): Promise<void> {
   const { error } = await supabase.from('customers').update(patch).eq('id', id);
@@ -395,12 +406,36 @@ export async function createChannel(name: string): Promise<{ id: string; name: s
 }
 
 /** Lite fetch for the Order form's customer picker pre-fill. */
-export async function getCustomerLite(id: string): Promise<{ id: string; name: string; phone: string | null } | null> {
+export async function getCustomerLite(
+  id: string,
+): Promise<{
+  id: string;
+  name: string;
+  phone: string | null;
+  discount_percent: number | null;
+  channel_default_discount_percent: number;
+} | null> {
   const { data, error } = await supabase
     .from('customers')
-    .select('id, name, phone')
+    .select('id, name, phone, discount_percent, channels(default_discount_percent)')
     .eq('id', id)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return data ?? null;
+  if (!data) return null;
+
+  type Raw = {
+    id: string;
+    name: string;
+    phone: string | null;
+    discount_percent: number | null;
+    channels: { default_discount_percent: number } | null;
+  };
+  const r = data as unknown as Raw;
+  return {
+    id: r.id,
+    name: r.name,
+    phone: r.phone,
+    discount_percent: r.discount_percent == null ? null : Number(r.discount_percent),
+    channel_default_discount_percent: Number(r.channels?.default_discount_percent ?? 0),
+  };
 }
