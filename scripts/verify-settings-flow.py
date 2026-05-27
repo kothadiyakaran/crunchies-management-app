@@ -300,28 +300,41 @@ def main() -> int:
                 )
                 return 1
             gen.first.click()
+            # Wait for the canvas inside the bill modal (pdfjs rasterised page 1).
             try:
-                page.wait_for_selector('iframe[title="bill preview"]', timeout=10000)
+                page.wait_for_selector('[role="dialog"] canvas', timeout=15000)
             except Exception:
                 page.screenshot(path=str(OUT_DIR / "sprint9-bill-failed.png"), full_page=True)
-                print("FAIL bill iframe never appeared", file=sys.stderr)
+                print("FAIL canvas never appeared in bill modal", file=sys.stderr)
                 return 1
-            # Let the async font fetch + PDF build settle.
-            page.wait_for_timeout(2000)
-            iframe_src = page.locator('iframe[title="bill preview"]').get_attribute("src") or ""
-            if not iframe_src.startswith("blob:"):
-                print(f"FAIL iframe src is not blob: ({iframe_src})", file=sys.stderr)
+            # Poll until canvas has non-zero dimensions (rasterisation complete).
+            canvas_rendered = False
+            dims = {"w": 0, "h": 0}
+            for _ in range(30):
+                dims = page.locator('[role="dialog"] canvas').evaluate(
+                    "c => ({ w: c.width, h: c.height })"
+                )
+                if dims["w"] > 0 and dims["h"] > 0:
+                    canvas_rendered = True
+                    break
+                page.wait_for_timeout(500)
+            if not canvas_rendered:
+                page.screenshot(path=str(OUT_DIR / "sprint9-canvas-blank.png"), full_page=True)
+                print("FAIL canvas inside bill modal has zero dimensions (pdfjs did not rasterise)", file=sys.stderr)
                 return 1
             header = page.locator('h2', has_text=re.compile(r"Bill #\d+"))
             if header.count() == 0:
                 print("FAIL Bill #N header missing in modal", file=sys.stderr)
                 return 1
-            print(f"OK bill modal opened with blob iframe; header = {header.first.text_content()!r}")
+            print(f"OK bill modal canvas rendered ({dims['w']}x{dims['h']}); header = {header.first.text_content()!r}")
             page.screenshot(path=str(OUT_DIR / "sprint9-bill-modal.png"), full_page=True)
             # Close the modal so navigation back to /settings is clean.
+            # JS click bypasses viewport constraints: the canvas inside the fixed
+            # bottom sheet is taller than the headless viewport, pushing the header
+            # (and Close button) off-screen; a synthetic click still works.
             close_btn = page.get_by_role("button", name=re.compile(r"^Close bill preview$"))
             if close_btn.count() > 0:
-                close_btn.first.click()
+                close_btn.first.evaluate("el => el.click()")
                 page.wait_for_timeout(300)
 
         # ---- 7) Restore original name (cleanup) ----------------------------

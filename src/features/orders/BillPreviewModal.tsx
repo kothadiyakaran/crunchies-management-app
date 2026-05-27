@@ -1,5 +1,6 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { buildBillPdf, loadJsPDF, loadNotoSansBase64, type BillInput } from './billPdf';
+import { renderPdfFirstPage } from './pdfPreview';
 import { useSettings } from '@/features/settings/SettingsContext';
 import type { OrderDetailRow } from './api';
 import { allocateBillNumber } from './api';
@@ -14,24 +15,24 @@ type Props = {
 export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
   const { settings } = useSettings();
   const [billNumber, setBillNumber] = useState<number | null>(order.bill_number);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [rendered, setRendered] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const titleId = useId();
   const { closeBtnRef } = useDialogA11y(onClose);
 
+  // Effect 1: build the PDF blob once settings are available.
   useEffect(() => {
     // Wait until settings have loaded — buildBillPdf needs the business identity.
     if (!settings) return;
-    // Capture the URL in a closure-local var so the cleanup can revoke whatever
-    // we created (the `pdfUrl` state setter is async — depending on it in the
-    // cleanup would close over the initial null value and leak every preview).
-    let createdUrl: string | null = null;
     let cancelled = false;
+    setError(null);
     (async () => {
       try {
-        // jspdf is now a dynamic chunk (Sprint 10 T10.3) — fetched in parallel
-        // with the bill-number allocation + font load so we don't add latency.
+        // jspdf is a dynamic chunk (Sprint 10 T10.3) — fetched in parallel
+        // with the bill-number allocation + font load to avoid adding latency.
         const [n, fontBase64, jsPDFCtor] = await Promise.all([
           billNumber ?? allocateBillNumber(order.id),
           loadNotoSansBase64().catch(() => undefined), // ₹ degrades to "Rs." if font load fails
@@ -44,25 +45,56 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
         }
         const pdf = buildBillPdf(toBillInput(order, n), settings, jsPDFCtor, { fontBase64 });
         const blob = pdf.output('blob');
-        createdUrl = URL.createObjectURL(blob);
-        setPdfUrl(createdUrl);
+        if (!cancelled) setPdfBlob(blob);
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
       }
     })();
     return () => {
       cancelled = true;
-      if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings]);
+
+  // Effect 2: rasterise the first PDF page onto the canvas once both are ready.
+  // Canvas element must already be mounted (settings truthy) before this runs.
+  // Using canvas instead of <iframe src={blob:}> because Android WebView can't
+  // render blob: PDF URLs — it shows a dead "PDF + Open" placeholder.
+  //
+  // AbortController cancels an in-progress pdfjs render when the modal closes.
+  // Without it, a close that races an unfinished render reaches pdfjs's late
+  // loadingTask.destroy()/cancel teardown, which Firefox logs as InvalidStateError.
+  useEffect(() => {
+    if (!pdfBlob || !canvasRef.current) return;
+    let cancelled = false;
+    const controller = new AbortController();
+    setError(null);
+    const canvas = canvasRef.current;
+    (async () => {
+      try {
+        const width = canvas.clientWidth || canvas.parentElement?.clientWidth || 0;
+        if (width <= 0) {
+          if (!cancelled) setError('Preview container has no width');
+          return;
+        }
+        await renderPdfFirstPage(pdfBlob, canvas, width, controller.signal);
+        if (!cancelled) setRendered(true);
+      } catch (e) {
+        if (!cancelled) setError((e as Error).message);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [pdfBlob]);
 
   async function onShare() {
     if (!billNumber || !settings) return;
     setSharing(true);
     let dlUrl: string | null = null;
     try {
-      // jspdf chunk already in browser cache from the preview effect — second
+      // jspdf chunk already in browser cache from the build effect — second
       // dynamic import resolves instantly from module cache, no extra fetch.
       const [fontBase64, jsPDFCtor] = await Promise.all([
         loadNotoSansBase64().catch(() => undefined),
@@ -117,21 +149,30 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
           </button>
         </header>
         {error && <p className="mt-2 text-body-sm text-status-danger-fg">{error}</p>}
-        {pdfUrl ? (
-          <iframe
-            title="bill preview"
-            src={pdfUrl}
-            className="mt-3 h-[60vh] w-full rounded border border-ink-900/10"
-          />
+        {settings ? (
+          <div className="mt-3">
+            {!rendered && (
+              <p className="text-body-sm text-ink-500">Generating…</p>
+            )}
+            {/* Scroll wrapper caps the A4-tall canvas at 60vh so the Close and
+                Share buttons stay reachable on small phones. The canvas keeps
+                visibility:hidden (not display:none) until rendered so
+                clientWidth is non-zero when pdfjs sizes the viewport. */}
+            <div className="max-h-[60vh] overflow-y-auto">
+              <canvas
+                ref={canvasRef}
+                className="w-full rounded border border-ink-900/10"
+                style={{ visibility: rendered ? 'visible' : 'hidden' }}
+              />
+            </div>
+          </div>
         ) : (
-          <p className="mt-3 text-body-sm text-ink-500">
-            {settings ? 'Generating…' : 'Loading business details…'}
-          </p>
+          <p className="mt-3 text-body-sm text-ink-500">Loading business details…</p>
         )}
         <button
           type="button"
           onClick={onShare}
-          disabled={!pdfUrl || !settings || sharing}
+          disabled={!billNumber || !settings || sharing}
           className="mt-4 h-11 w-full rounded-btn bg-brand-orange text-body font-semibold text-white disabled:opacity-50"
         >
           {sharing ? 'Sharing…' : 'Share'}

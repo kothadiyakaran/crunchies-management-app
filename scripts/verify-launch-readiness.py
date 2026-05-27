@@ -530,22 +530,38 @@ def flow_7_generate_bill(page, base: str, state: dict, reporter: Reporter) -> No
             reporter.failed(label, "Generate bill button not found")
             return
         gen.first.click()
-        page.wait_for_selector('iframe[title="bill preview"]', timeout=10000)
-        # Allow async font fetch + PDF build.
-        page.wait_for_timeout(2000)
-        iframe_src = page.locator('iframe[title="bill preview"]').get_attribute("src") or ""
-        if not iframe_src.startswith("blob:"):
-            reporter.failed(label, f"iframe src is not blob: ({iframe_src!r})")
+        # Wait for the canvas inside the bill modal (pdfjs rasterised page 1).
+        try:
+            page.wait_for_selector('[role="dialog"] canvas', timeout=15000)
+        except Exception as e:
+            page.screenshot(path=str(OUT_DIR / "t10-flow7-canvas-failed.png"), full_page=True)
+            reporter.failed(label, f"canvas never appeared in bill modal: {e}")
+            return
+        # Poll until canvas has non-zero dimensions (rasterisation complete).
+        canvas_rendered = False
+        for _ in range(30):
+            dims = page.locator('[role="dialog"] canvas').evaluate(
+                "c => ({ w: c.width, h: c.height })"
+            )
+            if dims["w"] > 0 and dims["h"] > 0:
+                canvas_rendered = True
+                break
+            page.wait_for_timeout(500)
+        if not canvas_rendered:
+            page.screenshot(path=str(OUT_DIR / "t10-flow7-canvas-blank.png"), full_page=True)
+            reporter.failed(label, "canvas inside bill modal has zero dimensions (pdfjs did not rasterise)")
             return
         # Share button is visible (per BillPreviewModal: button text just "Share")
         share = page.get_by_role("button", name=re.compile(r"^Share"))
         if share.count() == 0:
             reporter.failed(label, "Share button not found")
             return
-        # Close the modal
+        # Close the modal. JS click bypasses viewport constraints: the canvas
+        # inside the fixed bottom sheet is taller than the headless viewport,
+        # pushing the header (and Close button) off-screen.
         close = page.get_by_role("button", name=re.compile(r"^Close bill preview$"))
         if close.count() > 0:
-            close.first.click()
+            close.first.evaluate("el => el.click()")
             page.wait_for_timeout(300)
         reporter.passed(label)
     except Exception as e:
