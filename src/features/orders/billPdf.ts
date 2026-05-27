@@ -5,6 +5,7 @@
 // Sprint 10 T10.3 — the goal is that jspdf only downloads when mom actually
 // taps "Generate bill", not when she opens an order detail page.
 import type { jsPDF } from 'jspdf';
+import { orderTotal } from './discount';
 
 /** Dynamically imports jspdf and returns the constructor. Use this at the
  *  call site (e.g. when the user taps "Generate bill") so Vite splits jspdf
@@ -44,6 +45,9 @@ export type BillInput = {
   customerPhone: string | null;
   items: BillItem[];
   subtotal: number;
+  /** Per-order snapshot (0–100). When > 0 the totals block shows Subtotal /
+   *  Discount / Total; at 0 the bill is a single Total line as before. */
+  discountPercent: number;
   paymentStatus: 'unpaid' | 'paid' | 'partial';
   /** `orders.paid_at` (Postgres `date`). Used only for the "Received on {date}"
    *  caption under the PAID stamp; ignored when payment_status != 'paid' or null. */
@@ -222,16 +226,27 @@ export function buildBillPdf(
     cursor += 6;
   });
 
-  // Totals
+  // Totals — when a discount applies, show Subtotal / Discount / Total;
+  // otherwise a single Total line (unchanged from a no-discount bill).
+  const { discount, total } = orderTotal(input.subtotal, input.discountPercent);
   cursor += 2;
   pdf.setDrawColor(...INK_900);
   pdf.setLineWidth(0.3);
   pdf.line(contentLeft + contentWidth * 0.55, cursor, contentRight, cursor);
   cursor += 5;
   pdf.setFontSize(11);
+  if (input.discountPercent > 0) {
+    setNormal();
+    pdf.text('Subtotal', colX[2]!, cursor, { align: 'right' });
+    pdf.text(money(input.subtotal), colX[3]!, cursor, { align: 'right' });
+    cursor += 6;
+    pdf.text(`Discount (${input.discountPercent}%)`, colX[2]!, cursor, { align: 'right' });
+    pdf.text(`-${money(discount)}`, colX[3]!, cursor, { align: 'right' });
+    cursor += 6;
+  }
   setBold();
   pdf.text('Total', colX[2]!, cursor, { align: 'right' });
-  pdf.text(money(input.subtotal), colX[3]!, cursor, { align: 'right' });
+  pdf.text(money(total), colX[3]!, cursor, { align: 'right' });
   cursor += 14;
 
   // Payment status — asymmetric treatment by design.

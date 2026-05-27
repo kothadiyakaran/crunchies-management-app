@@ -28,6 +28,7 @@ const baseInput: BillInput = {
     { name: 'Chivda kg', qty: 1, unitPrice: 180, lineTotal: 180 },
   ],
   subtotal: 580,
+  discountPercent: 0,
   paymentStatus: 'unpaid',
 };
 
@@ -52,6 +53,23 @@ describe('buildBillPdf', () => {
     const pdf = buildBillPdf(baseInput, business, jsPDF);
     const text = extractAllText(pdf);
     expect(text).toContain('580');
+  });
+
+  it('shows Subtotal / Discount / discounted Total when discountPercent > 0', () => {
+    // 580 * 20% = 116 → total 464. (Labels avoid raw-paren assertions: jsPDF
+    // escapes "(" / ")" in the content stream, so we check paren-free fragments.)
+    const text = extractAllText(buildBillPdf({ ...baseInput, discountPercent: 20 }, business, jsPDF));
+    expect(text).toContain('Subtotal');
+    expect(text).toContain('Discount');
+    expect(text).toContain('20%');
+    expect(text).toContain('116'); // discount amount
+    expect(text).toContain('464'); // discounted total
+  });
+
+  it('omits Subtotal/Discount lines at 0% (single Total, unchanged bill)', () => {
+    const text = extractAllText(buildBillPdf(baseInput, business, jsPDF));
+    expect(text).not.toContain('Subtotal');
+    expect(text).not.toContain('Discount');
   });
 
   it('falls back to "Rs." when no font is provided (test environment)', () => {
