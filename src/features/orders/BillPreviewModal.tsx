@@ -195,6 +195,7 @@ function toBillInput(o: OrderDetailRow, billNumber: number): BillInput {
       lineTotal: it.line_total,
     })),
     subtotal: o.subtotal,
+    discountPercent: o.discount_percent,
     paymentStatus: o.payment_status,
     paidAt: o.paid_at,
   };

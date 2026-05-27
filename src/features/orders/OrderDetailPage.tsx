@@ -149,9 +149,28 @@ export function OrderDetailPage() {
             </li>
           ))}
         </ul>
-        <div className="mt-3 flex justify-between border-t border-ink-900/10 pt-2">
-          <span className="text-body font-semibold text-ink-900">Subtotal</span>
-          <span className="text-body font-semibold text-ink-900">{formatINR(order.subtotal)}</span>
+        <div className="mt-3 border-t border-ink-900/10 pt-2">
+          {order.discount_percent > 0 ? (
+            <>
+              <div className="flex justify-between text-body-sm text-ink-700">
+                <span>Subtotal</span>
+                <span>{formatINR(order.subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-body-sm text-ink-700">
+                <span>Discount ({order.discount_percent}%)</span>
+                <span>−{formatINR(order.discount)}</span>
+              </div>
+              <div className="mt-1 flex justify-between">
+                <span className="text-body font-semibold text-ink-900">Total</span>
+                <span className="text-body font-semibold text-ink-900">{formatINR(order.total)}</span>
+              </div>
+            </>
+          ) : (
+            <div className="flex justify-between">
+              <span className="text-body font-semibold text-ink-900">Total</span>
+              <span className="text-body font-semibold text-ink-900">{formatINR(order.total)}</span>
+            </div>
+          )}
         </div>
       </section>
 

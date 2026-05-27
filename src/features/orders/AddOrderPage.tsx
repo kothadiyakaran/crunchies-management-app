@@ -4,12 +4,13 @@ import { CustomerSearchPicker } from './CustomerSearchPicker';
 import { createOrderWithItems, getOrderDetail, updateOrder, updateOrderItems, type OrderItemInput, type OrderRow } from './api';
 import { listActiveProducts, type ProductRow } from '@/features/products/api';
 import { getCustomerLite } from '@/features/customers/api';
+import { orderTotal, resolveDiscount } from './discount';
 import { todayInTz } from '@/lib/utils';
 
 type Customer = { id: string; name: string; phone: string | null };
 type DraftItem = { product_id: string; qty: string; unit_price: string };
 
-type StepKey = 'customer' | 'source' | 'date' | 'target' | 'items' | 'payment' | 'notes';
+type StepKey = 'customer' | 'source' | 'date' | 'target' | 'items' | 'discount' | 'payment' | 'notes';
 
 const SOURCES: OrderRow['source'][] = ['whatsapp', 'in_person', 'phone'];
 const PAYMENT_STATUSES: OrderRow['payment_status'][] = ['unpaid', 'paid', 'partial'];
@@ -25,6 +26,8 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
   const [items, setItems] = useState<DraftItem[]>([{ product_id: '', qty: '', unit_price: '' }]);
   const [paymentStatus, setPaymentStatus] = useState<OrderRow['payment_status']>('unpaid');
   const [notes, setNotes] = useState('');
+  const [discountPercent, setDiscountPercent] = useState<string>('0');
+  const [discountTouched, setDiscountTouched] = useState(false);
   const [expandedStep, setExpandedStep] = useState<StepKey>('customer');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +57,8 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
           })),
         );
         setPaymentStatus(o.payment_status);
+        setDiscountPercent(String(o.discount_percent));
+        setDiscountTouched(true);
         setNotes(o.notes ?? '');
         setExpandedStep('items'); // skip past pre-filled steps
       } catch (e) {
@@ -71,6 +76,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
         const c = await getCustomerLite(prefilledId);
         if (c) {
           setCustomer(c);
+          setDiscountPercent(String(resolveDiscount({ customerDiscount: c.discount_percent, channelDefault: c.channel_default_discount_percent })));
           setExpandedStep('items'); // skip past the customer step since it's done
         }
       } catch (e) {
@@ -88,6 +94,15 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
     }
     setCustomer(c);
     setExpandedStep('items');
+    void resolveDiscountFor(c.id);
+  }
+
+  async function resolveDiscountFor(customerId: string) {
+    if (discountTouched) return;
+    try {
+      const c = await getCustomerLite(customerId);
+      if (c) setDiscountPercent(String(resolveDiscount({ customerDiscount: c.discount_percent, channelDefault: c.channel_default_discount_percent })));
+    } catch { /* leave field as-is on fetch failure */ }
   }
 
   function setItemField(i: number, patch: Partial<DraftItem>) {
@@ -111,7 +126,12 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
     })
     .filter((x): x is OrderItemInput => x !== null);
 
-  const canSubmit = customer !== null && itemsValid.length > 0 && targetDate.length === 10 && !submitting;
+  const subtotal = itemsValid.reduce((s, it) => s + it.qty * it.unit_price, 0);
+  const discountValue = Number(discountPercent);
+  const discountValid = Number.isFinite(discountValue) && discountValue >= 0 && discountValue <= 100;
+  const totals = orderTotal(subtotal, discountValid ? discountValue : 0);
+
+  const canSubmit = customer !== null && itemsValid.length > 0 && targetDate.length === 10 && discountValid && !submitting;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -127,6 +147,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
           target_fulfilment_date: targetDate,
           payment_status: paymentStatus,
           notes: notes.trim() || null,
+          discount_percent: discountValue,
         });
         await updateOrderItems(editingOrderId, itemsValid);
         navigate(`/orders/${editingOrderId}`);
@@ -138,6 +159,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
           target_fulfilment_date: targetDate,
           payment_status: paymentStatus,
           notes: notes.trim() || null,
+          discount_percent: discountValue,
           items: itemsValid,
         });
         navigate('/orders');
@@ -325,9 +347,29 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
           )}
         </div>
 
-        {/* Step 6: Payment */}
+        {/* Step 6: Discount */}
         <div className="rounded-card bg-paper-elevated">
-          <StepHeader stepKey="payment" n={6} label="Payment" summary={paymentStatus} complete={true} />
+          <StepHeader stepKey="discount" n={6} label="Discount" summary={`${discountValid ? discountValue : 0}%`} complete={true} />
+          {expandedStep === 'discount' && (
+            <div className="px-3 pb-3">
+              <input
+                type="number" inputMode="decimal" min="0" max="100" step="any"
+                aria-label="discount-percent"
+                className={inputClass}
+                value={discountPercent}
+                onChange={(e) => { setDiscountPercent(e.target.value); setDiscountTouched(true); }}
+              />
+              {!discountValid && <p className="mt-1 text-body-sm text-status-danger-fg">Enter 0–100.</p>}
+              <p className="mt-1 text-body-sm text-ink-500">
+                Subtotal ₹{totals.subtotal} · Discount −₹{totals.discount} · Total ₹{totals.total}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Step 7: Payment */}
+        <div className="rounded-card bg-paper-elevated">
+          <StepHeader stepKey="payment" n={7} label="Payment" summary={paymentStatus} complete={true} />
           {expandedStep === 'payment' && (
             <div className="flex gap-2 px-3 pb-3">
               {PAYMENT_STATUSES.map((s) => (
@@ -346,9 +388,9 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
           )}
         </div>
 
-        {/* Step 7: Notes */}
+        {/* Step 8: Notes */}
         <div className="rounded-card bg-paper-elevated">
-          <StepHeader stepKey="notes" n={7} label="Notes (optional)" summary={notes || '—'} complete={true} />
+          <StepHeader stepKey="notes" n={8} label="Notes (optional)" summary={notes || '—'} complete={true} />
           {expandedStep === 'notes' && (
             <div className="px-3 pb-3">
               <textarea

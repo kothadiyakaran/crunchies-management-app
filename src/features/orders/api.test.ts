@@ -96,6 +96,42 @@ describe('createOrderWithItems', () => {
     );
   });
 
+  it('passes discount_percent through when supplied', async () => {
+    mockInsertOrder.mockResolvedValue({ data: { id: 'order-4' }, error: null });
+    mockInsertItems.mockResolvedValue({ error: null });
+
+    await createOrderWithItems({
+      customer_id: 'c-1',
+      source: 'whatsapp',
+      target_fulfilment_date: '2026-05-22',
+      payment_status: 'unpaid',
+      notes: null,
+      discount_percent: 20,
+      items: [{ product_id: 'p-1', qty: 1, unit_price: 100 }],
+    });
+
+    expect(mockInsertOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ discount_percent: 20 }),
+    );
+  });
+
+  it('omits discount_percent when not supplied (defaults DB-side)', async () => {
+    mockInsertOrder.mockResolvedValue({ data: { id: 'order-5' }, error: null });
+    mockInsertItems.mockResolvedValue({ error: null });
+
+    await createOrderWithItems({
+      customer_id: 'c-1',
+      source: 'whatsapp',
+      target_fulfilment_date: '2026-05-22',
+      payment_status: 'unpaid',
+      notes: null,
+      items: [{ product_id: 'p-1', qty: 1, unit_price: 100 }],
+    });
+
+    const firstCall = mockInsertOrder.mock.calls[0];
+    expect(firstCall?.[0]).not.toHaveProperty('discount_percent');
+  });
+
   it('throws synchronously when items is empty', async () => {
     await expect(
       createOrderWithItems({

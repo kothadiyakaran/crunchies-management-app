@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { todayInTz } from '@/lib/utils';
 import { weekStartFor } from '@/lib/week';
+import { orderTotal } from './discount';
 
 export type OrderRow = {
   id: string;
@@ -13,6 +14,7 @@ export type OrderRow = {
   notes: string | null;
   source: 'whatsapp' | 'exhibition_form' | 'in_person' | 'phone';
   bill_number: number | null;
+  discount_percent: number;
 };
 
 export type OrderFilter = 'all' | 'pending' | 'unpaid' | 'this_week' | 'this_month';
@@ -35,12 +37,15 @@ export type OrderDetailRow = OrderRow & {
     line_total: number;
   }[];
   subtotal: number;
+  discount_percent: number;
+  discount: number;
+  total: number;
 };
 
 export async function listOrders(): Promise<OrderRow[]> {
   const { data, error } = await supabase
     .from('orders')
-    .select('id, customer_id, ordered_at, fulfilled_at, payment_status, paid_at, target_fulfilment_date, notes, source, bill_number')
+    .select('id, customer_id, ordered_at, fulfilled_at, payment_status, paid_at, target_fulfilment_date, notes, source, bill_number, discount_percent')
     .order('ordered_at', { ascending: false })
     .limit(100);
   if (error) throw new Error(error.message);
@@ -51,7 +56,7 @@ export async function listOrdersFiltered(filter: OrderFilter): Promise<OrderList
   let q = supabase
     .from('orders')
     .select(
-      'id, customer_id, ordered_at, fulfilled_at, payment_status, paid_at, target_fulfilment_date, notes, source, bill_number, customers(name), order_items(qty, unit_price, products(name))',
+      'id, customer_id, ordered_at, fulfilled_at, payment_status, paid_at, target_fulfilment_date, notes, source, bill_number, discount_percent, customers(name), order_items(qty, unit_price, products(name))',
     )
     .order('ordered_at', { ascending: false })
     .limit(100);
@@ -85,7 +90,8 @@ function toListItem(r: OrderRow & {
   order_items: { qty: number; unit_price: number; products: { name: string } | null }[] | null;
 }): OrderListItem {
   const items = r.order_items ?? [];
-  const total = items.reduce((sum, i) => sum + Number(i.qty) * Number(i.unit_price), 0);
+  const subtotal = items.reduce((sum, i) => sum + Number(i.qty) * Number(i.unit_price), 0);
+  const total = orderTotal(subtotal, Number(r.discount_percent)).total;
   const itemNames = items.map((i) => `${i.qty} ${i.products?.name ?? '?'}`);
   const item_summary = itemNames.slice(0, 2).join(', ') + (itemNames.length > 2 ? `, +${itemNames.length - 2} more` : '');
   return {
@@ -99,6 +105,7 @@ function toListItem(r: OrderRow & {
     notes: r.notes,
     source: r.source,
     bill_number: r.bill_number,
+    discount_percent: r.discount_percent,
     customer_name: r.customers?.name ?? '(unknown customer)',
     total,
     item_summary,
@@ -112,7 +119,7 @@ export async function listTodayPendingOrders(): Promise<OrderListItem[]> {
   const { data, error } = await supabase
     .from('orders')
     .select(
-      'id, customer_id, ordered_at, fulfilled_at, payment_status, paid_at, target_fulfilment_date, notes, source, bill_number, customers(name), order_items(qty, unit_price, products(name))',
+      'id, customer_id, ordered_at, fulfilled_at, payment_status, paid_at, target_fulfilment_date, notes, source, bill_number, discount_percent, customers(name), order_items(qty, unit_price, products(name))',
     )
     .is('fulfilled_at', null)
     .or(`target_fulfilment_date.lte.${today},target_fulfilment_date.is.null`)
@@ -131,7 +138,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetailRow | null>
   const { data, error } = await supabase
     .from('orders')
     .select(
-      'id, customer_id, ordered_at, fulfilled_at, payment_status, paid_at, target_fulfilment_date, notes, source, bill_number, customers(name, phone), order_items(id, product_id, qty, unit_price, products(name))',
+      'id, customer_id, ordered_at, fulfilled_at, payment_status, paid_at, target_fulfilment_date, notes, source, bill_number, discount_percent, customers(name, phone), order_items(id, product_id, qty, unit_price, products(name))',
     )
     .eq('id', id)
     .maybeSingle();
@@ -152,6 +159,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetailRow | null>
     line_total: Number(i.qty) * Number(i.unit_price),
   }));
   const subtotal = items.reduce((sum, i) => sum + i.line_total, 0);
+  const { discount, total } = orderTotal(subtotal, Number(r.discount_percent));
   return {
     id: r.id,
     customer_id: r.customer_id,
@@ -167,6 +175,9 @@ export async function getOrderDetail(id: string): Promise<OrderDetailRow | null>
     customer_phone: r.customers?.phone ?? null,
     items,
     subtotal,
+    discount_percent: Number(r.discount_percent),
+    discount,
+    total,
   };
 }
 
@@ -183,6 +194,7 @@ export async function createOrderWithItems(input: {
   target_fulfilment_date: string;
   payment_status: OrderRow['payment_status'];
   notes: string | null;
+  discount_percent?: number;
   items: OrderItemInput[];
 }): Promise<string> {
   if (input.items.length === 0) throw new Error('At least one item is required.');
@@ -195,6 +207,7 @@ export async function createOrderWithItems(input: {
     payment_status: input.payment_status,
     notes: input.notes,
     ...(input.ordered_at ? { ordered_at: input.ordered_at } : {}),
+    ...(input.discount_percent !== undefined ? { discount_percent: input.discount_percent } : {}),
   };
   const { data: order, error: oErr } = await supabase
     .from('orders')
@@ -226,6 +239,7 @@ export async function updateOrder(
     target_fulfilment_date?: string;
     notes?: string | null;
     payment_status?: OrderRow['payment_status'];
+    discount_percent?: number;
   },
 ): Promise<void> {
   const { error } = await supabase.from('orders').update(patch).eq('id', id);

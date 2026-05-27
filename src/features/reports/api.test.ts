@@ -146,18 +146,21 @@ describe('getOrderSummary', () => {
             id: 'o1',
             fulfilled_at: '2026-05-20',
             payment_status: 'paid',
+            discount_percent: 0,
             order_items: [{ qty: 2, unit_price: 100 }],
           },
           {
             id: 'o2',
             fulfilled_at: null,
             payment_status: 'unpaid',
+            discount_percent: 0,
             order_items: [{ qty: 1, unit_price: 50 }],
           },
           {
             id: 'o3',
             fulfilled_at: '2026-05-21',
             payment_status: 'paid',
+            discount_percent: 0,
             order_items: [{ qty: 3, unit_price: 80 }],
           },
         ],
@@ -178,18 +181,21 @@ describe('getOrderSummary', () => {
             id: 'o1',
             fulfilled_at: '2026-05-20',
             payment_status: 'paid',
+            discount_percent: 0,
             order_items: [{ qty: 2, unit_price: 100 }], // 200 — paid, excluded
           },
           {
             id: 'o2',
             fulfilled_at: null,
             payment_status: 'unpaid',
+            discount_percent: 0,
             order_items: [{ qty: 1, unit_price: 50 }], // 50 — included
           },
           {
             id: 'o3',
             fulfilled_at: null,
             payment_status: 'partial',
+            discount_percent: 0,
             order_items: [{ qty: 4, unit_price: 25 }], // 100 — included
           },
         ],
@@ -200,6 +206,27 @@ describe('getOrderSummary', () => {
     const out = await getOrderSummary('2026-05-18', '2026-05-25');
     expect(out.outstanding_value).toBe(150);
     expect(out.outstanding_count).toBe(2);
+  });
+
+  it('applies each order discount_percent to total_value and outstanding_value', async () => {
+    fromMock.mockReturnValueOnce(
+      chain({
+        data: [
+          {
+            id: 'o1',
+            fulfilled_at: null,
+            payment_status: 'unpaid',
+            discount_percent: 20,
+            order_items: [{ qty: 10, unit_price: 100 }], // subtotal 1000 → net 800
+          },
+        ],
+        error: null,
+      }),
+    );
+
+    const out = await getOrderSummary('2026-05-18', '2026-05-25');
+    expect(out.total_value).toBe(800);
+    expect(out.outstanding_value).toBe(800);
   });
 });
 
@@ -217,28 +244,28 @@ describe('getTopProducts', () => {
             unit_price: 100,
             product_id: 'pA',
             products: { name: 'Chakli', unit: 'pack' },
-            orders: { ordered_at: '2026-05-20T10:00:00+05:30' },
+            orders: { ordered_at: '2026-05-20T10:00:00+05:30', discount_percent: 0 },
           },
           {
             qty: 7,
             unit_price: 50,
             product_id: 'pB',
             products: { name: 'Mathri', unit: 'pack' },
-            orders: { ordered_at: '2026-05-21T10:00:00+05:30' },
+            orders: { ordered_at: '2026-05-21T10:00:00+05:30', discount_percent: 0 },
           },
           {
             qty: 2,
             unit_price: 80,
             product_id: 'pC',
             products: { name: 'Sev', unit: 'pack' },
-            orders: { ordered_at: '2026-05-22T10:00:00+05:30' },
+            orders: { ordered_at: '2026-05-22T10:00:00+05:30', discount_percent: 0 },
           },
           {
             qty: 5,
             unit_price: 50,
             product_id: 'pB',
             products: { name: 'Mathri', unit: 'pack' },
-            orders: { ordered_at: '2026-05-22T11:00:00+05:30' },
+            orders: { ordered_at: '2026-05-22T11:00:00+05:30', discount_percent: 0 },
           },
         ],
         error: null,
@@ -251,6 +278,28 @@ describe('getTopProducts', () => {
     expect(out[0]?.qty).toBe(12);
     expect(out[1]?.product_id).toBe('pA'); // qty 3
     expect(out[1]?.qty).toBe(3);
+  });
+
+  it('applies the parent order discount proportionally to each line value', async () => {
+    fromMock.mockReturnValueOnce(
+      chain({
+        data: [
+          {
+            qty: 10,
+            unit_price: 100,
+            product_id: 'pA',
+            products: { name: 'Chakli', unit: 'pack' },
+            // line gross 1000, order 20% off → net 800
+            orders: { ordered_at: '2026-05-20T10:00:00+05:30', discount_percent: 20 },
+          },
+        ],
+        error: null,
+      }),
+    );
+
+    const out = await getTopProducts('2026-05-18', '2026-05-25', 5);
+    expect(out).toHaveLength(1);
+    expect(out[0]?.value).toBe(800);
   });
 });
 
