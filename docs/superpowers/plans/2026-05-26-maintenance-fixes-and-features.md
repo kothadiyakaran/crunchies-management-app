@@ -24,6 +24,14 @@
 
 ---
 
+## Progress (updated 2026-05-27)
+
+- **Part A — SHIPPED & live** (merge `58a51ca`). Inline add-customer fixed via `createPortal`; live-verified.
+- **Part B — SHIPPED & live** (merge `a150ad8`). Bill preview → canvas via lazy pdfjs, mobile-bounded, render-cancel-on-close; full 3-browser matrix green.
+- **Parts C, D, E — not started.** See `docs/superpowers/SESSION_STATE.md` for resume instructions, the carried-forward working rules (esp. `npm run test:run`, Opus subagents, smoke cadence), and the open `verify-events-flow.py` investigation.
+
+---
+
 ## Part A — Bug 1: inline add-customer (nested-form → portal)
 
 **Root cause (proven):** `AddCustomerInlineModal` renders its `<form>` inline, nested inside `AddOrderPage`/`EditOrderPage`'s `<form>`. Clicking "Add" fires a native form submit → full page reload → the `createCustomerQuick` insert is aborted before any `POST` leaves the device. Fix: render the modal through `createPortal(…, document.body)` so it is no longer a DOM descendant of the order form.
