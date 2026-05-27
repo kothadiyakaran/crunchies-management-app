@@ -28,7 +28,8 @@
 
 - **Part A — SHIPPED & live** (merge `58a51ca`). Inline add-customer fixed via `createPortal`; live-verified.
 - **Part B — SHIPPED & live** (merge `a150ad8`). Bill preview → canvas via lazy pdfjs, mobile-bounded, render-cancel-on-close; full 3-browser matrix green.
-- **Parts C, D, E — not started.** See `docs/superpowers/SESSION_STATE.md` for resume instructions, the carried-forward working rules (esp. `npm run test:run`, Opus subagents, smoke cadence), and the open `verify-events-flow.py` investigation.
+- **Part C — SHIPPED & live** (merge `d81bbfd`). Reversible order actions (revert fulfilled/paid) + delete complaint; persistent secondary buttons + native `confirm()`; new `verify-revert-flow.py`; live-verified on crunchies.app. Pushed despite firefox/webkit launch-readiness console-gate noise that was confirmed pre-existing (reproduces on `main`, in unchanged `newOrderBadge.ts`, absent in chromium) — Karan's call. See SESSION_STATE for details.
+- **Parts D, E — not started.** See `docs/superpowers/SESSION_STATE.md` for resume instructions, the carried-forward working rules (esp. `npm run test:run`, Opus subagents, smoke cadence), the pre-existing console-gate noise note, and the now-uncertain `verify-events-flow.py` status (it PASSED at the Part C gate).
 
 ---
 
