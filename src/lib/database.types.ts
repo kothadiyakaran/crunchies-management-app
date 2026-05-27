@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          default_discount_percent: number
           id: string
           is_system: boolean
           name: string
@@ -25,6 +26,7 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          default_discount_percent?: number
           id?: string
           is_system?: boolean
           name: string
@@ -32,6 +34,7 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          default_discount_percent?: number
           id?: string
           is_system?: boolean
           name?: string
@@ -81,6 +84,7 @@ export type Database = {
           active: boolean
           channel_id: string
           created_at: string
+          discount_percent: number | null
           id: string
           last_contacted_at: string | null
           last_ordered_at: string | null
@@ -94,6 +98,7 @@ export type Database = {
           active?: boolean
           channel_id: string
           created_at?: string
+          discount_percent?: number | null
           id?: string
           last_contacted_at?: string | null
           last_ordered_at?: string | null
@@ -107,6 +112,7 @@ export type Database = {
           active?: boolean
           channel_id?: string
           created_at?: string
+          discount_percent?: number | null
           id?: string
           last_contacted_at?: string | null
           last_ordered_at?: string | null
@@ -261,6 +267,7 @@ export type Database = {
           bill_number: number | null
           created_at: string
           customer_id: string
+          discount_percent: number
           fulfilled_at: string | null
           id: string
           notes: string | null
@@ -275,6 +282,7 @@ export type Database = {
           bill_number?: number | null
           created_at?: string
           customer_id: string
+          discount_percent?: number
           fulfilled_at?: string | null
           id?: string
           notes?: string | null
@@ -289,6 +297,7 @@ export type Database = {
           bill_number?: number | null
           created_at?: string
           customer_id?: string
+          discount_percent?: number
           fulfilled_at?: string | null
           id?: string
           notes?: string | null
