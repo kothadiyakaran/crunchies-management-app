@@ -17,6 +17,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { todayInTz } from '@/lib/utils';
+import { orderTotal } from '@/features/orders/discount';
 import {
   weekRange,
   monthRange,
@@ -155,11 +156,12 @@ export async function getOrderSummary(start: string, endExclusive: string): Prom
     id: string;
     fulfilled_at: string | null;
     payment_status: 'unpaid' | 'paid' | 'partial';
+    discount_percent: number;
     order_items: { qty: number; unit_price: number }[] | null;
   };
   const { data, error } = await supabase
     .from('orders')
-    .select('id, fulfilled_at, payment_status, order_items(qty, unit_price)')
+    .select('id, fulfilled_at, payment_status, discount_percent, order_items(qty, unit_price)')
     .gte('ordered_at', startIso)
     .lt('ordered_at', endIso);
   if (error) throw new Error(error.message);
@@ -173,10 +175,11 @@ export async function getOrderSummary(start: string, endExclusive: string): Prom
 
   for (const o of orders) {
     total_orders += 1;
-    const value = (o.order_items ?? []).reduce(
+    const subtotal = (o.order_items ?? []).reduce(
       (s, i) => s + Number(i.qty) * Number(i.unit_price),
       0,
     );
+    const value = orderTotal(subtotal, Number(o.discount_percent)).total;
     total_value += value;
     if (o.fulfilled_at !== null) fulfilled_count += 1;
     if (o.payment_status === 'unpaid' || o.payment_status === 'partial') {
@@ -244,11 +247,13 @@ export async function getTopProducts(
     unit_price: number;
     product_id: string;
     products: { name: string; unit: string } | null;
-    orders: { ordered_at: string } | null;
+    orders: { ordered_at: string; discount_percent: number } | null;
   };
   const { data, error } = await supabase
     .from('order_items')
-    .select('qty, unit_price, product_id, products(name, unit), orders!inner(ordered_at)')
+    .select(
+      'qty, unit_price, product_id, products(name, unit), orders!inner(ordered_at, discount_percent)',
+    )
     .gte('orders.ordered_at', startIso)
     .lt('orders.ordered_at', endIso);
   if (error) throw new Error(error.message);
@@ -257,17 +262,19 @@ export async function getTopProducts(
   const acc: Record<string, TopProductRow> = {};
   for (const r of rows) {
     if (!r.orders) continue; // !inner should guarantee, but be defensive
+    const lineNet =
+      Number(r.qty) * Number(r.unit_price) * ((100 - Number(r.orders.discount_percent)) / 100);
     const existing = acc[r.product_id];
     if (existing) {
       existing.qty += Number(r.qty);
-      existing.value += Number(r.qty) * Number(r.unit_price);
+      existing.value += lineNet;
     } else {
       acc[r.product_id] = {
         product_id: r.product_id,
         name: r.products?.name ?? '(unknown)',
         unit: r.products?.unit ?? '',
         qty: Number(r.qty),
-        value: Number(r.qty) * Number(r.unit_price),
+        value: lineNet,
       };
     }
   }
@@ -294,13 +301,14 @@ export async function getTopCustomers(
   type Raw = {
     id: string;
     customer_id: string;
+    discount_percent: number;
     customers: { name: string; channels: { name: string } | null } | null;
     order_items: { qty: number; unit_price: number }[] | null;
   };
   const { data, error } = await supabase
     .from('orders')
     .select(
-      'id, customer_id, customers(name, channels(name)), order_items(qty, unit_price)',
+      'id, customer_id, discount_percent, customers(name, channels(name)), order_items(qty, unit_price)',
     )
     .gte('ordered_at', startIso)
     .lt('ordered_at', endIso);
@@ -309,10 +317,11 @@ export async function getTopCustomers(
 
   const acc: Record<string, TopCustomerRow> = {};
   for (const o of rows) {
-    const value = (o.order_items ?? []).reduce(
+    const subtotal = (o.order_items ?? []).reduce(
       (s, i) => s + Number(i.qty) * Number(i.unit_price),
       0,
     );
+    const value = orderTotal(subtotal, Number(o.discount_percent)).total;
     const existing = acc[o.customer_id];
     if (existing) {
       existing.order_count += 1;
@@ -394,13 +403,14 @@ export async function getChannelBreakdown(
   const endIso = ymdToIstIso(endExclusive);
   type Raw = {
     id: string;
+    discount_percent: number;
     customers: { channel_id: string; channels: { name: string } | null } | null;
     order_items: { qty: number; unit_price: number }[] | null;
   };
   const { data, error } = await supabase
     .from('orders')
     .select(
-      'id, customers(channel_id, channels(name)), order_items(qty, unit_price)',
+      'id, discount_percent, customers(channel_id, channels(name)), order_items(qty, unit_price)',
     )
     .gte('ordered_at', startIso)
     .lt('ordered_at', endIso);
@@ -410,10 +420,11 @@ export async function getChannelBreakdown(
   const acc: Record<string, ChannelBreakdownRow> = {};
   for (const o of rows) {
     const channelName = o.customers?.channels?.name ?? '(unknown)';
-    const value = (o.order_items ?? []).reduce(
+    const subtotal = (o.order_items ?? []).reduce(
       (s, i) => s + Number(i.qty) * Number(i.unit_price),
       0,
     );
+    const value = orderTotal(subtotal, Number(o.discount_percent)).total;
     const existing = acc[channelName];
     if (existing) {
       existing.count += 1;
