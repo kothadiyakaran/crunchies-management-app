@@ -268,6 +268,7 @@ export type Database = {
           created_at: string
           customer_id: string
           discount_percent: number
+          event_id: string | null
           fulfilled_at: string | null
           id: string
           notes: string | null
@@ -283,6 +284,7 @@ export type Database = {
           created_at?: string
           customer_id: string
           discount_percent?: number
+          event_id?: string | null
           fulfilled_at?: string | null
           id?: string
           notes?: string | null
@@ -298,6 +300,7 @@ export type Database = {
           created_at?: string
           customer_id?: string
           discount_percent?: number
+          event_id?: string | null
           fulfilled_at?: string | null
           id?: string
           notes?: string | null
