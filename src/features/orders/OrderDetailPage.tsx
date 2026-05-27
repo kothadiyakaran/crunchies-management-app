@@ -5,6 +5,8 @@ import {
   getOrderDetail,
   markFulfilled,
   markPaid,
+  revertFulfilled,
+  revertPaid,
   type OrderDetailRow,
 } from './api';
 import { formatINR } from './orderFormatters';
@@ -56,6 +58,30 @@ export function OrderDetailPage() {
     setWorking(true);
     try {
       await markPaid(id);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setWorking(false);
+    }
+  }
+  async function onRevertFulfilled() {
+    if (!confirm('Mark this order as not fulfilled?')) return;
+    setWorking(true);
+    try {
+      await revertFulfilled(id);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setWorking(false);
+    }
+  }
+  async function onRevertPaid() {
+    if (!confirm('Mark this order as unpaid?')) return;
+    setWorking(true);
+    try {
+      await revertPaid(id);
       await load();
     } catch (e) {
       setError((e as Error).message);
@@ -164,7 +190,16 @@ export function OrderDetailPage() {
       )}
 
       <section className="mt-8 space-y-2">
-        {!fulfilled && (
+        {fulfilled ? (
+          <button
+            type="button"
+            onClick={onRevertFulfilled}
+            disabled={working}
+            className="h-11 w-full rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-900"
+          >
+            Mark as not fulfilled
+          </button>
+        ) : (
           <button
             type="button"
             onClick={onMarkFulfilled}
@@ -174,7 +209,16 @@ export function OrderDetailPage() {
             Mark fulfilled
           </button>
         )}
-        {!paid && (
+        {paid ? (
+          <button
+            type="button"
+            onClick={onRevertPaid}
+            disabled={working}
+            className="h-11 w-full rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-900"
+          >
+            Mark as unpaid
+          </button>
+        ) : (
           <button
             type="button"
             onClick={onMarkPaid}

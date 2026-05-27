@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import {
   createComplaint,
+  deleteComplaint,
   updateComplaint,
   type ComplaintKind,
   type ComplaintRow,
@@ -54,6 +55,20 @@ export function ComplaintSheet({ orderId, existing, onClose, onSaved }: Props) {
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      setSaving(false);
+    }
+  }
+
+  async function onDelete() {
+    if (!existing) return;
+    if (!confirm('Delete this complaint?')) return;
+    setSaving(true);
+    try {
+      await deleteComplaint(existing.id);
+      onSaved();
+      onClose();
+    } catch (e) {
+      setError((e as Error).message);
       setSaving(false);
     }
   }
@@ -136,6 +151,16 @@ export function ComplaintSheet({ orderId, existing, onClose, onSaved }: Props) {
         >
           {saving ? 'Saving…' : 'Save'}
         </button>
+        {existing && (
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={saving}
+            className="mt-2 h-11 w-full rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-status-danger-fg disabled:opacity-50"
+          >
+            Delete complaint
+          </button>
+        )}
       </div>
     </>
   );
