@@ -71,6 +71,10 @@ playwright/.cache/
 # Local smoke-test outputs (the scripts are tracked, the captures aren't)
 scripts/screenshots/
 
+# Python bytecode cache (smoke scripts are run, not packaged)
+__pycache__/
+*.pyc
+
 # TypeScript
 *.tsbuildinfo
 

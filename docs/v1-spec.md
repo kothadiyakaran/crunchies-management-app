@@ -2,9 +2,9 @@
 
 The locked feature spec for v1. Companion to `CLAUDE.md` — that file gives high-level context, current state, and how to work; this file gives the locked behavioural detail.
 
-## Implementation status (2026-05-22)
+## Implementation status (2026-05-28)
 
-**Phase 1 build complete.** All 14 sections below are implemented and deployed to `https://www.crunchies.app`. Each section header below lists `→ Implementation:` pointers to the relevant files. Where implementation differs from the original spec text, the implementation is the source of truth and the spec text below is annotated `[Drift — see ADR-45]` with the correction.
+**Phase 1 build complete + Phase 2 maintenance shipped.** All 14 sections below are implemented and deployed to `https://www.crunchies.app`. Each section header below lists `→ Implementation:` pointers to the relevant files. Where implementation differs from the original spec text, the implementation is the source of truth and the spec text below is annotated `[Drift — see ADR-45]` with the correction. **Post-launch Phase 2 changes** (reversibility, discounts, canvas bill preview, exhibition order↔event link, inline add-customer fix) are marked `[Phase 2]` inline and summarised in §14 → "Phase 2 — Ongoing (post-launch)"; their decision records live in `docs/superpowers/specs/`.
 
 Outcomes referenced throughout:
 - **O1** — production matches demand (mom stops underproducing)
@@ -13,7 +13,7 @@ Outcomes referenced throughout:
 
 Section status:
 - [x] §1 Architecture — `src/App.tsx`, `src/lib/supabase.ts`
-- [x] §2 Data model — `supabase/migrations/0001_*.sql` through `0007_*.sql`
+- [x] §2 Data model — `supabase/migrations/0001_*.sql` through `0009_*.sql`
 - [x] §3 Mom's app — `src/components/AppShell.tsx` + `src/components/BottomNav.tsx`
 - [x] §4 Today screen — `src/features/today/TodayPage.tsx`
 - [x] §5 Production screen — `src/features/production/`
@@ -58,6 +58,7 @@ All tables justified outcome-by-outcome. RLS sketch at the bottom of this sectio
 | `active` | bool default true | O2 — archive instead of delete when a customer has order history. Filtered out of pickers; history preserved. |
 | `last_contacted_at` | timestamptz nullable | O2 — drives the "quiet customers" nudge (§8). Updated whenever mom acknowledges the customer: `Send WhatsApp` button tap, long-press WhatsApp link from phone field, or dismiss-nudge `×` tap. NOT updated by notes/profile edits (those are record-keeping, not contact). |
 | `last_ordered_at` | timestamptz nullable | O2 — denormalized "most recent order timestamp" for the quiet-customer query. Maintained when orders are inserted/edited/deleted (trigger or app-level upsert). Cheaper than `MAX(orders.ordered_at)` on every directory render. NULL when the customer has never ordered. |
+| `discount_percent` | numeric **nullable** (0–100) | O3 — per-customer universal discount, any channel. `null` = inherit the channel default; an explicit value (incl. 0) overrides. Snapshotted onto each order at creation. *[Phase 2 — migration 0008]* |
 | `created_at` | timestamptz | — |
 
 **Note on size_tier:** v1 is purely manual. The "should the app auto-suggest a tier from order volume?" question is v2.
@@ -72,6 +73,7 @@ Replaces the original `customers.channel` enum. Three rows are seeded as `is_sys
 | `name` | text | O3 — display name on chips and filters. Max 20 chars, trimmed, case-insensitive unique. |
 | `is_system` | bool default false | O3 — true for the three seed rows; system rows can be soft-hidden but not hard-deleted. |
 | `active` | bool default true | O3 — false hides the channel from pickers/filters; historic customers referencing it keep their attribution. |
+| `default_discount_percent` | numeric not null default 0 | O3 — category default discount (0–100); Reseller seeded to 20, others 0. Resolved into a per-order snapshot at order creation. *[Phase 2 — migration 0008]* |
 | `created_at` | timestamptz | — |
 
 **Behaviour calls:**
@@ -110,6 +112,8 @@ The center of gravity. One row per order, not per line item.
 | `bill_number` | int **nullable** | O3 — sequential bill number stamped on first `Generate bill` action; reused on regeneration. App-wide sequence starting at 1001. |
 | `public_order_number` | text **nullable** | O2, O3 — public-facing identifier shown to exhibition-form customers on the confirmation screen (§10), formatted `#YYYY-NNNN` where `NNNN` is a per-year sequence. Populated at order creation for `source = exhibition_form`; remains NULL for mom-entered orders. Stable across reads (does not re-derive). |
 | `notes` | text nullable | O2 — special instructions, delivery preferences |
+| `discount_percent` | numeric not null default 0 | O3 — per-order discount snapshot (0–100), resolved order > customer > channel-default > 0 at creation and frozen here; the only value bills/totals read. *[Phase 2 — migration 0008]* |
+| `event_id` | uuid FK → `events` nullable, on delete set null | O2 — ties an exhibition order to its event so the confirmation lookup is correct regardless of customer provenance (was inferred via `customer.source_event_id`, which broke cross-event repeat customers). NULL for non-exhibition orders. *[Phase 2 — migration 0009]* |
 | `created_at` | timestamptz | — |
 
 ### `order_items`
@@ -1639,6 +1643,14 @@ She walks away with a working app and a starter dataset. Subsequent customer/ord
 ### Phase 2 — Ongoing (post-launch)
 
 Per CLAUDE.md: small fixes/additions only, no major UX overhauls. Iteration tolerance constraint holds.
+
+**Shipped (2026-05-27 / 05-28)** — decision records in `docs/superpowers/specs/`, behaviour smokes in `scripts/verify-*.py`:
+- **Inline add-customer fix** — "+ New customer" during order entry portals out of the order `<form>` (a nested form caused a native reload that aborted the insert). `verify-inline-add-customer.py`.
+- **Bill preview → canvas** — Android WebView can't render an `<iframe>` blob-PDF; the preview now rasterises page 1 to a `<canvas>` via lazy `pdfjs-dist`. Share path unchanged. `verify-bill-flow.py`.
+- **Reversibility** — order detail has persistent secondary "Mark as not fulfilled" / "Mark as unpaid" buttons; the complaint sheet has "Delete complaint"; all native-`confirm()`-guarded. Forward actions stay one-tap. `verify-revert-flow.py`. (§7)
+- **Discounts** — Reseller channel default 20%, optional per-customer override, per-order snapshot (order > customer > channel > 0, nearest-rupee). Order form prefills + freezes; bill + order-detail + reports + customer-outstanding show the discounted total. Migration `0008`; `verify-discounts-flow.py`. (§2, §7, §8, §9)
+- **Exhibition order ↔ event link** — `orders.event_id` (migration `0009`) fixes repeat customers ordering at a different event seeing "Order not found." on confirmation; `public_get_order_by_ref`'s anti-leak now matches `order.event_id`, not `customer.source_event_id`. `verify-exhibition-repeat.py`. (§10)
+- **Tooling** — events-flow smoke made deterministic + self-cleaning; `verify-launch-readiness.py` tolerates (but surfaces) pre-existing firefox/webkit teardown console noise. Smoke cadence is now blast-radius-scoped (CLAUDE.md "Which smokes to run").
 
 **Parking lot (deferred from v1):**
 - Procurement workflow for aggregated products
