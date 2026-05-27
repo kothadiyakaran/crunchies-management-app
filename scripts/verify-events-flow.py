@@ -22,6 +22,7 @@ Prereq: a dev server must be running on http://localhost:5173. Start it with:
 in a separate terminal, then run this script.
 """
 
+import argparse
 import os
 import pathlib
 import re
@@ -30,7 +31,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
-BASE = "http://localhost:5173"
+BASE = "http://localhost:5173"  # overridden by --url in main()
 OUT_DIR = pathlib.Path("scripts/screenshots")
 
 # Asia/Kolkata is UTC+05:30, no DST.
@@ -71,6 +72,76 @@ def today_plus_ist_ymd(days: int) -> str:
     return (datetime.now(IST) + timedelta(days=days)).strftime("%Y-%m-%d")
 
 
+def cleanup_via_rest(page, event_name: str, customer_name: str) -> None:
+    """Delete this run's throwaway rows (event + exhibition order + customer),
+    matched by their unique ts-suffixed names so mom's real data is never touched.
+    Uses the logged-in mom session's JWT from localStorage + the REST API. Best-effort
+    (success path); logs but never raises. Mirrors the launch-readiness cleanup pattern."""
+    import urllib.request
+
+    def env_url_anon():
+        url = anon = None
+        path = pathlib.Path(".env.local")
+        if path.exists():
+            for raw in path.read_text(encoding="utf-8").splitlines():
+                line = raw.strip()
+                if not line or line.startswith("#"):
+                    continue
+                m = re.match(r'^\s*\$env:(\w+)\s*=\s*"?([^"\r\n]*)"?\s*$', line) or re.match(
+                    r'^\s*(\w+)\s*=\s*"?([^"\r\n]*)"?\s*$', line
+                )
+                if not m:
+                    continue
+                if m.group(1) == "VITE_SUPABASE_URL":
+                    url = m.group(2).strip()
+                elif m.group(1) in ("VITE_SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_ANON_KEY"):
+                    anon = m.group(2).strip()
+        return url, anon
+
+    try:
+        token = page.evaluate(
+            """() => {
+                for (const k of Object.keys(localStorage)) {
+                    if (k.startsWith('sb-') && k.endsWith('-auth-token')) {
+                        try { return JSON.parse(localStorage.getItem(k)).access_token; } catch (e) {}
+                    }
+                }
+                return null;
+            }"""
+        )
+        url, anon = env_url_anon()
+        if not token or not url or not anon:
+            print("  WARN cleanup skipped (no token/url/anon)")
+            return
+        h = {"apikey": anon, "Authorization": f"Bearer {token}"}
+
+        def rest(method, path, prefer_minimal=True):
+            headers = dict(h)
+            if prefer_minimal:
+                headers["Prefer"] = "return=minimal"
+            req = urllib.request.Request(f"{url}/rest/v1/{path}", method=method, headers=headers)
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                return resp.status, resp.read().decode()
+
+        import json as _json
+        from urllib.parse import quote
+
+        # Customer (exact unique name) → its orders' items, then orders, then the customer.
+        _, ctxt = rest("GET", f"customers?select=id&name=eq.{quote(customer_name)}", prefer_minimal=False)
+        for c in _json.loads(ctxt or "[]"):
+            cid = c["id"]
+            _, otxt = rest("GET", f"orders?select=id&customer_id=eq.{cid}", prefer_minimal=False)
+            for o in _json.loads(otxt or "[]"):
+                rest("DELETE", f"order_items?order_id=eq.{o['id']}")
+            rest("DELETE", f"orders?customer_id=eq.{cid}")
+            rest("DELETE", f"customers?id=eq.{cid}")
+        # Event (exact unique name).
+        rest("DELETE", f"events?name=eq.{quote(event_name)}")
+        print("  cleaned up smoke event + order + customer")
+    except Exception as e:
+        print(f"  WARN cleanup failed: {e}")
+
+
 def do_login(page, email: str, password: str) -> None:
     page.goto(f"{BASE}/login")
     page.wait_for_load_state("networkidle")
@@ -85,13 +156,25 @@ def do_login(page, email: str, password: str) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Events + public exhibition form smoke")
+    parser.add_argument("--url", default="http://localhost:5173", help="Base URL of the running app")
+    args = parser.parse_args()
+    global BASE
+    BASE = args.url.rstrip("/")
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     email, password = load_creds()
 
     ts = int(time.time() * 1000)
     event_name = f"Sprint 7 Smoke Event {ts}"
     customer_name = f"Smoke Tester {ts}"
-    phone = "9876543210"
+    # Unique phone per run. A FIXED phone made the create RPC's dedup-on-phone
+    # reuse a prior run's customer, whose source_event_id stays pinned to its
+    # first event (provenance preserved by design) — so public_get_order_by_ref's
+    # anti-leak (customer.source_event_id must == this event) returned null and
+    # the confirmation showed "Order not found." A fresh customer each run gets
+    # source_event_id = this run's event, so the confirmation resolves. (task #6)
+    phone = "9" + str(ts)[-9:]
     starts_on = today_ist_ymd()
     ends_on = today_plus_ist_ymd(5)
 
@@ -265,8 +348,18 @@ def main() -> int:
             timeout=15000,
         )
         anon_page.wait_for_load_state("networkidle")
-        # "Order placed." heading
-        anon_page.wait_for_selector('h2:has-text("Order placed.")', timeout=5000)
+        # "Order placed." heading. A COLD load of the lazy-loaded confirmation route
+        # (chunk fetch + the public_get_order_by_ref RPC) measured up to ~5.4s on a
+        # fresh anon context, worse under heavy gate load — the old 5s budget flaked
+        # here (task #6). The RPC layer itself is instant + reliable (verified), so a
+        # generous wait is correct; on a genuine miss, capture the page for diagnosis.
+        try:
+            anon_page.wait_for_selector('h2:has-text("Order placed.")', timeout=20000)
+        except PWTimeout:
+            anon_page.screenshot(path=str(OUT_DIR / "sprint7-confirm-no-heading.png"), full_page=True)
+            body_text = (anon_page.locator("body").inner_text() or "").replace("\n", " | ")[:300]
+            print(f"FAIL 'Order placed.' heading not shown within 20s. Page: {body_text!r}", file=sys.stderr)
+            return 1
         # #YYYY-NNNN order number — find it under the orange brand-orange paragraph
         # (the order number is in a <p> with text matching the pattern).
         order_num_el = anon_page.locator('p').filter(has_text=re.compile(r"^#\d{4}-\d{4}$")).first
@@ -336,9 +429,11 @@ def main() -> int:
             for e in console_errors[:10]:
                 print(f"  {e}")
             # Be strict per memory feedback_advisor_before_done: fail loudly on console errors.
+            cleanup_via_rest(page, event_name, customer_name)
             browser.close()
             return 1
 
+        cleanup_via_rest(page, event_name, customer_name)
         browser.close()
 
     print(
