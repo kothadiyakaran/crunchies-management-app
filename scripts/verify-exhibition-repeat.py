@@ -137,6 +137,14 @@ def main() -> int:
             print("FAIL repeat customer's order at event B did NOT resolve — the bug is back", file=sys.stderr); rc = 1
         else:
             print("OK repeat customer's order at event B resolves its confirmation (bug fixed)")
+
+        # Anti-leak invariant (the property the original 0005 check protected):
+        # an order must NOT resolve under a DIFFERENT event's slug, or the ref
+        # query param could be tampered to view another event's orders.
+        if resolves(ev["A"]["slug"], ob) or resolves(ev["B"]["slug"], oa):
+            print("FAIL anti-leak breach: an order resolved under the wrong event's slug", file=sys.stderr); rc = 1
+        else:
+            print("OK anti-leak holds: an order does not resolve under another event's slug")
     except Exception as e:
         print(f"FAIL {e}", file=sys.stderr); rc = 1
     finally:
