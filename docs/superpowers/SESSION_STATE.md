@@ -20,7 +20,7 @@
 - **Trust but verify:** independently re-verify before each push; do NOT ship on a subagent's self-reported "green." When two verifications disagree, **captured evidence (error text/stack/timing) beats code-reasoning.** (This session: a subagent claimed a Firefox `InvalidStateError` from reasoning; an evidence-capturing run proved 0 — the only Firefox error is the pre-existing, already-whitelisted dynamic-import retry: `error loading dynamically imported module` / bare `^Error$` in `verify-launch-readiness.py` allowlist.)
 - Advisor + behaviour-shaped browser verify before declaring any part done (CLAUDE.md hard constraint).
 
-## OPEN LOOP — needs its own investigation (orthogonal to A–E)
+## OPEN LOOP — tracked as task #6; sequenced BEFORE Part E (spec-doc cleanup, #5 is blocked by #6)
 **`verify-events-flow.py` fails deterministically** (the anon public *exhibition* order form). **Untouched by Parts A/B; reproduced 0/3 by two independent runs.** It reaches the form's **Step-3 confirm screen**, then times out waiting for the **"Order placed." heading** on the confirmation page.
 - The heading text DOES exist in code: `src/features/public/OrderConfirmationPage.tsx:104`.
 - Flow: `PublicOrderFormPage` submits via the `public_create_exhibition_order` RPC, then `navigate('/order/:slug/confirmed?ref=<order_id>')`; `OrderConfirmationPage` loads the order via `public_get_order_by_ref`.
