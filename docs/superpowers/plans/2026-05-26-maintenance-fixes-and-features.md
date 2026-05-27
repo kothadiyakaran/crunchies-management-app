@@ -28,8 +28,9 @@
 
 - **Part A — SHIPPED & live** (merge `58a51ca`). Inline add-customer fixed via `createPortal`; live-verified.
 - **Part B — SHIPPED & live** (merge `a150ad8`). Bill preview → canvas via lazy pdfjs, mobile-bounded, render-cancel-on-close; full 3-browser matrix green.
-- **Part C — SHIPPED & live** (merge `d81bbfd`). Reversible order actions (revert fulfilled/paid) + delete complaint; persistent secondary buttons + native `confirm()`; new `verify-revert-flow.py`; live-verified on crunchies.app. Pushed despite firefox/webkit launch-readiness console-gate noise that was confirmed pre-existing (reproduces on `main`, in unchanged `newOrderBadge.ts`, absent in chromium) — Karan's call. See SESSION_STATE for details.
-- **Parts D, E — not started.** See `docs/superpowers/SESSION_STATE.md` for resume instructions, the carried-forward working rules (esp. `npm run test:run`, Opus subagents, smoke cadence), the pre-existing console-gate noise note, and the now-uncertain `verify-events-flow.py` status (it PASSED at the Part C gate).
+- **Part C — SHIPPED & live** (merge `d81bbfd`). Reversible order actions (revert fulfilled/paid) + delete complaint; persistent secondary buttons + native `confirm()`; new `verify-revert-flow.py`; live-verified on crunchies.app. Pushed despite firefox/webkit launch-readiness console-gate noise that was confirmed pre-existing (reproduces on `main`, in unchanged `newOrderBadge.ts`, absent in chromium) — Karan's call. Follow-up DONE (`da2e459`): console-gate tolerates-but-surfaces that noise, matrix now green.
+- **Part D — SHIPPED & live** (merge `fc7a34b`). Discounts: migration `0008` (Reseller 20% / nullable customer / per-order snapshot) applied live; pure `orderTotal`/`resolveDiscount`; order-form prefill + snapshot; customer-form field; bill + order-detail discount lines; reports discount-aware; new `verify-discounts-flow.py`; live-verified. Full 3-browser matrix green. KNOWN GAP (deliberate): batch-entry orders default to 0% (no reseller auto-discount via batch). See SESSION_STATE.
+- **Part E — not started; task #6 (events-flow flake) sequenced before it.** See `docs/superpowers/SESSION_STATE.md` for resume instructions, working rules, the (now-green) console-gate note, and the INTERMITTENT `verify-events-flow.py` status (PASSED Part C gate, FAILED Part D gate — genuinely flaky).
 
 ---
 
