@@ -41,7 +41,7 @@ export async function renderPdfFirstPage(
   function onAbort() {
     if (renderCompleted) return;
     renderTask?.cancel();
-    loadingTask.destroy();
+    loadingTask.destroy().catch(() => {}); // teardown rejection is not actionable
   }
   signal?.addEventListener('abort', onAbort);
 

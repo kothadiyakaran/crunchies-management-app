@@ -61,9 +61,9 @@ export function BillPreviewModal({ order, onClose, onAllocated }: Props) {
   // Using canvas instead of <iframe src={blob:}> because Android WebView can't
   // render blob: PDF URLs — it shows a dead "PDF + Open" placeholder.
   //
-  // AbortController lets us cancel an in-progress pdfjs render on unmount,
-  // preventing the Firefox InvalidStateError that occurs when pdfjs keeps
-  // drawing to a detached canvas after the modal closes.
+  // AbortController cancels an in-progress pdfjs render when the modal closes.
+  // Without it, a close that races an unfinished render reaches pdfjs's late
+  // loadingTask.destroy()/cancel teardown, which Firefox logs as InvalidStateError.
   useEffect(() => {
     if (!pdfBlob || !canvasRef.current) return;
     let cancelled = false;
