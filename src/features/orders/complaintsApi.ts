@@ -55,3 +55,8 @@ export async function updateComplaint(
     .eq('id', id);
   if (error) throw new Error(error.message);
 }
+
+export async function deleteComplaint(id: string): Promise<void> {
+  const { error } = await supabase.from('complaints').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}

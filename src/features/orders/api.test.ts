@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockInsertOrder = vi.fn();
 const mockInsertItems = vi.fn();
 const mockDeleteOrder = vi.fn();
+const mockUpdateOrder = vi.fn();
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
@@ -17,6 +18,9 @@ vi.mock('@/lib/supabase', () => ({
           delete: () => ({
             eq: (_col: string, id: string) => mockDeleteOrder(id),
           }),
+          update: (patch: unknown) => ({
+            eq: (_col: string, id: string) => mockUpdateOrder(patch, id),
+          }),
         };
       }
       if (table === 'order_items') {
@@ -27,12 +31,13 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
-import { createOrderWithItems } from './api';
+import { createOrderWithItems, revertFulfilled, revertPaid } from './api';
 
 beforeEach(() => {
   mockInsertOrder.mockReset();
   mockInsertItems.mockReset();
   mockDeleteOrder.mockReset();
+  mockUpdateOrder.mockReset();
 });
 
 describe('createOrderWithItems', () => {
@@ -152,5 +157,30 @@ describe('createOrderWithItems', () => {
       }),
     ).rejects.toThrow('order boom');
     expect(mockInsertItems).not.toHaveBeenCalled();
+  });
+});
+
+describe('revert actions', () => {
+  it('revertFulfilled clears fulfilled_at', async () => {
+    mockUpdateOrder.mockResolvedValue({ error: null });
+
+    await revertFulfilled('order-1');
+    expect(mockUpdateOrder).toHaveBeenCalledWith({ fulfilled_at: null }, 'order-1');
+  });
+
+  it('revertPaid resets to unpaid and clears paid_at', async () => {
+    mockUpdateOrder.mockResolvedValue({ error: null });
+
+    await revertPaid('order-1');
+    expect(mockUpdateOrder).toHaveBeenCalledWith(
+      { payment_status: 'unpaid', paid_at: null },
+      'order-1',
+    );
+  });
+
+  it('throws when the update fails', async () => {
+    mockUpdateOrder.mockResolvedValue({ error: { message: 'boom' } });
+
+    await expect(revertFulfilled('x')).rejects.toThrow('boom');
   });
 });

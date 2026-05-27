@@ -5,7 +5,12 @@ vi.mock('@/lib/supabase', () => ({
   supabase: { from: (...args: unknown[]) => fromMock(...args) },
 }));
 
-import { createComplaint, listComplaintsForOrder, updateComplaint } from './complaintsApi';
+import {
+  createComplaint,
+  deleteComplaint,
+  listComplaintsForOrder,
+  updateComplaint,
+} from './complaintsApi';
 
 beforeEach(() => fromMock.mockReset());
 
@@ -58,5 +63,24 @@ describe('complaints API', () => {
     await updateComplaint('c1', { resolution: null, resolved: false });
     const patch = update.mock.calls[0]![0]!;
     expect(patch.resolved_at).toBeNull();
+  });
+
+  it('deleteComplaint deletes by id', async () => {
+    const eq = vi.fn().mockResolvedValueOnce({ error: null });
+    const del = vi.fn(() => ({ eq }));
+    fromMock.mockReturnValueOnce({ delete: del });
+
+    await deleteComplaint('c1');
+    expect(fromMock).toHaveBeenCalledWith('complaints');
+    expect(del).toHaveBeenCalled();
+    expect(eq).toHaveBeenCalledWith('id', 'c1');
+  });
+
+  it('deleteComplaint throws when delete fails', async () => {
+    const eq = vi.fn().mockResolvedValueOnce({ error: { message: 'nope' } });
+    const del = vi.fn(() => ({ eq }));
+    fromMock.mockReturnValueOnce({ delete: del });
+
+    await expect(deleteComplaint('c1')).rejects.toThrow('nope');
   });
 });

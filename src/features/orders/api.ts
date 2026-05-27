@@ -274,6 +274,19 @@ export async function markPaid(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function revertFulfilled(id: string): Promise<void> {
+  const { error } = await supabase.from('orders').update({ fulfilled_at: null }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function revertPaid(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('orders')
+    .update({ payment_status: 'unpaid', paid_at: null })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 export async function deleteOrder(id: string): Promise<void> {
   const { error } = await supabase.from('orders').delete().eq('id', id);
   if (error) throw new Error(error.message);
