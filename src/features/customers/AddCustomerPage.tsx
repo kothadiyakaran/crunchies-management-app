@@ -26,6 +26,7 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
   const [channelName, setChannelName] = useState<string>('');
   const [sizeTier, setSizeTier] = useState<'small' | 'large' | null>(null);
   const [notes, setNotes] = useState('');
+  const [discountPercent, setDiscountPercent] = useState<string>('');
   const [sourceEventId, setSourceEventId] = useState<string | null>(null);
   const [exhibitionEvents, setExhibitionEvents] = useState<EventRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -50,6 +51,7 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
         setChannelId(c.channel_id);
         setSizeTier(c.size_tier);
         setNotes(c.notes ?? '');
+        setDiscountPercent(c.discount_percent == null ? '' : String(c.discount_percent));
         setSourceEventId(c.source_event_id);
       } catch (e) {
         setError((e as Error).message);
@@ -71,10 +73,15 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
   }, [channelLower]);
   const phoneRequired = channelLower !== 'exhibition'; // spec §8 "phone optional for exhibition only"
   const phoneOk = !phoneRequired || phone.trim().length > 0;
-  const canSubmit = name.trim().length > 0 && channelId !== null && phoneOk && !submitting;
+  const discountValue = Number(discountPercent);
+  const discountOk =
+    discountPercent.trim() === '' ||
+    (Number.isFinite(discountValue) && discountValue >= 0 && discountValue <= 100);
+  const canSubmit = name.trim().length > 0 && channelId !== null && phoneOk && discountOk && !submitting;
 
   async function persist(skipDupCheck = false): Promise<void> {
     const trimmedPhone = phone.trim() || null;
+    const discount_percent = discountPercent.trim() === '' ? null : discountValue;
 
     if (!skipDupCheck && trimmedPhone && !editingCustomerId) {
       const existing = await findCustomerByPhone(trimmedPhone);
@@ -93,6 +100,7 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
         size_tier: sizeTier,
         source_event_id: sourceEventId,
         notes: notes.trim() || null,
+        discount_percent,
       });
       navigate(`/customers/${editingCustomerId}`);
     } else {
@@ -103,6 +111,7 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
         size_tier: sizeTier,
         source_event_id: sourceEventId,
         notes: notes.trim() || null,
+        discount_percent,
       });
       navigate(`/customers/${id}`);
     }
@@ -232,6 +241,26 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
             ))}
           </div>
         </div>
+
+        <label className="block">
+          <span className={labelSpan}>Discount % (optional)</span>
+          <input
+            className={inputClass}
+            type="number"
+            inputMode="decimal"
+            min="0"
+            max="100"
+            step="any"
+            value={discountPercent}
+            onChange={(e) => setDiscountPercent(e.target.value)}
+          />
+          <span className="mt-1 block text-body-sm text-ink-500">
+            Resellers get 20% by default — leave blank to use it.
+          </span>
+          {!discountOk && (
+            <span className="mt-1 block text-body-sm text-status-danger-fg">Enter 0–100 or leave blank.</span>
+          )}
+        </label>
 
         <label className="block">
           <span className={labelSpan}>Notes (optional)</span>
