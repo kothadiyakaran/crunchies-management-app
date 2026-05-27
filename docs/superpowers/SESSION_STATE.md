@@ -22,10 +22,12 @@
 - **Trust but verify:** independently re-verify before each push; do NOT ship on a subagent's self-reported "green." When two verifications disagree, **captured evidence (error text/stack/timing) beats code-reasoning.** (This session: a subagent claimed a Firefox `InvalidStateError` from reasoning; an evidence-capturing run proved 0 — the only Firefox error is the pre-existing, already-whitelisted dynamic-import retry: `error loading dynamically imported module` / bare `^Error$` in `verify-launch-readiness.py` allowlist.)
 - Advisor + behaviour-shaped browser verify before declaring any part done (CLAUDE.md hard constraint).
 
-## OPEN LOOP — tracked as task #6; sequenced BEFORE Part E (spec-doc cleanup, #5 is blocked by #6)
-**`verify-events-flow.py` — INTERMITTENT (confirmed flaky across two gates).** Part C gate (prod build): **PASSED** end-to-end (`order_number=#2026-0010`, exit 0). Part D gate (prod build): **FAILED** the same known way — `wait_for_selector` timeout on `h2:has-text("Order placed.")`. So it genuinely flickers pass↔fail. Unrelated to discounts (Part D never touches the public exhibition form). Task #6 should START by re-running a few times to characterise the flake, then instrument the RPC→navigate→confirmation-load chain to find the race.
-- If it does fail again: it reaches the **Step-3 confirm screen** then times out waiting for the **"Order placed." heading** (`src/features/public/OrderConfirmationPage.tsx:104`). Flow: `PublicOrderFormPage` → `public_create_exhibition_order` RPC → `navigate('/order/:slug/confirmed?ref=<order_id>')` → `OrderConfirmationPage` loads via `public_get_order_by_ref`. Suspects: RPC reject, navigate not firing, or confirmation-load failing.
-- This path is mom's exhibition revenue path, so keep it on the list even though it passed once.
+## Task #6 — RESOLVED (`verify-events-flow.py` fixed, merge-free push `3e5b495`)
+Root cause (via systematic-debugging) was NOT a timeout flake. The smoke used a **FIXED phone** (`9876543210`) with **no cleanup**, so `public_create_exhibition_order`'s dedup-on-phone reused a prior run's customer, whose `source_event_id` stays pinned to its FIRST event (provenance, by design — `0005_public_rpcs.sql:147`). `public_get_order_by_ref`'s anti-leak requires `customer.source_event_id == this event`, so the read-back returned null → confirmation rendered **"Order not found."** (the pass↔fail flip was fresh-customer vs reused-stale-customer, not timing). Evidence: REST diag showed the RPCs 100% reliable (20/20, ~0.1s); a browser diag showed the page renders fine; the better page-text capture I added exposed the real "Order not found.".
+Fix shipped to the smoke: **unique phone per run** (fresh customer → `source_event_id` = this event) + heading wait 5s→20s (cold lazy-route load ~5.4s) + page-text/screenshot diagnostic on miss + `--url` arg + **self-cleaning REST teardown** (it used to leak an event+order+customer every run — historical leaks swept). Verified 3× green + self-clean against live.
+
+## NEW — task #7: real app bug uncovered by task #6 (needs Karan's decision)
+A **repeat exhibition customer ordering at a DIFFERENT event** sees "Order not found." on their confirmation page. Orders have **no `event_id`**; `public_get_order_by_ref` infers the order's event via `customer.source_event_id`, which dedup-on-phone pins to the customer's FIRST event. Order is still created (mom gets it); only the customer's confirmation/receipt (order number + Save-to-WhatsApp) breaks. **Same-event repeat is fine; only cross-event repeat breaks.** NOT a Part D regression — pre-existing in the 0005 RPC design. Likely fix: add `orders.event_id` (migration 0009), set it in `public_create_exhibition_order`, and change the anti-leak to `v_order.event_id = v_event.id`. Schema + security-sensitive → brainstorm/spec before implementing.
 
 ## Pre-existing cross-browser console-gate NOISE (NOT a regression — confirmed at Part C gate)
 `verify-launch-readiness.py` **fails the post-run console-error gate on firefox + webkit** while ALL 11 functional flows PASS on all three engines. Confirmed PRE-EXISTING at the Part C gate by running an identical `main`-baseline build:
@@ -36,9 +38,9 @@
 - **DONE (`da2e459`):** added a `CONSOLE_KNOWN_FLAKY_PATTERNS` bucket in `verify-launch-readiness.py` — the two patterns are tolerated (do NOT fail the gate) but printed as a visible `WARN` every run, so a new/changed error still fails and their disappearance stays noticeable. Matrix now green on all three engines. Regexes verified to match the real captured strings while an unrelated error still fails.
 - **Still optional (not done):** fix the underlying teardown races (e.g. abort the `newOrderBadge` fetch on unmount). Lower priority now that the gate is honest + green.
 
-## To resume (next) — Parts A–D all SHIPPED & live
-Two items remain, in order:
-1. **Task #6 — debug `verify-events-flow.py`** (intermittent public-exhibition-confirmation flake; see OPEN LOOP above). Use `systematic-debugging`: re-run to characterise, then instrument the RPC→navigate→confirmation-load chain. Sequenced BEFORE Part E.
-2. **Part E — spec-doc drift cleanup** (`#5`, blocked by `#6`): fix CLAUDE.md's wrong `npm run test` claim; reconcile `docs/v1-spec.md` per ADR-45 drift + add discounts / reversibility / canvas-bill-preview.
+## To resume (next) — Parts A–D shipped & live; task #6 resolved
+Remaining:
+1. **Task #7 — repeat-customer cross-event confirmation bug** (see "NEW" above). Awaiting Karan's decision: fix now (brainstorm → migration 0009 `orders.event_id` + 2 RPC edits + smoke) or defer/document.
+2. **Part E (#5) — spec-doc drift cleanup**: fix CLAUDE.md's wrong `npm run test` claim; reconcile `docs/v1-spec.md` per ADR-45 drift + add discounts / reversibility / canvas-bill-preview. Also consider folding in the verification-cost recommendations (chromium-default; scope "run all smokes" to architectural changes).
 
-Send **"resume task 6"** or **"resume Part E"**. Working rules above still apply (`npm run test:run`, Opus subagents, chromium-while-iterating + full matrix at the gate, live-verify after push).
+Send **"resume task 7"** / **"resume Part E"** / a decision on the app bug. Working rules above still apply (`npm run test:run`, Opus subagents, chromium-while-iterating + matrix at the gate, live-verify after push).
