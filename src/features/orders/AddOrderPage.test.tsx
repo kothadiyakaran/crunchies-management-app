@@ -8,6 +8,7 @@ const listActiveProducts = vi.fn();
 const searchCustomersByName = vi.fn();
 const listChannels = vi.fn();
 const createCustomerQuick = vi.fn();
+const getCustomerLite = vi.fn();
 const getOrderDetail = vi.fn();
 const updateOrder = vi.fn();
 const updateOrderItems = vi.fn();
@@ -25,6 +26,7 @@ vi.mock('@/features/customers/api', () => ({
   searchCustomersByName: (q: string) => searchCustomersByName(q),
   listChannels: () => listChannels(),
   createCustomerQuick: (i: unknown) => createCustomerQuick(i),
+  getCustomerLite: (id: string) => getCustomerLite(id),
 }));
 vi.mock('@/lib/utils', () => ({ todayInTz: () => '2026-05-20' }));
 
@@ -47,10 +49,18 @@ beforeEach(() => {
   searchCustomersByName.mockReset();
   listChannels.mockReset();
   createCustomerQuick.mockReset();
+  getCustomerLite.mockReset();
   getOrderDetail.mockReset();
   updateOrder.mockReset();
   updateOrderItems.mockReset();
   createOrderWithItems.mockResolvedValue('new-order-id');
+  getCustomerLite.mockResolvedValue({
+    id: 'c1',
+    name: 'Sunita Patil',
+    phone: '+91...',
+    discount_percent: null,
+    channel_default_discount_percent: 0,
+  });
   updateOrder.mockResolvedValue(undefined);
   updateOrderItems.mockResolvedValue(undefined);
   getOrderDetail.mockResolvedValue({
@@ -63,6 +73,7 @@ beforeEach(() => {
     target_fulfilment_date: '2026-05-22',
     payment_status: 'unpaid',
     notes: 'leave at door',
+    discount_percent: 10,
     bill_number: null,
     fulfilled_at: null,
     items: [
@@ -117,6 +128,25 @@ describe('AddOrderPage', () => {
     renderPage();
     const save = await screen.findByRole('button', { name: /^Save$/ });
     expect(save).toBeDisabled();
+  });
+
+  it('prefills the discount from the channel default when a customer is picked', async () => {
+    getCustomerLite.mockResolvedValue({
+      id: 'c1',
+      name: 'Sunita Patil',
+      phone: '+91...',
+      discount_percent: null,
+      channel_default_discount_percent: 15,
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    const search = await screen.findByPlaceholderText('Search customer name');
+    await user.type(search, 'Sunita');
+    await user.click(await screen.findByRole('button', { name: /Sunita Patil/ }));
+
+    await user.click(await screen.findByRole('button', { name: /Discount/ }));
+    await waitFor(() => expect(screen.getByLabelText('discount-percent')).toHaveValue(15));
   });
 });
 
