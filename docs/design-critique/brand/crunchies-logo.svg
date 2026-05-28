@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 240" role="img" aria-label="Crunchies" preserveAspectRatio="xMidYMid meet">
+  <title>Crunchies</title>
+  <desc>Crunchies wordmark — mustard letters with deep-brown drop shadow.</desc>
+
+  <defs>
+    
+    <g id="cr-C" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 78 36 A 35 35 0 1 0 78 94"></path>
+    </g>
+    <g id="cr-R" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 22 110 L 22 22 L 58 22 A 22 22 0 0 1 58 64 L 22 64"></path>
+      <path d="M 44 64 L 78 110"></path>
+    </g>
+    <g id="cr-U" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 20 22 L 20 76 A 30 30 0 0 0 80 76 L 80 22"></path>
+    </g>
+    <g id="cr-N" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 20 110 L 20 22 L 80 110 L 80 22"></path>
+    </g>
+    <g id="cr-H" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 20 22 L 20 110"></path>
+      <path d="M 80 22 L 80 110"></path>
+      <path d="M 20 62 L 80 62"></path>
+    </g>
+    <g id="cr-I" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 35 22 L 35 110"></path>
+    </g>
+    <g id="cr-E" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 25 22 L 25 110"></path>
+      <path d="M 25 22 L 76 22"></path>
+      <path d="M 25 64 L 66 64"></path>
+      <path d="M 25 110 L 76 110"></path>
+    </g>
+    <g id="cr-S" fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 76 38&#xA;               Q 76 22 56 22&#xA;               Q 24 22 24 44&#xA;               Q 24 64 56 64&#xA;               Q 76 64 76 88&#xA;               Q 76 110 56 110&#xA;               Q 24 110 24 92"></path>
+    </g>
+
+    
+    <g id="cr-wordmark">
+      <g transform="translate(  0  20) rotate(-5 50 60)"><use href="#cr-C"></use></g>
+      <g transform="translate( 78  20) rotate( 3 50 60)"><use href="#cr-R"></use></g>
+      <g transform="translate(156  20) rotate(-2 50 60)"><use href="#cr-U"></use></g>
+      <g transform="translate(234  20) rotate( 3 50 60)"><use href="#cr-N"></use></g>
+      <g transform="translate(312  20) rotate(-4 50 60)"><use href="#cr-C"></use></g>
+      <g transform="translate(390  20) rotate( 2 50 60)"><use href="#cr-H"></use></g>
+      <g transform="translate(478  20) rotate(-2 50 60)"><use href="#cr-I"></use></g>
+      <g transform="translate(516  20) rotate( 3 50 60)"><use href="#cr-E"></use></g>
+      <g transform="translate(594  20) rotate(-3 50 60)"><use href="#cr-S"></use></g>
+    </g>
+  </defs>
+
+  
+  <g aria-hidden="true">
+    <path d="M 705 18  C 707 30, 715 40, 731 40  C 721 28, 717 18, 705 18 Z" fill="#FFFFFF"></path>
+    <path d="M 745 58  C 743 70, 751 78, 763 76  C 759 68, 753 58, 745 58 Z" fill="#FFFFFF"></path>
+    <path d="M 763 22  C 761 30, 767 36, 775 34  C 773 28, 769 22, 763 22 Z" fill="#FFFFFF"></path>
+    <path d="M 38 200  C 36 212, 46 222, 62 220  C 58 210, 50 200, 38 200 Z" fill="#FFFFFF"></path>
+    <path d="M 18 170  C 18 178, 26 184, 34 182  C 30 174, 24 170, 18 170 Z" fill="#FFFFFF"></path>
+  </g>
+
+  
+  <use href="#cr-wordmark" color="#4A2912" transform="translate(5 7)"></use>
+  
+  <use href="#cr-wordmark" color="#F4C56F"></use>
+</svg>

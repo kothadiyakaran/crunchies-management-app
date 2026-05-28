@@ -1,7 +1,26 @@
 # Session State — Maintenance Fixes & Features
 
-**Updated:** 2026-05-27 (work spans 2026-05-26 → 05-27)
-**Read this first on resume**, alongside the plan `docs/superpowers/plans/2026-05-26-maintenance-fixes-and-features.md` and the two specs in `docs/superpowers/specs/`.
+**Updated:** 2026-05-28 (latest session: UI design-critique pack — see below)
+**Read this first on resume.** Most recent work is the design-critique pack (next section). The maintenance pass (Parts A–E, tasks #6/#7) is closed — that history is further down, alongside the plan `docs/superpowers/plans/2026-05-26-maintenance-fixes-and-features.md` and the specs in `docs/superpowers/specs/`.
+
+---
+
+## 2026-05-28 — UI design-critique pack (latest; awaiting critique)
+
+**What this was:** Mom is happy with the shipped app; Karan wants Claude Design to critique the UI. This session assembled the pack to send.
+
+**Delivered — `docs/design-critique/`** (also zipped at repo root as `crunchies-design-critique-pack.zip`):
+- `CRITIQUE_BRIEF.md` — cover sheet: persona, the 3 outcomes, condensed philosophy, brand/tone, IA, **fixed constraints** (palette/Roboto/mobile-only), an **"Off the table — engineering constraints"** section (hand-rolled SVG charts, jsPDF/canvas bill, no realtime, no heavy deps, data/auth/routing/tests out of scope), and the **delivery spec** (exhaustive + priority-ordered P0/P1/P2; master table + per-screen notes; high-fidelity before→after mockups for P0/P1, in the existing tokens).
+- `screenshots/populated/` (23 @390px: every lens, all 3 Reports tabs, order/customer/event detail incl. discount + complaint, bill PDF, public form + confirmation) and `screenshots/empty/` (14 first-run states).
+- `brand/` — brochure + logo.
+
+**How it was built (not repeatable as-is — the env is gone):** a throwaway **free** Supabase project was created via MCP, migrations 0001–0009 applied, a confirmed test login user inserted via SQL, realistic data seeded (incl. 8 weeks of plans/logs so Reports→Trends had signal), screenshots captured with Playwright at 390px against a local prod build pointed at the temp project, then `.env.local` restored + rebuilt. The temp project (`mtwuiffxewzmcoebkjis`) has been **deleted by Karan**. The capture scripts were throwaway (dead hardcoded IDs) and have been removed.
+
+**What comes next (pick up here after the critique lands):**
+1. Triage Claude Design's findings by its P0/P1/P2 ranking. P0 = trust-undermining-on-sight; do these first.
+2. Treat each as a normal maintenance change: **work within the approved tokens** (no palette/font change without Karan's approval — CLAUDE.md hard constraint), keep WCAG AA, no new heavy deps.
+3. **Every change mom will see gets full review + the relevant blast-radius smoke before push** (her low iteration tolerance is the hard product constraint). Branch-per-change → `--no-ff` merge → push (auto-deploys via Vercel) → live-verify.
+4. Likely touch points by area: shared UI primitives/AppShell (architectural → full smoke set + 3-browser matrix), per-lens pages (that feature's smoke + launch-readiness chromium), the bill (`billPdf.ts` + `verify-bill-flow.py`, cross-browser-sensitive).
 
 ## Shipped & live on crunchies.app
 - **Part A — Bug 1** (inline add-customer: nested `<form>` → `createPortal`). Merge `58a51ca`. Live-verified (`verify-inline-add-customer.py` PASS against live).
