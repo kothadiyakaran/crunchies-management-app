@@ -156,8 +156,13 @@ export function OrderDetailPage() {
                 <span>Subtotal</span>
                 <span>{formatINR(order.subtotal)}</span>
               </div>
-              <div className="flex justify-between text-small text-ink-2">
-                <span>Discount ({order.discount_percent}%)</span>
+              <div className="flex items-center justify-between text-small text-ink-2">
+                <span className="flex items-center gap-2">
+                  Discount
+                  <span className="rounded-badge bg-brand-soft px-1.5 py-0.5 text-[11px] font-bold text-brown">
+                    {order.discount_percent}% off
+                  </span>
+                </span>
                 <span>−{formatINR(order.discount)}</span>
               </div>
               <div className="mt-2 flex items-baseline justify-between border-t border-rule pt-2">
