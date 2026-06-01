@@ -173,6 +173,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
   function StepHeader({ stepKey, n, label, summary, complete }: {
     stepKey: StepKey; n: number; label: string; summary: string; complete: boolean;
   }) {
+    const active = expandedStep === stepKey;
     return (
       <button
         type="button"
@@ -182,28 +183,34 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
         <span className="flex items-center gap-3">
           <span
             className={`flex h-6 w-6 items-center justify-center rounded-full text-label ${
-              complete ? 'bg-brand-orange text-white' : 'border border-ink-900/20 text-ink-500'
+              active ? 'bg-brand text-white' : 'border border-ink-3 text-ink-3'
             }`}
           >
             {complete ? '✓' : n}
           </span>
-          <span className="text-body font-semibold text-ink-900">{label}</span>
+          <span className={active ? 'text-body font-semibold text-ink' : 'text-small text-ink-2'}>
+            {label}
+          </span>
         </span>
-        {expandedStep !== stepKey && (
-          <span className="ml-2 truncate text-body-sm text-ink-500">{summary}</span>
+        {!active && (
+          <span className="ml-2 truncate text-meta text-ink-3">{summary}</span>
         )}
       </button>
     );
   }
 
-  const inputClass = 'mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body';
+  // P0-05: 1.5px brand ring on the active (next-action) step card so it reads first.
+  const stepCardCls = (key: StepKey) =>
+    `rounded-card bg-paper-elevated${expandedStep === key ? ' ring-1 ring-brand' : ''}`;
+
+  const inputClass = 'mt-1 input-shell h-11';
 
   return (
     <div>
       <h1 className="text-title text-ink-900">{editingOrderId ? 'Edit order' : 'Log new order'}</h1>
       <form onSubmit={onSubmit} className="mt-6 space-y-2">
         {/* Step 1: Customer */}
-        <div className="rounded-card bg-paper-elevated">
+        <div className={stepCardCls('customer')}>
           <StepHeader
             stepKey="customer"
             n={1}
@@ -219,7 +226,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
         </div>
 
         {/* Step 2: Source */}
-        <div className="rounded-card bg-paper-elevated">
+        <div className={stepCardCls('source')}>
           <StepHeader stepKey="source" n={2} label="Source" summary={source} complete={true} />
           {expandedStep === 'source' && (
             <div className="flex flex-wrap gap-2 px-3 pb-3">
@@ -240,7 +247,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
         </div>
 
         {/* Step 3: Date */}
-        <div className="rounded-card bg-paper-elevated">
+        <div className={stepCardCls('date')}>
           <StepHeader stepKey="date" n={3} label="Date" summary={orderedAt} complete={true} />
           {expandedStep === 'date' && (
             <div className="px-3 pb-3">
@@ -255,7 +262,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
         </div>
 
         {/* Step 4: Target fulfilment date */}
-        <div className="rounded-card bg-paper-elevated">
+        <div className={stepCardCls('target')}>
           <StepHeader
             stepKey="target"
             n={4}
@@ -277,7 +284,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
         </div>
 
         {/* Step 5: Items */}
-        <div className="rounded-card bg-paper-elevated">
+        <div className={stepCardCls('items')}>
           <StepHeader
             stepKey="items"
             n={5}
@@ -290,7 +297,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
               {items.map((it, i) => (
                 <div key={i} className="grid grid-cols-[1fr_60px_70px_24px] items-center gap-2">
                   <select
-                    className="h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
+                    className="input-shell h-11"
                     value={it.product_id}
                     onChange={(e) => {
                       const pid = e.target.value;
@@ -310,7 +317,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
                     step="any"
                     aria-label={`qty-${i}`}
                     placeholder="qty"
-                    className="h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
+                    className="input-shell h-11"
                     value={it.qty}
                     onChange={(e) => setItemField(i, { qty: e.target.value })}
                   />
@@ -321,7 +328,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
                     step="any"
                     aria-label={`price-${i}`}
                     placeholder="₹"
-                    className="h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
+                    className="input-shell h-11"
                     value={it.unit_price}
                     onChange={(e) => setItemField(i, { unit_price: e.target.value })}
                   />
@@ -348,7 +355,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
         </div>
 
         {/* Step 6: Discount */}
-        <div className="rounded-card bg-paper-elevated">
+        <div className={stepCardCls('discount')}>
           <StepHeader stepKey="discount" n={6} label="Discount" summary={`${discountValid ? discountValue : 0}%`} complete={true} />
           {expandedStep === 'discount' && (
             <div className="px-3 pb-3">
@@ -368,7 +375,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
         </div>
 
         {/* Step 7: Payment */}
-        <div className="rounded-card bg-paper-elevated">
+        <div className={stepCardCls('payment')}>
           <StepHeader stepKey="payment" n={7} label="Payment" summary={paymentStatus} complete={true} />
           {expandedStep === 'payment' && (
             <div className="flex gap-2 px-3 pb-3">
@@ -389,13 +396,13 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
         </div>
 
         {/* Step 8: Notes */}
-        <div className="rounded-card bg-paper-elevated">
+        <div className={stepCardCls('notes')}>
           <StepHeader stepKey="notes" n={8} label="Notes (optional)" summary={notes || '—'} complete={true} />
           {expandedStep === 'notes' && (
             <div className="px-3 pb-3">
               <textarea
                 rows={3}
-                className="mt-1 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 py-2 text-body"
+                className="input-shell mt-1 py-2"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
@@ -408,7 +415,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="h-11 w-full rounded-btn bg-brand-orange text-body font-semibold text-white disabled:opacity-50"
+          className="btn-primary"
         >
           {submitting ? 'Saving…' : editingOrderId ? 'Save changes' : 'Save'}
         </button>
