@@ -445,15 +445,32 @@ export function EventDetailPage() {
         </div>
 
         {/* Active toggle */}
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={active}
-            onChange={(e) => setActive(e.target.checked)}
-            className="h-5 w-5"
-          />
-          <span className="text-body text-ink-900">Active</span>
-        </label>
+        <div className="flex items-center justify-between gap-3">
+          <span>
+            <span className="block text-body text-ink-900">Active</span>
+            <span className="block text-meta text-ink-2">Visible in upcoming events &amp; production</span>
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={active}
+            aria-label="Active"
+            onClick={() => setActive(!active)}
+            className="inline-flex h-11 w-12 shrink-0 items-center justify-center"
+          >
+            <span
+              className={`relative inline-flex h-7 w-12 items-center rounded-pill border transition-colors ${
+                active ? 'border-brand bg-brand' : 'border-rule bg-card'
+              }`}
+            >
+              <span
+                className={`inline-block h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform ${
+                  active ? 'translate-x-[24px]' : 'translate-x-[2px]'
+                }`}
+              />
+            </span>
+          </button>
+        </div>
 
         {/* Public URL — exhibition only */}
         {kind === 'exhibition' && (
