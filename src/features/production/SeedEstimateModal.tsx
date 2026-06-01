@@ -58,7 +58,7 @@ export function SeedEstimateModal({ productId, productName, unit, onClose, onSav
               inputMode="decimal"
               min="0"
               step="any"
-              className="mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
+              className="mt-1 h-11 input-shell"
               value={qty}
               onChange={(e) => setQty(e.target.value)}
             />
