@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { listActiveProducts, type ProductRow } from '@/features/products/api';
 import { createProductionLog } from './api';
 
@@ -82,6 +82,10 @@ export function LogProductionPage() {
           {submitting ? 'Saving…' : 'Save'}
         </button>
       </form>
+
+      <p className="mt-6 text-body-sm text-ink-500">
+        <Link to="/production" className="underline">← Back to production</Link>
+      </p>
     </div>
   );
 }
