@@ -51,10 +51,10 @@ export function OrdersPage() {
       </header>
 
       <div className="mt-2 flex gap-2 text-body-sm">
-        <span className="rounded-pill bg-paper-muted px-3 py-1 text-ink-900">Browse</span>
+        <span className="rounded-pill bg-brand px-3 py-1 font-medium text-white">Browse</span>
         <Link
           to="/orders/batch"
-          className="rounded-pill px-3 py-1 text-ink-500 underline"
+          className="rounded-pill bg-paper-2 px-3 py-1 text-ink"
         >
           Batch entry
         </Link>
