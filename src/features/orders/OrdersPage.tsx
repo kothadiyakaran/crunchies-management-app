@@ -68,13 +68,13 @@ export function OrdersPage() {
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+      <div className="mt-3 flex flex-wrap gap-x-1.5 gap-y-1.5">
         {FILTERS.map((f) => (
           <button
             key={f.key}
             type="button"
             onClick={() => setSearchParams(f.key === 'all' ? {} : { filter: f.key })}
-            className={`h-8 shrink-0 rounded-pill px-3 text-body-sm ${
+            className={`h-8 rounded-pill px-3 text-body-sm ${
               filter === f.key
                 ? 'bg-brand-orange text-white'
                 : 'border border-ink-900/10 text-ink-900'
