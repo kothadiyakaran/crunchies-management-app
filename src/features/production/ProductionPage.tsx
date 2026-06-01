@@ -86,7 +86,16 @@ export function ProductionPage() {
           )
         )}
 
-        <ul className={`${!loading && rows.length > 0 ? 'mt-4' : ''} space-y-2`}>
+        {notDone.length > 0 && (
+          <div className="mt-4 grid grid-cols-[1fr_56px_70px_56px] gap-2 px-3">
+            <div />
+            <div className="text-eyebrow-tight uppercase text-right text-ink-2">Plan</div>
+            <div className="text-eyebrow-tight uppercase text-right text-ink-2">Suggested</div>
+            <div className="text-eyebrow-tight uppercase text-right text-ink-2">Made</div>
+          </div>
+        )}
+
+        <ul className={`${notDone.length > 0 ? 'mt-1.5' : ''} space-y-2`}>
           {notDone.map((r) => (
             <li key={r.product_id} className="rounded-card bg-paper-elevated">
               <button
@@ -95,28 +104,37 @@ export function ProductionPage() {
                 aria-label={`Open ${r.name} details`}
                 className="block w-full cursor-pointer rounded-card p-3 text-left"
               >
-                <div className="flex items-baseline justify-between">
-                  <span className="text-body font-semibold text-ink-900">{r.name}</span>
-                  <span className="text-body-sm text-ink-500">{r.unit}</span>
-                </div>
-
-                {!r.needs_seed && (
+                {!r.needs_seed ? (
                   <>
-                    <div className="mt-1 grid grid-cols-3 gap-2 text-body-sm">
-                      <span className="text-ink-500">
-                        Plan: <span className="text-ink-900">{r.planned_qty ?? '—'}</span>
-                      </span>
-                      <span className="text-ink-500">
-                        Suggested: <span className="text-ink-900">{r.suggested}</span>
-                      </span>
-                      <span className="text-ink-500">
-                        Made: <span className="text-ink-900">{r.produced_qty}</span>
-                      </span>
+                    <div className="grid grid-cols-[1fr_56px_70px_56px] items-baseline gap-2">
+                      <div>
+                        <span className="text-body font-semibold text-ink-900">{r.name}</span>
+                        {r.subtitle && (
+                          <p className="mt-1 text-body-sm text-ink-500">{r.subtitle}</p>
+                        )}
+                      </div>
+                      <span className="text-right text-base font-bold text-ink">{r.planned_qty ?? '—'}</span>
+                      <span className="text-right text-base font-bold text-ink-2">{r.suggested}</span>
+                      <span className="text-right text-base font-bold text-ink">{r.produced_qty}</span>
                     </div>
-                    {r.subtitle && (
-                      <p className="mt-1 text-body-sm text-ink-500">{r.subtitle}</p>
-                    )}
+                    <div className="mt-2.5 h-1 overflow-hidden rounded-pill bg-paper-2">
+                      <div
+                        className="h-full rounded-pill bg-brand"
+                        style={{
+                          width: `${
+                            r.planned_qty && r.planned_qty > 0
+                              ? Math.min(100, Math.round((r.produced_qty / r.planned_qty) * 100))
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
                   </>
+                ) : (
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-body font-semibold text-ink-900">{r.name}</span>
+                    <span className="text-body-sm text-ink-500">{r.unit}</span>
+                  </div>
                 )}
               </button>
               {r.needs_seed && (
