@@ -98,7 +98,7 @@ export function CustomersPage() {
         className="mt-4 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
       />
 
-      <div className="mt-3 flex flex-wrap gap-2 overflow-x-auto text-body-sm">
+      <div className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-body-sm">
         {FIXED_CHIPS.map((c) => {
           const active =
             (c.filter.kind === 'all' && filter.kind === 'all') ||

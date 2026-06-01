@@ -71,13 +71,20 @@ export function TodayPage() {
                 className="block rounded-card bg-paper-elevated p-3"
               >
                 <div className="flex items-baseline justify-between">
-                  <span className="text-body font-semibold text-ink-900">{r.name}</span>
-                  <span className="text-body-sm text-ink-500">
-                    target {r.target} · made {r.produced_qty}
+                  <span className="text-body font-bold text-ink">{r.name}</span>
+                  <span className="text-body font-bold">
+                    <span className="text-ink">{r.produced_qty}</span>
+                    <span className="text-ink-2"> of {r.target}</span>
                   </span>
                 </div>
+                <div className="mt-2 h-1 rounded-pill bg-paper-2">
+                  <div
+                    className="h-full rounded-pill bg-brand"
+                    style={{ width: `${r.target > 0 ? Math.min(100, (r.produced_qty / r.target) * 100) : 0}%` }}
+                  />
+                </div>
                 {r.subtitle && (
-                  <p className="mt-1 text-body-sm text-ink-500">{r.subtitle}</p>
+                  <p className="mt-2 text-meta text-ink-2">{r.subtitle}</p>
                 )}
               </Link>
             </li>
