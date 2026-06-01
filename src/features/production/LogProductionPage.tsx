@@ -48,7 +48,7 @@ export function LogProductionPage() {
         <label className="block">
           <span className="text-label uppercase text-ink-500">Product</span>
           <select
-            className="mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
+            className="mt-1 h-11 input-shell"
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
           >
@@ -68,7 +68,7 @@ export function LogProductionPage() {
             step="any"
             value={qty}
             onChange={(e) => setQty(e.target.value)}
-            className="mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
+            className="mt-1 h-11 input-shell"
           />
         </label>
 
@@ -77,7 +77,7 @@ export function LogProductionPage() {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="h-11 w-full rounded-btn bg-brand-orange text-body font-semibold text-white disabled:opacity-50"
+          className="btn-primary"
         >
           {submitting ? 'Saving…' : 'Save'}
         </button>
