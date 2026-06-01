@@ -52,7 +52,7 @@ export function CustomerSearchPicker({ selected, onSelect }: Props) {
   return (
     <div>
       <input
-        className="h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
+        className="h-11 input-shell"
         placeholder="Search customer name"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
