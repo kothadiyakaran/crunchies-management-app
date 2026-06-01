@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { listOrdersFiltered, type OrderFilter, type OrderListItem } from './api';
-import { formatDayHeader, formatINR, formatOrderTimestamp, groupOrdersByDay } from './orderFormatters';
+import { formatDayHeader, formatINR, groupOrdersByDay } from './orderFormatters';
 import { todayInTz } from '@/lib/utils';
 import { useRouteFocus } from '@/lib/a11y';
 
@@ -108,37 +108,38 @@ export function OrdersPage() {
         <div className="mt-6 space-y-6">
           {groups.map((g) => (
             <section key={g.date}>
-              <h2 className="text-label uppercase text-ink-500">{formatDayHeader(g.date, today)}</h2>
+              <h2 className="text-eyebrow-tight uppercase text-ink-3">{formatDayHeader(g.date, today)}</h2>
               <ul className="mt-2 space-y-2">
-                {g.orders.map((o) => {
-                  const time = formatOrderTimestamp(o.ordered_at, today);
-                  return (
-                    <li key={o.id}>
-                      <Link
-                        to={`/orders/${o.id}`}
-                        className="block rounded-card bg-paper-elevated p-3"
-                      >
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-body font-semibold text-ink-900">{o.customer_name}</span>
-                          <span className="text-body-sm text-ink-500">
-                            {time && `${time} · `}{formatINR(o.total)}
+                {g.orders.map((o) => (
+                  <li key={o.id}>
+                    <Link
+                      to={`/orders/${o.id}`}
+                      className="flex items-start justify-between gap-2.5 rounded-card bg-paper-elevated p-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <span className="text-body font-semibold text-ink-900">{o.customer_name}</span>
+                        <p className="mt-0.5 text-body-sm text-ink-700">{o.item_summary || '(no items)'}</p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <span className="text-body font-bold text-ink">{formatINR(o.total)}</span>
+                        <span className="mt-1 flex justify-end gap-1">
+                          <span className={`rounded-pill px-2 py-0.5 text-eyebrow-tight ${o.fulfilled_at ? 'bg-ok-soft text-ok-stamp' : 'bg-brand-muted text-brand'}`}>
+                            {o.fulfilled_at ? 'Fulfilled' : 'Pending'}
                           </span>
-                        </div>
-                        <div className="mt-1 flex items-center justify-between">
-                          <span className="text-body-sm text-ink-700">{o.item_summary || '(no items)'}</span>
-                          <span className="flex gap-1 text-body-sm">
-                            <span className={`rounded-pill px-2 py-0.5 ${o.fulfilled_at ? 'bg-status-ok-bg' : 'bg-status-warn-bg'} text-ink-700`}>
-                              {o.fulfilled_at ? 'fulfilled' : 'pending'}
-                            </span>
-                            <span className={`rounded-pill px-2 py-0.5 ${o.payment_status === 'paid' ? 'bg-status-ok-bg' : 'bg-status-warn-bg'} text-ink-700`}>
-                              {o.payment_status}
-                            </span>
+                          <span className={`rounded-pill px-2 py-0.5 text-eyebrow-tight ${
+                            o.payment_status === 'paid'
+                              ? 'bg-ok-soft text-ok-stamp'
+                              : o.payment_status === 'partial'
+                                ? 'bg-mustard-tint text-brown'
+                                : 'bg-brand-muted text-brand'
+                          }`}>
+                            {o.payment_status === 'paid' ? 'Paid' : o.payment_status === 'partial' ? 'Partial' : 'Unpaid'}
                           </span>
-                        </div>
-                      </Link>
-                    </li>
-                  );
-                })}
+                        </span>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </section>
           ))}
