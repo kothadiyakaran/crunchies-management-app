@@ -109,6 +109,7 @@ const config: Config = {
         btn: '12px',
         'btn-sm': '8px',
         pill: '9999px',
+        badge: '6px', // design-critique polish (additive): chip/badge corners
       },
       boxShadow: {
         card: '0 1px 2px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04)',
