@@ -149,26 +149,26 @@ export function OrderDetailPage() {
             </li>
           ))}
         </ul>
-        <div className="mt-3 border-t border-ink-900/10 pt-2">
+        <div className="mt-3 border-t border-rule pt-2">
           {order.discount_percent > 0 ? (
             <>
-              <div className="flex justify-between text-body-sm text-ink-700">
+              <div className="flex justify-between text-small text-ink-2">
                 <span>Subtotal</span>
                 <span>{formatINR(order.subtotal)}</span>
               </div>
-              <div className="flex justify-between text-body-sm text-ink-700">
+              <div className="flex justify-between text-small text-ink-2">
                 <span>Discount ({order.discount_percent}%)</span>
                 <span>−{formatINR(order.discount)}</span>
               </div>
-              <div className="mt-1 flex justify-between">
-                <span className="text-body font-semibold text-ink-900">Total</span>
-                <span className="text-body font-semibold text-ink-900">{formatINR(order.total)}</span>
+              <div className="mt-2 flex items-baseline justify-between border-t border-rule pt-2">
+                <span className="text-amount text-ink">Total</span>
+                <span className="text-amount text-ink">{formatINR(order.total)}</span>
               </div>
             </>
           ) : (
-            <div className="flex justify-between">
-              <span className="text-body font-semibold text-ink-900">Total</span>
-              <span className="text-body font-semibold text-ink-900">{formatINR(order.total)}</span>
+            <div className="flex items-baseline justify-between">
+              <span className="text-amount text-ink">Total</span>
+              <span className="text-amount text-ink">{formatINR(order.total)}</span>
             </div>
           )}
         </div>
@@ -267,15 +267,18 @@ export function OrderDetailPage() {
         >
           Edit order
         </Link>
+      </section>
+
+      <div className="mt-6 border-t border-rule pt-6">
         <button
           type="button"
           onClick={onDelete}
           disabled={working}
-          className="h-11 w-full rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-status-danger-fg"
+          className="h-11 w-full text-body text-danger disabled:opacity-50"
         >
           Delete order
         </button>
-      </section>
+      </div>
 
       <p className="mt-6 text-body-sm text-ink-500">
         <Link to="/orders" className="underline">
