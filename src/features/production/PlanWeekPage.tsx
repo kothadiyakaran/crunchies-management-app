@@ -60,8 +60,7 @@ export function PlanWeekPage() {
     }
   }
 
-  const inputClass =
-    'mt-1 h-11 w-24 rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body text-right';
+  const inputClass = 'mt-1 h-11 w-24 input-shell text-right';
   const labelSpan = 'block text-body font-semibold text-ink-900';
 
   return (
