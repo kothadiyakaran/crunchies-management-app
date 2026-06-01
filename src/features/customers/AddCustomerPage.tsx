@@ -13,7 +13,7 @@ import type { EventRow } from '@/features/events/api';
 import { useDialogA11y } from '@/lib/a11y';
 
 const SIZES: { value: 'small' | 'large' | null; label: string }[] = [
-  { value: null, label: '—' },
+  { value: null, label: 'None' },
   { value: 'small', label: 'Small' },
   { value: 'large', label: 'Large' },
 ];
@@ -230,10 +230,10 @@ export function AddCustomerPage({ editingCustomerId }: { editingCustomerId?: str
                 key={s.label}
                 type="button"
                 onClick={() => setSizeTier(s.value)}
-                className={`h-9 rounded-pill border px-3 text-body-sm ${
+                className={`rounded-pill px-4 py-2 text-small font-medium ${
                   sizeTier === s.value
-                    ? 'border-brand-orange bg-brand-orange text-white'
-                    : 'border-ink-900/20 bg-paper text-ink-900'
+                    ? 'bg-brand text-white'
+                    : 'border border-rule bg-card text-ink'
                 }`}
               >
                 {s.label}
