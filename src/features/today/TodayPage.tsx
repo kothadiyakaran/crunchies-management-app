@@ -79,10 +79,21 @@ export function TodayPage() {
                 </div>
                 <div className="mt-2 h-1 rounded-pill bg-paper-2">
                   <div
-                    className="h-full rounded-pill bg-brand"
-                    style={{ width: `${r.target > 0 ? Math.min(100, (r.produced_qty / r.target) * 100) : 0}%` }}
+                    className={`h-full rounded-pill ${r.produced_qty > r.target ? 'bg-mustard' : 'bg-brand'}`}
+                    style={{
+                      width: `${
+                        r.produced_qty > r.target
+                          ? 100
+                          : r.target > 0
+                            ? Math.min(100, (r.produced_qty / r.target) * 100)
+                            : 0
+                      }%`,
+                    }}
                   />
                 </div>
+                {r.produced_qty > r.target && (
+                  <p className="mt-2 text-meta text-ink-2">{r.produced_qty - r.target} above target</p>
+                )}
                 {r.subtitle && (
                   <p className="mt-2 text-meta text-ink-2">{r.subtitle}</p>
                 )}
