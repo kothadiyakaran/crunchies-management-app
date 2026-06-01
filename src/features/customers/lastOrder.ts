@@ -13,9 +13,10 @@ export function lastOrderLabel(
   const then = Date.parse(`${dateISO.slice(0, 10)}T00:00:00Z`);
   const now = Date.parse(`${today.slice(0, 10)}T00:00:00Z`);
   const d = Math.round((now - then) / 86_400_000);
+  const stale = d > 30;
 
-  if (d === 0) return { text: 'today', stale: false };
-  if (d === 1) return { text: 'yesterday', stale: false };
-  if (d < 30) return { text: `${d}d ago`, stale: false };
-  return { text: `${Math.floor(d / 30)}mo ago`, stale: true };
+  if (d === 0) return { text: 'today', stale };
+  if (d === 1) return { text: 'yesterday', stale };
+  if (d < 30) return { text: `${d}d ago`, stale };
+  return { text: `${Math.floor(d / 30)}mo ago`, stale };
 }
