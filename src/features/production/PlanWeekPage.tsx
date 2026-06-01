@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   getProductionThisWeek,
   getProductionPlansForWeek,
@@ -109,6 +109,10 @@ export function PlanWeekPage() {
           </button>
         </form>
       )}
+
+      <p className="mt-6 text-body-sm text-ink-500">
+        <Link to="/production" className="underline">← Back to production</Link>
+      </p>
     </div>
   );
 }
