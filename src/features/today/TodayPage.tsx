@@ -129,10 +129,29 @@ export function TodayPage() {
             </li>
           ))}
           {visibleProduction.length === 0 && productionRows.length === 0 && (
-            <li className="text-body-sm text-ink-500">
-              Add products and seed averages to see your weekly plan.{' '}
-              <Link to="/products" className="underline">Set up products →</Link>
-            </li>
+            <>
+              <li className="text-body-sm text-ink-500">
+                Add products and seed averages to see your weekly plan.
+              </li>
+              <li>
+                <Link
+                  to="/products"
+                  className="flex items-center justify-between rounded-card bg-paper-elevated p-3"
+                >
+                  <span className="text-body text-ink">Set up products</span>
+                  <span className="text-body text-ink-2">→</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/customers/new"
+                  className="flex items-center justify-between rounded-card bg-paper-elevated p-3"
+                >
+                  <span className="text-body text-ink">Add your first customer</span>
+                  <span className="text-body text-ink-2">→</span>
+                </Link>
+              </li>
+            </>
           )}
           {visibleProduction.length === 0 && productionRows.length > 0 && (
             <li className="text-body-sm text-ink-500">All covered for this week.</li>
