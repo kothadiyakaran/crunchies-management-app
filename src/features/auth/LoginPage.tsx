@@ -38,7 +38,7 @@ export function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="mt-1 block h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body text-ink-900 outline-none focus:border-brand-orange"
+            className="mt-1 block h-11 input-shell"
           />
         </label>
 
@@ -50,7 +50,7 @@ export function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="mt-1 block h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body text-ink-900 outline-none focus:border-brand-orange"
+            className="mt-1 block h-11 input-shell"
           />
         </label>
 
