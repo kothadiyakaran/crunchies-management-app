@@ -132,19 +132,22 @@ export function CustomersPage() {
             </button>
           );
         })}
-      </div>
 
-      <div className="mt-3 flex justify-end">
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value as CustomerSort)}
-          aria-label="Sort customers"
-          className="h-8 rounded-pill border border-ink-900/20 bg-paper px-3 text-body-sm text-ink-900"
-        >
-          {Object.entries(SORT_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
-          ))}
-        </select>
+        <label className="relative ml-auto inline-flex items-center text-small text-ink-2">
+          <span>
+            Sort: <span className="text-meta font-medium text-ink">{SORT_LABELS[sort]} ▾</span>
+          </span>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as CustomerSort)}
+            aria-label="Sort customers"
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          >
+            {Object.entries(SORT_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {error && <p className="mt-4 text-body-sm text-status-danger-fg">{error}</p>}
