@@ -92,6 +92,12 @@ const config: Config = {
         body: ['14px', { lineHeight: '20px' }],
         'body-sm': ['12px', { lineHeight: '16px' }],
         label: ['10px', { lineHeight: '12px', letterSpacing: '0.1em', fontWeight: '500' }],
+        // design-critique polish (additive type tokens; existing scale unchanged)
+        amount: ['22px', { lineHeight: '28px', fontWeight: '700' }],
+        small: ['14px', { lineHeight: '20px' }],
+        meta: ['13px', { lineHeight: '18px' }],
+        eyebrow: ['11px', { lineHeight: '14px', letterSpacing: '0.10em', fontWeight: '700' }],
+        'eyebrow-tight': ['10px', { lineHeight: '12px', letterSpacing: '0.06em', fontWeight: '700' }],
       },
       spacing: {
         edge: '14px',
