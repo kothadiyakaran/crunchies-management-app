@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { useSettings } from './SettingsContext';
 import { updateSettings, type BusinessInfo } from './api';
 import { cleanPhone, isValidIndianMobile } from '@/features/public/phoneValidation';
@@ -18,6 +19,7 @@ const EMAIL_RE = /.+@.+\..+/;
 
 export function SettingsPage() {
   const { settings, refresh, loading, error: ctxError } = useSettings();
+  const { user, signOut } = useAuth();
 
   const [name, setName] = useState('');
   const [tagline, setTagline] = useState('');
@@ -273,6 +275,20 @@ export function SettingsPage() {
           </div>
         </form>
       )}
+
+      <section className="mt-8 border-t border-rule pt-6">
+        <h2 className={sectionH}>Account</h2>
+        {user?.email && (
+          <p className="mt-2 text-body-sm text-ink-500">{user.email}</p>
+        )}
+        <button
+          type="button"
+          onClick={signOut}
+          className="mt-3 h-11 w-full rounded-btn border border-ink-900/10 bg-paper-elevated text-body text-ink-900"
+        >
+          Sign out
+        </button>
+      </section>
     </div>
   );
 }
