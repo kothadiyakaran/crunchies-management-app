@@ -69,6 +69,19 @@ export function LineChart({
   const first = points[0];
   const last = points[points.length - 1];
 
+  // First/last points that actually carry a value, for inline value labels.
+  let firstDataIdx = -1;
+  let lastDataIdx = -1;
+  for (let i = 0; i < points.length; i++) {
+    if (points[i]?.y != null) {
+      if (firstDataIdx === -1) firstDataIdx = i;
+      lastDataIdx = i;
+    }
+  }
+  const firstData = firstDataIdx >= 0 ? points[firstDataIdx] : undefined;
+  const lastData = lastDataIdx >= 0 ? points[lastDataIdx] : undefined;
+  const showEndpointLabels = firstDataIdx >= 0 && firstDataIdx !== lastDataIdx;
+
   return (
     <svg
       width="100%"
@@ -100,6 +113,27 @@ export function LineChart({
           </text>
         </g>
       ))}
+
+      {/* Target rule at y = max (100%) — a goal line, distinct from the chart cap */}
+      <line
+        x1={PAD_LEFT}
+        x2={VB_WIDTH - PAD_RIGHT}
+        y1={yAt(yMax)}
+        y2={yAt(yMax)}
+        strokeWidth={1}
+        strokeDasharray="3 3"
+        className="stroke-ink-3"
+        vectorEffect="non-scaling-stroke"
+      />
+      <text
+        x={VB_WIDTH - PAD_RIGHT}
+        y={yAt(yMax) - 3}
+        textAnchor="end"
+        className="fill-ink-3"
+        style={{ fontSize: 10 }}
+      >
+        target
+      </text>
 
       {/* Line */}
       <path
@@ -153,6 +187,30 @@ export function LineChart({
           />
         );
       })}
+
+      {/* Inline value labels on the first + last data points */}
+      {showEndpointLabels && firstData?.y != null && (
+        <text
+          x={xAt(firstDataIdx) + 2}
+          y={yAt(firstData.y) - 2}
+          textAnchor="start"
+          className="fill-ink"
+          style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em' }}
+        >
+          {Math.round(firstData.y)}%
+        </text>
+      )}
+      {showEndpointLabels && lastData?.y != null && (
+        <text
+          x={xAt(lastDataIdx) - 2}
+          y={yAt(lastData.y) - 2}
+          textAnchor="end"
+          className="fill-ink"
+          style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em' }}
+        >
+          {Math.round(lastData.y)}%
+        </text>
+      )}
 
       {/* X-axis labels: first + last */}
       {first && (
