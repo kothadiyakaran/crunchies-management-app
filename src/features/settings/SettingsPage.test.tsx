@@ -16,6 +16,10 @@ vi.mock('./SettingsContext', () => ({
   useSettings: () => useSettingsMock(),
 }));
 
+vi.mock('@/features/auth/AuthProvider', () => ({
+  useAuth: () => ({ user: { email: 'archana@example.com' }, signOut: vi.fn() }),
+}));
+
 import { SettingsPage } from './SettingsPage';
 
 const FIXTURE: BusinessInfo = {
