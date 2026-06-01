@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { CustomerSearchPicker } from './CustomerSearchPicker';
 import { createOrderWithItems, type OrderItemInput, type OrderRow } from './api';
 import { listActiveProducts, type ProductRow } from '@/features/products/api';
@@ -190,6 +190,10 @@ export function BatchEntryPage() {
           </ul>
         </section>
       )}
+
+      <p className="mt-6 text-body-sm text-ink-500">
+        <Link to="/orders" className="underline">← Back to orders</Link>
+      </p>
     </div>
   );
 }
