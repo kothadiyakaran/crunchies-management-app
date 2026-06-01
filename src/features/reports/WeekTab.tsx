@@ -34,8 +34,6 @@ import {
 import {
   visibleCalibrationRows,
   sortByVarianceDescending,
-  calibrationVariance,
-  calibrationVariancePct,
   type CalibrationRow,
 } from './calibration';
 import {
@@ -176,63 +174,47 @@ export function WeekTab() {
         {visible.length === 0 ? (
           <p className="text-body-sm text-ink-500">No calibration data for this week.</p>
         ) : (
-          <>
-            <ul className="space-y-3">
-              {visible.map((r) => {
-                const v = calibrationVariance(r);
-                const p = calibrationVariancePct(r);
-                const sign = v !== null && v > 0 ? '+' : '';
-                const pillColor =
-                  v === null
-                    ? 'text-ink-500'
-                    : v > 0
-                      ? 'text-status-danger-fg'
-                      : v < 0
-                        ? 'text-status-warn-fg'
-                        : 'text-ink-500';
-                return (
-                  <li key={r.product_id} className="rounded-card bg-paper-elevated p-3">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-body font-semibold text-ink-900">
-                        {r.product_name}
-                      </span>
-                      <span className="text-body-sm text-ink-500">{r.unit}</span>
-                    </div>
-                    <div className="mt-2">
-                      <PipMarkerBar
-                        plan={r.plan}
-                        made={r.made}
-                        demand={r.demand}
-                        ariaLabel={`Made ${r.made} of ${r.demand} demanded, plan ${
-                          r.plan ?? '—'
+          <ul className="space-y-3">
+            {visible.map((r) => {
+              const attainment =
+                r.plan != null && r.plan > 0 ? Math.round((r.made / r.plan) * 100) : null;
+              const over = r.plan != null && r.made >= r.plan;
+              return (
+                <li key={r.product_id} className="rounded-card bg-paper-elevated p-3">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-body font-semibold text-ink-900">
+                      {r.product_name}
+                      <span className="font-normal text-ink-2"> · {r.unit}</span>
+                    </span>
+                    {attainment != null && (
+                      <span
+                        className={`text-body-sm font-semibold tabular-nums ${
+                          over ? 'text-brand' : 'text-brown'
                         }`}
-                      />
-                    </div>
-                    <div className="mt-2 flex items-baseline justify-between text-body-sm">
-                      <span className="text-ink-700">
-                        Plan {r.plan ?? '—'} · Made {r.made} · Demand {r.demand}
+                      >
+                        {over ? '▲' : '▼'} {attainment}%
                       </span>
-                      {v !== null && p !== null && (
-                        <span className={`tabular-nums ${pillColor}`}>
-                          {sign}
-                          {v} ({sign}
-                          {p}%)
-                        </span>
-                      )}
-                    </div>
-                    {r.plan_set_retrospectively && (
-                      <p className="mt-1 text-body-sm text-ink-500">
-                        plan set retrospectively
-                      </p>
                     )}
-                  </li>
-                );
-              })}
-            </ul>
-            <p className="mt-3 text-body-sm text-ink-500">
-              bar = made · ┊ plan · │ demand
-            </p>
-          </>
+                  </div>
+                  <div className="mt-2">
+                    <PipMarkerBar
+                      plan={r.plan}
+                      made={r.made}
+                      demand={r.demand}
+                      ariaLabel={`Made ${r.made} of ${r.demand} demanded, plan ${
+                        r.plan ?? '—'
+                      }`}
+                    />
+                  </div>
+                  {r.plan_set_retrospectively && (
+                    <p className="mt-1 text-body-sm text-ink-500">
+                      plan set retrospectively
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </ReportSection>
 
