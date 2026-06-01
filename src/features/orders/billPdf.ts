@@ -87,11 +87,16 @@ export function formatBillCurrency(n: number, fontHasRupee: boolean): string {
   return fontHasRupee ? `₹${num}` : `Rs. ${num}`;
 }
 
-// brand.orange from design tokens
-const BRAND_ORANGE: [number, number, number] = [0xf2, 0x80, 0x0c];
 const INK_900: [number, number, number] = [0x1a, 0x1a, 0x1a];
 const INK_700: [number, number, number] = [0x4a, 0x4a, 0x4a];
 const INK_500: [number, number, number] = [0x6b, 0x6b, 0x6b];
+// design-critique polish (P1-08/09/10) bill tokens
+const BRAND_DEEP: [number, number, number] = [0xa6, 0x42, 0x0e]; // header band
+const BRAND_MUTED: [number, number, number] = [0xf6, 0xe8, 0xdc]; // column-head band
+const BROWN: [number, number, number] = [0x6e, 0x3a, 0x1b]; // column-head label
+const OK_STAMP: [number, number, number] = [0x3c, 0x6b, 0x45]; // PAID stamp
+const WATERMARK: [number, number, number] = [0xf4, 0xe6, 0xde]; // ~10% brand on paper
+const TAGLINE_ON_BAND: [number, number, number] = [0xed, 0xd9, 0xcf]; // ~80% white on brand-deep
 
 const PAGE_W = 210; // A4 portrait mm
 const PAGE_H = 297;
@@ -144,23 +149,36 @@ export function buildBillPdf(
   pdf.setLineWidth(0.2);
   pdf.rect(MARGIN + INNER_PAD, MARGIN + INNER_PAD, PAGE_W - 2 * (MARGIN + INNER_PAD), PAGE_H - 2 * (MARGIN + INNER_PAD));
 
+  // Faint repeating-word watermark behind all content (P1-08).
+  pdf.setTextColor(...WATERMARK);
+  pdf.setFontSize(11);
+  setNormal();
+  for (let wy = MARGIN + INNER_PAD + 34; wy < PAGE_H - MARGIN - INNER_PAD - 12; wy += 14) {
+    pdf.text('homemade · tasty · good quality', PAGE_W / 2, wy, { align: 'center' });
+  }
+
   const contentLeft = MARGIN + INNER_PAD + 4;
   const contentRight = PAGE_W - MARGIN - INNER_PAD - 4;
   const contentWidth = contentRight - contentLeft;
 
-  // Header band — brand orange
+  // Header band — warm brand-deep (P1-08)
   const bandTop = MARGIN + INNER_PAD + 4;
-  pdf.setFillColor(...BRAND_ORANGE);
+  pdf.setFillColor(...BRAND_DEEP);
   pdf.rect(MARGIN + INNER_PAD, bandTop, PAGE_W - 2 * (MARGIN + INNER_PAD), 18, 'F');
 
   pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(18);
+  pdf.setFontSize(22);
   setBold();
-  pdf.text(business.name, PAGE_W / 2, bandTop + 8, { align: 'center' });
+  pdf.setCharSpace(-0.08); // ~-0.01em tracking
+  pdf.text(business.name, PAGE_W / 2, bandTop + 8.5, { align: 'center' });
+  pdf.setCharSpace(0);
   if (business.tagline) {
-    pdf.setFontSize(10);
+    pdf.setTextColor(...TAGLINE_ON_BAND);
+    pdf.setFontSize(8);
     setNormal();
-    pdf.text(business.tagline, PAGE_W / 2, bandTop + 14, { align: 'center' });
+    pdf.setCharSpace(0.5); // ~0.18em on small-caps tagline
+    pdf.text(business.tagline.toUpperCase(), PAGE_W / 2, bandTop + 14.5, { align: 'center' });
+    pdf.setCharSpace(0);
   }
 
   // Address + GST + contact (below the band)
@@ -205,15 +223,17 @@ export function buildBillPdf(
 
   // Items table
   const colX = [contentLeft, contentLeft + contentWidth * 0.55, contentLeft + contentWidth * 0.72, contentRight];
-  pdf.setFillColor(...BRAND_ORANGE);
+  pdf.setFillColor(...BRAND_MUTED);
   pdf.rect(contentLeft - 1, cursor - 4, contentWidth + 2, 7, 'F');
-  pdf.setTextColor(255, 255, 255);
+  pdf.setTextColor(...BROWN);
   pdf.setFontSize(9);
   setBold();
-  pdf.text('Product', colX[0]!, cursor);
-  pdf.text('Qty', colX[1]!, cursor, { align: 'right' });
-  pdf.text('Unit', colX[2]!, cursor, { align: 'right' });
-  pdf.text('Total', colX[3]!, cursor, { align: 'right' });
+  pdf.setCharSpace(0.32); // ~0.10em small-caps heads
+  pdf.text('PRODUCT', colX[0]!, cursor);
+  pdf.text('QTY', colX[1]!, cursor, { align: 'right' });
+  pdf.text('UNIT', colX[2]!, cursor, { align: 'right' });
+  pdf.text('TOTAL', colX[3]!, cursor, { align: 'right' });
+  pdf.setCharSpace(0);
   cursor += 7;
 
   pdf.setTextColor(...INK_900);
@@ -229,14 +249,10 @@ export function buildBillPdf(
   // Totals — when a discount applies, show Subtotal / Discount / Total;
   // otherwise a single Total line (unchanged from a no-discount bill).
   const { discount, total } = orderTotal(input.subtotal, input.discountPercent);
-  cursor += 2;
-  pdf.setDrawColor(...INK_900);
-  pdf.setLineWidth(0.3);
-  pdf.line(contentLeft + contentWidth * 0.55, cursor, contentRight, cursor);
-  cursor += 5;
+  cursor += 4;
   pdf.setFontSize(11);
+  setNormal();
   if (input.discountPercent > 0) {
-    setNormal();
     pdf.text('Subtotal', colX[2]!, cursor, { align: 'right' });
     pdf.text(money(input.subtotal), colX[3]!, cursor, { align: 'right' });
     cursor += 6;
@@ -244,66 +260,64 @@ export function buildBillPdf(
     pdf.text(`-${money(discount)}`, colX[3]!, cursor, { align: 'right' });
     cursor += 6;
   }
+  // single 1pt ink rule above the Total row (P1-09) — Total is the only bold body row
+  pdf.setDrawColor(...INK_900);
+  pdf.setLineWidth(0.35);
+  pdf.line(colX[1]!, cursor - 1, contentRight, cursor - 1);
+  cursor += 4;
+  pdf.setFontSize(14);
   setBold();
   pdf.text('Total', colX[2]!, cursor, { align: 'right' });
   pdf.text(money(total), colX[3]!, cursor, { align: 'right' });
   cursor += 14;
 
-  // Payment status — asymmetric treatment by design.
-  //
-  // PAID gets a green stamp box — a positive receipt acknowledgment mom WANTS
-  // her customer to see (and the customer wants for their own records).
-  //
-  // UNPAID / PARTIAL get a small inline line under the Total, not a stamp.
-  // The customer already knows they haven't paid; stamping UNPAID across the
-  // bottom of the bill she hands them feels accusatory. This line is neutral
-  // ink-700 typography in the same column as the Total — informational, not
-  // a warning. See docs/decisions/2026-05-22-sprint-8-architecture-decisions.md
-  // for the design rationale.
+  // Payment status — asymmetric treatment by design (see ADR
+  // docs/decisions/2026-05-22-sprint-8-architecture-decisions.md). PAID gets a
+  // hand-stamped box bottom-left (a positive receipt acknowledgment); UNPAID /
+  // PARTIAL get a neutral inline line — stamping UNPAID would feel accusatory.
+  const bottomBandY = cursor + 4;
   if (input.paymentStatus === 'paid') {
-    const stampW = 32;
-    const stampH = 10;
-    const stampX = (PAGE_W - stampW) / 2;
-    const stampColor: [number, number, number] = [0x15, 0x80, 0x3d]; // status.ok.border
-    pdf.setDrawColor(...stampColor);
-    pdf.setLineWidth(0.6);
-    pdf.rect(stampX, cursor, stampW, stampH);
-    pdf.setTextColor(...stampColor);
-    pdf.setFontSize(12);
+    const stampW = 34;
+    const stampH = 12;
+    const stampCx = contentLeft + stampW / 2 + 2;
+    const stampCy = bottomBandY + stampH / 2;
+    pdf.setDrawColor(...OK_STAMP);
+    pdf.setLineWidth(0.7); // ~2pt
+    rotatedRect(pdf, stampCx, stampCy, stampW, stampH, -6);
+    pdf.setTextColor(...OK_STAMP);
+    pdf.setFontSize(14);
     setBold();
-    pdf.text('PAID', PAGE_W / 2, cursor + 7, { align: 'center' });
-    cursor += stampH;
+    pdf.setCharSpace(0.49); // ~0.10em
+    pdf.text('PAID', stampCx, stampCy + 1.8, { align: 'center', angle: 6 });
+    pdf.setCharSpace(0);
     if (input.paidAt) {
       pdf.setTextColor(...INK_500);
-      pdf.setFontSize(9);
+      pdf.setFontSize(8);
       setNormal();
-      pdf.text(`Received on ${formatDate(input.paidAt)}`, PAGE_W / 2, cursor + 5, { align: 'center' });
-      cursor += 5;
+      pdf.text(`Received on ${formatDate(input.paidAt)}`, contentLeft + 2, bottomBandY + stampH + 6);
     }
-    cursor += 14;
   } else {
-    // Right-aligned to match the Total column; neutral typography.
     const msg = input.paymentStatus === 'partial'
       ? 'Partial payment received · balance due on collection'
       : 'Payment due on collection';
     pdf.setTextColor(...INK_700);
     pdf.setFontSize(10);
     setNormal();
-    pdf.text(msg, contentRight, cursor, { align: 'right' });
-    cursor += 18;
+    pdf.text(msg, contentLeft + 2, bottomBandY + 6);
   }
 
-  // Signature line
-  const sigW = 60;
-  const sigX = PAGE_W - MARGIN - INNER_PAD - 4 - sigW;
+  // Signature line — bottom-right
+  const sigW = 56;
+  const sigX = contentRight - sigW;
+  const sigY = bottomBandY + 14;
   pdf.setDrawColor(...INK_900);
   pdf.setLineWidth(0.2);
-  pdf.line(sigX, cursor, sigX + sigW, cursor);
+  pdf.line(sigX, sigY, sigX + sigW, sigY);
   pdf.setTextColor(...INK_500);
   pdf.setFontSize(9);
   setNormal();
-  pdf.text(business.signatureLine, sigX + sigW / 2, cursor + 5, { align: 'center' });
-  cursor += 14;
+  pdf.text(business.signatureLine, sigX + sigW / 2, sigY + 5, { align: 'center' });
+  cursor = sigY + 14;
 
   // Footer note
   pdf.setFontSize(9);
@@ -315,4 +329,23 @@ export function buildBillPdf(
 function formatDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+/** Draw an axis-rotated rectangle as four line segments (jsPDF rect can't rotate).
+ *  Used for the hand-stamped PAID box (P1-10). */
+function rotatedRect(pdf: jsPDF, cx: number, cy: number, w: number, h: number, deg: number): void {
+  const rad = (deg * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const pts = [
+    [-w / 2, -h / 2],
+    [w / 2, -h / 2],
+    [w / 2, h / 2],
+    [-w / 2, h / 2],
+  ].map(([x, y]) => [cx + x! * cos - y! * sin, cy + x! * sin + y! * cos] as [number, number]);
+  for (let i = 0; i < 4; i++) {
+    const a = pts[i]!;
+    const b = pts[(i + 1) % 4]!;
+    pdf.line(a[0], a[1], b[0], b[1]);
+  }
 }
