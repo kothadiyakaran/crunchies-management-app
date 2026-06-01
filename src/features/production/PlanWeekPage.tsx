@@ -103,7 +103,7 @@ export function PlanWeekPage() {
           <button
             type="submit"
             disabled={submitting || rows.length === 0}
-            className="h-11 w-full rounded-btn bg-brand-orange text-body font-semibold text-white disabled:opacity-50"
+            className="btn-primary"
           >
             {submitting ? 'Saving…' : 'Save plan'}
           </button>
