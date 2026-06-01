@@ -50,7 +50,7 @@ export function AddProductPage() {
     }
   }
 
-  const inputClass = 'mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body';
+  const inputClass = 'mt-1 h-11 input-shell';
   const labelSpan = 'text-label uppercase text-ink-500';
 
   return (
@@ -131,7 +131,7 @@ export function AddProductPage() {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="h-11 w-full rounded-btn bg-brand-orange text-body font-semibold text-white disabled:opacity-50"
+          className="btn-primary"
         >
           {submitting ? 'Saving…' : 'Save'}
         </button>
