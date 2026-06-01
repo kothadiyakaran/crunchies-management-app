@@ -223,7 +223,7 @@ export function OrderDetailPage() {
             type="button"
             onClick={onMarkFulfilled}
             disabled={working}
-            className="h-11 w-full rounded-btn bg-brand-orange text-body font-semibold text-white disabled:opacity-50"
+            className="btn-primary"
           >
             Mark fulfilled
           </button>
@@ -242,31 +242,33 @@ export function OrderDetailPage() {
             type="button"
             onClick={onMarkPaid}
             disabled={working}
-            className="h-11 w-full rounded-btn bg-brand-orange text-body font-semibold text-white disabled:opacity-50"
+            className="btn-primary"
           >
             Mark paid
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => setBillOpen(true)}
-          className="h-11 w-full rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-900"
-        >
-          Generate bill{order.bill_number ? ` (#${order.bill_number})` : ''}
-        </button>
-        <button
-          type="button"
-          onClick={() => setComplaintSheet({ existing: null })}
-          className="h-11 w-full rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-900"
-        >
-          Log complaint
-        </button>
-        <Link
-          to={`/orders/${id}/edit`}
-          className="block h-11 w-full rounded-btn-sm border border-ink-900/10 bg-paper-elevated text-body text-ink-900 text-center leading-[44px]"
-        >
-          Edit order
-        </Link>
+        <div className="flex gap-2 pt-2">
+          <button
+            type="button"
+            onClick={() => setBillOpen(true)}
+            className="h-11 flex-1 rounded-btn border-[1.5px] border-brand bg-card text-meta font-bold text-brand"
+          >
+            Generate bill
+          </button>
+          <button
+            type="button"
+            onClick={() => setComplaintSheet({ existing: null })}
+            className="h-11 flex-1 rounded-btn border border-rule bg-card text-meta font-medium text-ink"
+          >
+            Log complaint
+          </button>
+          <Link
+            to={`/orders/${id}/edit`}
+            className="flex h-11 flex-1 items-center justify-center rounded-btn border border-rule bg-card text-meta font-medium text-ink"
+          >
+            Edit order
+          </Link>
+        </div>
       </section>
 
       <div className="mt-6 border-t border-rule pt-6">
