@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { listActiveProducts, type ProductRow } from '@/features/products/api';
 import {
   getProductionLog,
@@ -139,6 +139,10 @@ export function EditLogProductionPage() {
           Delete log entry
         </button>
       </form>
+
+      <p className="mt-6 text-body-sm text-ink-500">
+        <Link to="/production" className="underline">← Back to production</Link>
+      </p>
     </div>
   );
 }
