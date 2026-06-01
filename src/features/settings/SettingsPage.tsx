@@ -8,7 +8,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useSettings } from './SettingsContext';
 import { updateSettings, type BusinessInfo } from './api';
@@ -107,16 +106,7 @@ export function SettingsPage() {
 
   return (
     <div>
-      <header className="flex items-center gap-3">
-        <Link
-          to="/"
-          aria-label="Back"
-          className="-ml-1 flex h-9 w-9 items-center justify-center rounded-btn-sm text-ink-700"
-        >
-          <ArrowLeft size={20} aria-hidden="true" />
-        </Link>
-        <h1 ref={h1Ref} tabIndex={-1} className="text-title text-ink-900 focus:outline-none">Settings</h1>
-      </header>
+      <h1 ref={h1Ref} tabIndex={-1} className="text-title text-ink-900 focus:outline-none">Settings</h1>
 
       {loading && !settings && (
         <p className="mt-6 text-body-sm text-ink-500">Loading…</p>
@@ -287,6 +277,10 @@ export function SettingsPage() {
           Sign out
         </button>
       </section>
+
+      <p className="mt-6 text-body-sm text-ink-500">
+        <Link to="/" className="underline">← Back to Today</Link>
+      </p>
     </div>
   );
 }
