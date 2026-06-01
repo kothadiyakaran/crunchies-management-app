@@ -12,6 +12,34 @@ import { QuietCustomerNudge } from '@/features/customers/QuietCustomerNudge';
 import { weekStartFor } from '@/lib/week';
 import { todayInTz } from '@/lib/utils';
 
+// item_summary arrives pre-joined from orders/api.ts as "{qty} {name}, {qty} {name}, +N more".
+// We split it here to bold quantities; this couples Today to that join format.
+function renderItemSummary(summary: string) {
+  const segments = summary.split(', ');
+  return segments.map((seg, i) => {
+    const sep = i > 0 ? ' · ' : '';
+    const moreMatch = seg.match(/^\+\d+ more$/);
+    if (moreMatch) {
+      return (
+        <span key={i}>
+          {sep}
+          <span className="text-ink-3">{seg}</span>
+        </span>
+      );
+    }
+    const qtyMatch = seg.match(/^(\d+)\s+(.*)$/);
+    if (qtyMatch) {
+      return (
+        <span key={i}>
+          {sep}
+          <span className="text-ink font-bold">{qtyMatch[1]}</span> {qtyMatch[2]}
+        </span>
+      );
+    }
+    return <span key={i}>{sep}{seg}</span>;
+  });
+}
+
 export function TodayPage() {
   const [productionRows, setProductionRows] = useState<ProductionWeekRowFull[]>([]);
   const [orders, setOrders] = useState<OrderListItem[]>([]);
@@ -135,7 +163,9 @@ export function TodayPage() {
                 className="block rounded-card bg-paper-elevated p-3"
               >
                 <div className="text-body font-semibold text-ink-900">{o.customer_name}</div>
-                <div className="mt-1 text-body-sm text-ink-500">{o.item_summary || '(no items)'}</div>
+                <div className="mt-1 text-small text-ink-2">
+                  {o.item_summary ? renderItemSummary(o.item_summary) : '(no items)'}
+                </div>
               </Link>
             </li>
           ))}
