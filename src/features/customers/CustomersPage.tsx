@@ -10,6 +10,7 @@ import {
 } from './api';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { isQuiet } from './quiet';
+import { lastOrderLabel } from './lastOrder';
 import { todayInTz } from '@/lib/utils';
 
 type Channel = { id: string; name: string };
@@ -164,19 +165,20 @@ export function CustomersPage() {
             },
             today,
           );
+          const lo = lastOrderLabel(r.last_ordered_at, today);
           return (
             <li key={r.id}>
-              <Link to={`/customers/${r.id}`} className="block rounded-card bg-paper-elevated p-3">
-                <div className="flex items-baseline justify-between">
+              <Link to={`/customers/${r.id}`} className="flex items-start justify-between gap-2 rounded-card bg-paper-elevated p-3">
+                <div className="min-w-0 flex-1">
                   <span className="text-body font-semibold text-ink-900">{r.name}</span>
-                  <span className="text-body-sm text-ink-500">
-                    {r.last_ordered_at ? `ordered ${humanDate(r.last_ordered_at, today)}` : 'never ordered'}
-                  </span>
+                  <div className="mt-1 text-body-sm text-ink-500">
+                    {r.channel_name} · {r.size_tier ?? '—'} · {r.order_count} orders
+                    {q.isQuiet && ` · quiet ${Math.floor(q.daysSince / 7)}w`}
+                  </div>
                 </div>
-                <div className="mt-1 text-body-sm text-ink-500">
-                  {r.channel_name} · {r.size_tier ?? '—'} · {r.order_count} orders
-                  {q.isQuiet && ` · quiet ${Math.floor(q.daysSince / 7)}w`}
-                </div>
+                <span className={`w-[90px] shrink-0 text-right text-small ${lo.stale ? 'text-ink-3' : 'text-ink-2'}`}>
+                  {lo.text}
+                </span>
               </Link>
             </li>
           );
@@ -207,15 +209,4 @@ export function CustomersPage() {
       </ul>
     </div>
   );
-}
-
-function humanDate(iso: string, todayDate: string): string {
-  const then = new Date(iso).getTime();
-  const today = new Date(`${todayDate}T00:00:00+05:30`).getTime();
-  const days = Math.floor((today - then) / (24 * 60 * 60 * 1000));
-  if (days <= 0) return 'today';
-  if (days === 1) return 'yesterday';
-  if (days < 30) return `${days} days ago`;
-  if (days < 365) return `${Math.floor(days / 30)} months ago`;
-  return `${Math.floor(days / 365)}y ago`;
 }
