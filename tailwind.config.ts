@@ -13,6 +13,11 @@ const config: Config = {
           orangeSoft: '#FDE2C8',
           mustard: '#F4C56F',
           brown: '#4A2912',
+          // design-critique polish (additive): pack `brand` family
+          DEFAULT: '#B8450F', // bg-brand == orange
+          soft: '#EFD9C6', // discount chips, focus ring
+          muted: '#F6E8DC', // Pending/Unpaid chip bg
+          deep: '#A6420E', // bill header band only
         },
         ink: {
           900: '#2A241F',
@@ -23,11 +28,16 @@ const config: Config = {
           // on white. Used for secondary text / labels — 108 nodes across
           // 8 routes were failing pre-retune.
           500: '#6E655E',
+          // design-critique polish (additive)
+          DEFAULT: '#2A211B', // text-ink — primary text (pack `ink`)
+          2: '#6E655E', // text-ink-2 — secondary (alias of 500)
+          3: '#A29A92', // text-ink-3 — tertiary/placeholder/stale (new)
         },
         paper: {
           surface: '#FBF8F1',
           elevated: '#FFFFFF',
           muted: '#F1ECE1',
+          2: '#F1ECE1', // bg-paper-2 — wells/disabled fill (alias of muted)
         },
         sticky: {
           yellow: '#FFF7C2',
@@ -48,6 +58,15 @@ const config: Config = {
         quiet: {
           bg: '#F0EEE9',
         },
+        // design-critique polish (additive top-level semantic tokens)
+        card: '#FFFFFF',
+        rule: '#E8E0D1',
+        mustard: '#C99B3B', // over-target bar fill (distinct from brand.mustard)
+        brown: '#6E3A1B', // chip text on mustard/soft tints
+        ok: { soft: '#E1F0E5', stamp: '#3C6B45' },
+        warn: '#C46A1A',
+        danger: '#A8331A',
+        'mustard-tint': '#F2E4C9', // Partial chip bg
       },
       fontFamily: {
         sans: [

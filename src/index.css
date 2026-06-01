@@ -33,14 +33,42 @@
   }
   a:focus-visible,
   button:focus-visible,
-  input:focus-visible,
-  select:focus-visible,
-  textarea:focus-visible,
   [tabindex]:focus-visible,
   [role='button']:focus-visible,
   [role='tab']:focus-visible {
     outline: 2px solid #b8450f;
     outline-offset: 2px;
     border-radius: 4px;
+  }
+}
+
+@layer components {
+  /*
+   * P0-01 — input focus retune. Resting: 1px rule border. Focus: 1.5px brand
+   * border + 2px brand-soft outer ring, no inner glow. Inputs are excluded
+   * from the global :focus-visible orange outline above so they don't render a
+   * double ring (the old behaviour that read as a validation error).
+   */
+  .input-shell {
+    @apply w-full rounded-input border border-rule bg-card px-3 text-body text-ink;
+  }
+  .input-shell::placeholder {
+    @apply text-ink-3;
+  }
+  .input-shell:focus {
+    outline: none;
+    border-color: #b8450f; /* brand */
+    box-shadow: 0 0 0 1.5px #b8450f, 0 0 0 3.5px #efd9c6; /* 1.5px brand + 2px brand-soft */
+  }
+
+  /*
+   * P0-02 — disabled primary button = paper-2 fill, ink-3 label, no shadow/
+   * border. Reads as "not ready", not the old desaturated-brand "submitting".
+   */
+  .btn-primary {
+    @apply h-11 w-full rounded-btn bg-brand text-body font-semibold text-white;
+  }
+  .btn-primary:disabled {
+    @apply border-0 bg-paper-2 text-ink-3 shadow-none;
   }
 }
