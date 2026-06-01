@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { CustomerSearchPicker } from './CustomerSearchPicker';
 import { createOrderWithItems, getOrderDetail, updateOrder, updateOrderItems, type OrderItemInput, type OrderRow } from './api';
 import { listActiveProducts, type ProductRow } from '@/features/products/api';
@@ -420,6 +420,10 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
           {submitting ? 'Saving…' : editingOrderId ? 'Save changes' : 'Save'}
         </button>
       </form>
+
+      <p className="mt-6 text-body-sm text-ink-500">
+        <Link to="/orders" className="underline">← Back to orders</Link>
+      </p>
     </div>
   );
 }
