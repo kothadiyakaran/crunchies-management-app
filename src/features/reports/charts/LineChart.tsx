@@ -125,9 +125,11 @@ export function LineChart({
         className="stroke-ink-3"
         vectorEffect="non-scaling-stroke"
       />
+      {/* Below the rule: at yMax the band above it is off-canvas, so the label
+          sits just under the dashed line in the (empty, sub-target) plot area. */}
       <text
         x={VB_WIDTH - PAD_RIGHT}
-        y={yAt(yMax) - 3}
+        y={yAt(yMax) + 10}
         textAnchor="end"
         className="fill-ink-3"
         style={{ fontSize: 10 }}
