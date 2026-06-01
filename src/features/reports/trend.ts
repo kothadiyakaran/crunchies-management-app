@@ -19,3 +19,17 @@ export function trendChip(weekly: number[]): TrendChip {
   const dir = last > first ? 'up' : last < first ? 'down' : 'none';
   return { dir, pct };
 }
+
+/**
+ * Count of leading zero-volume entries — used to collapse the empty months
+ * before the business started selling into a single "no sales" prefix on the
+ * channel-mix strip, rather than drawing tiny ₹0 columns.
+ */
+export function leadingZeroRun(values: number[]): number {
+  let n = 0;
+  for (const v of values) {
+    if (v > 0) break;
+    n += 1;
+  }
+  return n;
+}

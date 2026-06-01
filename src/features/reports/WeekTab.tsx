@@ -188,7 +188,7 @@ export function WeekTab() {
                     </span>
                     {attainment != null && (
                       <span
-                        className={`text-body-sm font-semibold tabular-nums ${
+                        className={`text-body font-bold tabular-nums ${
                           over ? 'text-brand' : 'text-brown'
                         }`}
                       >

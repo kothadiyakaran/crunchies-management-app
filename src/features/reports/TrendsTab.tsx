@@ -32,6 +32,7 @@ import { Sparkline } from './charts/Sparkline';
 import { StackedBar } from './charts/StackedBar';
 import { ReportSection } from './ReportSection';
 import { formatMonthLabel } from './dateRange';
+import { trendChip, leadingZeroRun } from './trend';
 
 const INR = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -56,6 +57,14 @@ function formatDayMonth(ymd: string): string {
 }
 function formatDayMonthYear(ymd: string): string {
   return dayMonthYearFmt.format(new Date(`${ymd}T12:00:00Z`));
+}
+
+const shortMonthFmt = new Intl.DateTimeFormat('en-IN', {
+  month: 'short',
+  timeZone: 'UTC',
+});
+function shortMonth(yyyymm: string): string {
+  return shortMonthFmt.format(new Date(`${yyyymm}-01T12:00:00Z`));
 }
 
 /**
@@ -199,19 +208,20 @@ export function TrendsTab() {
                     <div className="text-brand-orange">
                       <Sparkline values={p.sparkline} />
                     </div>
-                    <div className="w-14 text-right text-body-sm tabular-nums">
-                      {p.delta === null ? (
-                        <span className="text-ink-500">—</span>
-                      ) : p.delta > 0 ? (
-                        <span className="text-status-ok-fg">+{p.delta}%</span>
-                      ) : p.delta < 0 ? (
-                        <span className="text-status-danger-fg">
-                          {/* unicode minus already from negative number */}
-                          {p.delta}%
-                        </span>
-                      ) : (
-                        <span className="text-ink-700">0%</span>
-                      )}
+                    <div className="w-14 text-right text-small tabular-nums">
+                      {(() => {
+                        const chip = trendChip(
+                          p.sparkline.filter((x): x is number => x !== null),
+                        );
+                        if (chip.dir === 'none') {
+                          return <span className="text-ink-3">—</span>;
+                        }
+                        return (
+                          <span className="text-ink">
+                            {chip.dir === 'up' ? '▲' : '▼'} {chip.pct}%
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                   {p.biggest_miss && (
@@ -240,11 +250,27 @@ export function TrendsTab() {
       )}
 
       {/* 3. Channel mix trend */}
-      {channelMix && channelMix.length > 0 && (
+      {channelMix && channelMix.length > 0 && (() => {
+        const zeroRun = leadingZeroRun(channelMix.map((m) => m.totalValue));
+        const visibleMonths = channelMix.slice(zeroRun);
+        const firstZero = channelMix[0];
+        const lastZero = channelMix[zeroRun - 1];
+        const noSalesLabel =
+          zeroRun === 0 || !firstZero || !lastZero
+            ? null
+            : zeroRun === 1
+              ? `${shortMonth(firstZero.yyyymm)} · no sales`
+              : `${shortMonth(firstZero.yyyymm)} → ${shortMonth(lastZero.yyyymm)} · no sales`;
+        return (
         <ReportSection title="Channel mix">
-          <div className="grid grid-cols-6 gap-2">
-            {channelMix.map((m) => (
-              <div key={m.yyyymm} className="flex flex-col">
+          <div className="flex items-stretch gap-2">
+            {noSalesLabel && (
+              <p className="flex w-16 shrink-0 items-end text-meta text-ink-3">
+                {noSalesLabel}
+              </p>
+            )}
+            {visibleMonths.map((m) => (
+              <div key={m.yyyymm} className="flex min-w-0 flex-1 flex-col">
                 <p className="truncate text-body-sm text-ink-700">
                   {formatMonthLabel(m.yyyymm).split(' ')[0]}
                 </p>
@@ -293,7 +319,8 @@ export function TrendsTab() {
             );
           })()}
         </ReportSection>
-      )}
+        );
+      })()}
 
       {/* 4. Past event retrospectives — hidden when none */}
       {pastEvents && pastEvents.length > 0 && (
