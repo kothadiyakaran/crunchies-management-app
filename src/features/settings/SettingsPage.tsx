@@ -100,10 +100,8 @@ export function SettingsPage() {
     }
   }
 
-  const inputClass =
-    'mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body';
-  const textareaClass =
-    'mt-1 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 py-2 text-body';
+  const inputClass = 'mt-1 h-11 input-shell';
+  const textareaClass = 'input-shell mt-1 py-2';
   const labelSpan = 'text-label uppercase text-ink-500';
   const sectionH = 'text-subtitle text-ink-900';
 
@@ -263,7 +261,7 @@ export function SettingsPage() {
             <button
               type="submit"
               disabled={!canSubmit}
-              className="h-11 flex-1 rounded-btn bg-brand-orange text-body font-semibold text-white disabled:opacity-50"
+              className="h-11 flex-1 rounded-btn bg-brand-orange text-body font-semibold text-white disabled:bg-paper-2 disabled:text-ink-3 disabled:shadow-none"
             >
               {submitting ? 'Saving…' : 'Save changes'}
             </button>
