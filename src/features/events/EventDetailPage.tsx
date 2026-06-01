@@ -27,8 +27,7 @@ const KIND_OPTIONS: { value: Kind; label: string }[] = [
 
 const SLUG_RE = /^[a-z0-9-]+$/;
 
-const inputClass =
-  'mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body';
+const inputClass = 'mt-1 h-11 input-shell';
 const labelSpan = 'text-label uppercase text-ink-500';
 
 /** datetime-local value (`YYYY-MM-DDTHH:MM`) → ISO string for Supabase. */
@@ -590,7 +589,7 @@ export function EventDetailPage() {
         <label className="block">
           <span className={labelSpan}>Notes (optional)</span>
           <textarea
-            className="mt-1 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 py-2 text-body"
+            className="input-shell mt-1 py-2"
             rows={3}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
