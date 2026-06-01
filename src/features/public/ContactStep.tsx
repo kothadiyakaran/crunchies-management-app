@@ -54,7 +54,7 @@ export function ContactStep({
           onChange={(e) => setName(e.target.value)}
           autoFocus
           required
-          className="mt-1 h-11 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 text-body"
+          className="mt-1 h-11 input-shell"
         />
       </label>
 
@@ -86,7 +86,7 @@ export function ContactStep({
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Anything we should know? (delivery preference, etc.)"
           rows={3}
-          className="mt-1 w-full rounded-input border border-ink-900/10 bg-paper-elevated px-3 py-2 text-body"
+          className="input-shell mt-1 py-2"
         />
       </label>
 
