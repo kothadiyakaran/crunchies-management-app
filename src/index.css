@@ -33,6 +33,9 @@
   }
   a:focus-visible,
   button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
   [tabindex]:focus-visible,
   [role='button']:focus-visible,
   [role='tab']:focus-visible {
