@@ -114,19 +114,29 @@ export function OrderDetailPage() {
         {order.customer_phone && (
           <p className="mt-1 text-body-sm text-ink-500">{order.customer_phone}</p>
         )}
-        <div className="mt-2 flex flex-wrap gap-2 text-body-sm">
-          <span className="rounded-pill bg-paper-muted px-2 py-0.5 text-ink-700">
+        <div className="mt-2 flex flex-wrap gap-2 text-small">
+          <span className="rounded-pill bg-paper-2 px-2 py-0.5 text-ink-2">
             {order.source}
           </span>
           <span
-            className={`rounded-pill px-2 py-0.5 ${fulfilled ? 'bg-status-ok-bg' : 'bg-status-warn-bg'} text-ink-700`}
+            className={`rounded-pill px-2 py-0.5 ${fulfilled ? 'bg-ok-soft text-ok-stamp' : 'bg-brand-muted text-brand'}`}
           >
             {fulfilled ? 'Fulfilled' : 'Pending'}
           </span>
           <span
-            className={`rounded-pill px-2 py-0.5 ${paid ? 'bg-status-ok-bg' : 'bg-status-warn-bg'} text-ink-700`}
+            className={`rounded-pill px-2 py-0.5 ${
+              order.payment_status === 'paid'
+                ? 'bg-ok-soft text-ok-stamp'
+                : order.payment_status === 'partial'
+                  ? 'bg-mustard-tint text-brown'
+                  : 'bg-brand-muted text-brand'
+            }`}
           >
-            {order.payment_status}
+            {order.payment_status === 'paid'
+              ? 'Paid'
+              : order.payment_status === 'partial'
+                ? 'Partial'
+                : 'Unpaid'}
           </span>
         </div>
       </header>
