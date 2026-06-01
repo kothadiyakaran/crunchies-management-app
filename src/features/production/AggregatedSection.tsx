@@ -19,24 +19,25 @@ export function AggregatedSection() {
   return (
     <section className="mt-8">
       <h2 className="text-subtitle text-ink-900">From other makers</h2>
-      <table className="mt-2 w-full text-body-sm">
-        <thead className="text-ink-500">
-          <tr>
-            <th className="text-left font-normal">Product</th>
-            <th className="text-left font-normal">Source</th>
-            <th className="text-right font-normal">This week</th>
-          </tr>
-        </thead>
-        <tbody className="text-ink-900">
-          {rows.map((r) => (
-            <tr key={r.product_id} className="border-t border-ink-900/10">
-              <td className="py-2">{r.name}</td>
-              <td className="py-2 text-ink-500">{r.source_maker_name ?? '—'}</td>
-              <td className="py-2 text-right">{r.committed_qty} {r.unit}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <ul className="mt-2 space-y-2">
+        {rows.map((r) => (
+          <li key={r.product_id} className="rounded-card bg-paper-elevated p-3">
+            <div className="grid grid-cols-[1fr_56px_70px_56px] items-baseline gap-2">
+              <div>
+                <span className="text-body font-semibold text-ink-900">{r.name}</span>
+                {r.source_maker_name && (
+                  <span className="ml-2 rounded-badge bg-paper-2 px-1.5 py-0.5 text-[11px] text-brown">
+                    by {r.source_maker_name}
+                  </span>
+                )}
+              </div>
+              <span className="text-right text-base font-bold text-ink-2">—</span>
+              <span className="text-right text-base font-bold text-ink-2">{r.committed_qty}</span>
+              <span className="text-right text-base font-bold text-ink-2">—</span>
+            </div>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
