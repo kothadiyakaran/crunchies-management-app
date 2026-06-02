@@ -75,8 +75,17 @@ export function TodayPage() {
 
   return (
     <>
-      <header className="flex items-baseline justify-between">
-        <h1 ref={h1Ref} tabIndex={-1} className="text-title text-ink-900 focus:outline-none">Today</h1>
+      <header className="flex items-start justify-between">
+        <div>
+          <h1 ref={h1Ref} tabIndex={-1} className="text-title text-ink-900 focus:outline-none">Today</h1>
+          <p className="text-small text-ink-2">
+            {new Date(`${todayInTz()}T00:00:00Z`).toLocaleDateString('en-IN', {
+              weekday: 'short',
+              day: 'numeric',
+              month: 'short',
+            })}
+          </p>
+        </div>
         <Link
           to="/settings"
           aria-label="Settings"
