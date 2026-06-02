@@ -102,7 +102,7 @@ export function SettingsPage() {
   const inputClass = 'mt-1 h-11 input-shell';
   const textareaClass = 'input-shell mt-1 py-2';
   const labelSpan = 'text-label uppercase text-ink-500';
-  const sectionH = 'text-subtitle text-ink-900';
+  const sectionH = 'text-eyebrow uppercase text-ink-2';
 
   return (
     <div>
