@@ -108,9 +108,15 @@ export function ProductionPage() {
                   <>
                     <div className="grid grid-cols-[1fr_56px_70px_56px] items-baseline gap-2">
                       <div>
-                        <span className="text-body font-semibold text-ink-900">{r.name}</span>
-                        {r.subtitle && (
-                          <p className="mt-1 text-body-sm text-ink-500">{r.subtitle}</p>
+                        <span className="block text-body font-semibold text-ink-900">{r.name}</span>
+                        {r.subtitle?.startsWith('includes ramp-up for') ? (
+                          <span className="mt-1 inline-block rounded-badge bg-mustard-tint px-1.5 py-0.5 text-[11px] text-brown">
+                            ramp-up · {r.event_sources[0]?.event_name}
+                          </span>
+                        ) : (
+                          r.subtitle && (
+                            <p className="mt-1 text-body-sm text-ink-500">{r.subtitle}</p>
+                          )
                         )}
                       </div>
                       <span className="text-right text-base font-bold text-ink">{r.planned_qty ?? '—'}</span>
