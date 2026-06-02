@@ -70,6 +70,7 @@ playwright/.cache/
 
 # Local smoke-test outputs (the scripts are tracked, the captures aren't)
 scripts/screenshots/
+scripts/_*/
 
 # Python bytecode cache (smoke scripts are run, not packaged)
 __pycache__/

@@ -2,9 +2,9 @@
 
 The locked feature spec for v1. Companion to `CLAUDE.md` — that file gives high-level context, current state, and how to work; this file gives the locked behavioural detail.
 
-## Implementation status (2026-05-28)
+## Implementation status (2026-06-02)
 
-**Phase 1 build complete + Phase 2 maintenance shipped.** All 14 sections below are implemented and deployed to `https://www.crunchies.app`. Each section header below lists `→ Implementation:` pointers to the relevant files. Where implementation differs from the original spec text, the implementation is the source of truth and the spec text below is annotated `[Drift — see ADR-45]` with the correction. **Post-launch Phase 2 changes** (reversibility, discounts, canvas bill preview, exhibition order↔event link, inline add-customer fix) are marked `[Phase 2]` inline and summarised in §14 → "Phase 2 — Ongoing (post-launch)"; their decision records live in `docs/superpowers/specs/`.
+**Phase 1 build complete + Phase 2 maintenance shipped + UI polish pass shipped. The app is feature-complete and in maintenance-only mode** (changes only on mom's request or a required fix). All 14 sections below are implemented and deployed to `https://www.crunchies.app`. The 2026-06 UI polish pass was **visual-only** (a design-token layer, shared input/button primitives, and per-screen styling — see `docs/superpowers/plans/2026-06-01-ui-critique-polish-pass.md`) and changed **no behaviour**, so the behavioural spec below stands unchanged. Each section header below lists `→ Implementation:` pointers to the relevant files. Where implementation differs from the original spec text, the implementation is the source of truth and the spec text below is annotated `[Drift — see ADR-45]` with the correction. **Post-launch Phase 2 changes** (reversibility, discounts, canvas bill preview, exhibition order↔event link, inline add-customer fix) are marked `[Phase 2]` inline and summarised in §14 → "Phase 2 — Ongoing (post-launch)"; their decision records live in `docs/superpowers/specs/`.
 
 Outcomes referenced throughout:
 - **O1** — production matches demand (mom stops underproducing)

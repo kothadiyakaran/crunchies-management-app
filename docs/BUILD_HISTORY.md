@@ -6,10 +6,14 @@ Preserved narrative of the build. Reference doc — Claude doesn't read this eve
 - Auditing decisions captured in commit messages but not in ADRs
 
 The structural source-of-truth docs are:
+- `README.md` (top-level overview + docs map)
 - `CLAUDE.md` (current state + how to work)
 - `docs/v1-spec.md` (feature spec)
+- `docs/superpowers/SESSION_STATE.md` (Phase 2 maintenance + the 2026-06 UI polish pass — most recent first)
 - `docs/decisions/*-architecture-decisions.md` (ADRs)
 - Git log (`git log --oneline | grep Sprint`)
+
+> **Scope of this file:** Phase 0 + Phase 1 only. Phase 2 maintenance and the 2026-06 UI polish pass are logged in `docs/superpowers/SESSION_STATE.md` and `docs/superpowers/plans/`, not here.
 
 ## Phase 0 — discovery, design, validation
 

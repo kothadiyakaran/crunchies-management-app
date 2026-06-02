@@ -8,7 +8,10 @@ A PWA for Karan's mother (Archana) to manage her small artisanal snacks business
 
 **Roles:** Karan is the product/design partner and the only authenticated builder; Claude Code does the actual coding. Mom (Archana) is the primary authenticated user. Exhibition customers fill an anonymous per-event public form. There are no other users.
 
-**Status (2026-05-28):** Phase 1 build complete (11 sprints, 0-10); live at `https://www.crunchies.app` via Vercel auto-deploy from `main`; PWA on mom's Android. **Phase 2 maintenance shipped:** inline add-customer fix, bill-preview canvas fix (Android WebView), reversibility (revert fulfilled/paid + delete complaint), discounts (reseller/customer/order), exhibition order↔event link. See `docs/superpowers/specs/` for the Phase 2 decision records and `docs/superpowers/SESSION_STATE.md` for the maintenance-session log.
+**Status (2026-06-02): feature-complete, live, and in maintenance-only mode.** Phase 1 build (11 sprints, 0-10) + Phase 2 maintenance + a full UI polish pass are all shipped to `https://www.crunchies.app` (Vercel auto-deploy from `main`; PWA on mom's Android). **Do not make further changes unless mom requests one or a bug requires a fix** — no unsolicited features or redesigns.
+- **Phase 2 maintenance:** inline add-customer fix, bill-preview canvas fix (Android WebView), reversibility (revert fulfilled/paid + delete complaint), discounts (reseller/customer/order), exhibition order↔event link.
+- **UI polish pass (2026-06-02):** an additive design-token layer + shared input/button primitives + ~40 per-screen visual refinements (focus rings, disabled states, status-chip tints, the Today / Production / Reports / Order-detail / Customers re-layouts, a warmer bill PDF). **Visual only — zero behaviour/data/route change.**
+- **Records:** `docs/superpowers/specs/` (Phase 2 decision records), `docs/superpowers/plans/2026-06-01-ui-critique-polish-pass.md` (polish-pass plan + finding map), `docs/superpowers/SESSION_STATE.md` (session log).
 
 ## Stack
 
@@ -79,7 +82,7 @@ All scripts read `SMOKE_EMAIL` / `SMOKE_PASSWORD` from `.env.local` or process e
 - **Typecheck via `npm run typecheck` only.** Bare `tsc --noEmit` misses project-references strict flags and ships broken code to Vercel.
 - **After adding REQUIRED fields to shared row types** (e.g. `OrderRow`), run `npm run build` or `npx tsc -b --force`. The `.tsbuildinfo` incremental cache can skip re-checking fixtures, masking failures until Vercel's clean build catches them.
 - **Anon SQL access is locked off.** All public-form surface area goes through SECURITY DEFINER RPCs in `0005_public_rpcs.sql` + `0007_business_settings.sql` (`public_get_event_by_slug`, `public_create_exhibition_order`, `public_get_order_by_ref`, `public_get_business_identity`). RLS allows no direct table reads/writes for anon. **`0009` redefined `public_create_exhibition_order` + `public_get_order_by_ref`** (event_id stamp + anti-leak) — if you change an exhibition RPC, edit the latest migration's `create or replace`, never the original 0005 body.
-- **Mom's iteration tolerance is the hard product constraint.** She won't tolerate rough cycles on the live app. Any change visible to her gets full review + smoke verification before push. Builder-side iteration is unconstrained.
+- **Maintenance-only mode (2026-06-02).** The app is feature-complete. Make changes only when mom requests one or a bug requires a fix — no unsolicited features, refactors, or redesigns. Mom won't tolerate rough cycles on the live app, so any mom-visible change still gets full review + blast-radius smoke verification before push. Builder-side iteration (branches, experiments) remains unconstrained.
 
 ### Authoring style
 
@@ -123,6 +126,7 @@ Full schemas: `supabase/migrations/0001_*.sql` through `0009_*.sql`. Behavioural
 - **Quiet customers:** pure `isQuiet()` in `src/features/customers/quiet.ts` (per-channel thresholds, Asia/Kolkata-day-normalised).
 - **Reports charts:** raw SVG only (`src/features/reports/charts/`). No recharts/d3 dependency.
 - **Refresh model:** refetch-on-tab-focus. No realtime subscriptions in v1 (one writer).
+- **Design system (2026-06 polish):** `tailwind.config.ts` holds the full token set; `src/index.css` defines the shared `.input-shell` (form-field shell + the soft brand focus ring) and `.btn-primary` (primary button + `paper-2`/`ink-3` disabled retone) primitives, plus the global `:focus-visible` outline (inputs included — `.input-shell:focus` sets `outline:none` + its own ring so migrated inputs don't double-ring). New form controls should use these primitives rather than re-deriving border/focus/disabled classes. Status-chip palette + the full per-finding map live in `docs/superpowers/plans/2026-06-01-ui-critique-polish-pass.md`.
 
 ## Pointers for common questions
 
@@ -134,6 +138,6 @@ Full schemas: `supabase/migrations/0001_*.sql` through `0009_*.sql`. Behavioural
 ## Hard constraints (still load-bearing)
 
 - **Don't push without explicit user authorization.** Karan reviews everything before push.
-- **Don't change design tokens without user approval.** Token table in `tailwind.config.ts`; current values cleared WCAG AA at Sprint 10 close (`ink-500 #6E655E`, `brand-orange #B8450F`).
+- **Don't change design tokens without user approval.** `tailwind.config.ts` is the source of truth. The Sprint-10 retune cleared WCAG AA (`ink-500 #6E655E`, `brand-orange #B8450F`); the 2026-06 polish pass **added** a semantic layer — `brand` DEFAULT/`soft`/`muted`/`deep`, `ink` DEFAULT/`2`/`3`, `paper-2`, `card`, `rule`, `mustard`, `brown`, `ok` (soft/stamp), `warn`, `danger`, `mustard-tint`; type tokens `amount`/`small`/`meta`/`eyebrow`/`eyebrow-tight`; `rounded-badge` — **purely additive, nothing redefined.** **AA traps (learned the hard way):** `ink-3` (#A29A92) is NOT AA-safe as readable text (~2.7:1) — use it only for placeholders / disabled labels; the Pending/Unpaid status chip uses `text-brand-deep` (not `text-brand`, which is 4.49:1 on `brand-muted`). Verify any token/colour change with `verify-a11y.py` (axe) — but note axe only scans each route's default tab/state.
 - **Don't skip the advisor + behaviour-shaped browser verify before declaring a sprint or substantial change done.** Green unit tests alone are insufficient.
 - **Don't add features beyond what the task requires.** No premature abstractions, no fallbacks for impossible states, no validation at internal boundaries.

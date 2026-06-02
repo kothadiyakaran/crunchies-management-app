@@ -1,7 +1,27 @@
 # Session State — Maintenance Fixes & Features
 
-**Updated:** 2026-05-28 (latest session: UI design-critique pack — see below)
-**Read this first on resume.** Most recent work is the design-critique pack (next section). The maintenance pass (Parts A–E, tasks #6/#7) is closed — that history is further down, alongside the plan `docs/superpowers/plans/2026-05-26-maintenance-fixes-and-features.md` and the specs in `docs/superpowers/specs/`.
+**Updated:** 2026-06-02 (latest: UI polish pass SHIPPED — see next section).
+**Read this first on resume.** The app is now **feature-complete and in maintenance-only mode** — no further changes unless mom requests one or a bug requires a fix. Sections below are point-in-time history (UI polish pass → design-critique pack → Phase 2 maintenance Parts A–E + tasks #6/#7), kept for the record.
+
+---
+
+## 2026-06-02 — UI polish pass: SHIPPED & live ✅ (app now maintenance-only)
+
+The design-critique findings (pack assembled 2026-05-28, section below) were implemented as a single **visual-only** polish pass on branch `polish/ui-critique-pass`, merged to `main` and pushed (auto-deploys via Vercel) on 2026-06-02.
+
+**Scope:** all P0 + P1 + P2 findings except **P2-12 dropped** (ghost-suggested values in Plan-week inputs — the one genuine interaction change on mom's weekly ritual; Karan's call). Bill watermark kept as-is per Karan ("homemade · tasty · good quality").
+
+**Foundation (additive — zero token redefinition → no approval needed, no regression):** ~12 new colour tokens + 5 type tokens + `rounded-badge` in `tailwind.config.ts`; shared `.input-shell` + `.btn-primary` primitives + a focus-ring retune in `src/index.css`. Plan + full per-finding map + verify cadence: `docs/superpowers/plans/2026-06-01-ui-critique-polish-pass.md`. Handoff pack (untracked): `design_handoff_crunchies_polish_pass/`.
+
+**By area:** focus-ring + disabled-button retone (all forms); custom Active toggle (events, replaced the iOS-blue checkbox); quieted Add-order checklist; Browse/Batch peer pills; Today ratio+progress rows + over-target mustard + bold pending qty + date subhead; Order-detail recomposed action stack + `[20% off]` discount chip + status-tint chips + promoted Total + isolated Delete; Orders day-grouped chip rows + wrapped filters; Customers 90px timestamp column + inline sort + size-tier peer chips; Production 3-col grid + maker chips + ramp-up chip + "Edit catalogue"; Reports calibration bars + trend chips + plan-accuracy labels + zero-month collapse + month variance chip; warmer bill PDF (brand-deep header, watermark, brand-muted heads, bold Total, rotated PAID stamp, ₹ accounting alignment); Settings eyebrows; standardised back-links; public-form disabled/confirmation polish; **sign-out relocated from Today → Settings**.
+
+**Verified before push:** typecheck ✓ · full suite 295 tests ✓ · a11y axe **0 violations** (7 routes) ✓ · launch-readiness **8/8 + 2/2 on chromium + firefox + webkit, 0 console errors** ✓ · bill-flow chromium ✓ · visual correspondence on every screen at 390px.
+
+**Two lessons recorded (auto-memory):**
+1. **Don't fan out file-mutating subagents into one shared working tree** — concurrent agents collided on git (a stray stash, mislabeled commits, one clobbered hunk that the visual gate caught + I re-applied). Serialize, or use worktree isolation; then verify each finding is actually in HEAD, not just committed.
+2. **The pack's palette had two AA failures** — `ink-3` (#A29A92) fails as readable text (→ `ink-2`); the Pending/Unpaid chip was 4.49:1 (→ `text-brand-deep`). Both fixed; axe clean. `verify-a11y.py` only scans each route's default tab, so contrast-check sub-tabs/forms manually.
+
+**One-line note for mom whenever convenient:** sign-out now lives in **Settings** (the gear icon), not on Today.
 
 ---
 

@@ -1,5 +1,7 @@
 # Handoff: Crunchies — small-business management app
 
+> **⚠️ HISTORICAL — original pre-build handoff (Phase 0).** A point-in-time record of the design intent that *seeded* the build; **not** a current reference. The app is built, shipped, and feature-complete. In particular, the **design-token table in §4 is outdated** — its `brand.orange #D9591A` and `ink.500 #8A8079` predate the Sprint-10 WCAG-AA retune (`#B8450F` / `#6E655E`) and the 2026-06 polish-pass token layer. **For current design tokens + how to work, see `tailwind.config.ts`, `src/index.css`, and `CLAUDE.md`.** Kept for provenance — don't edit to "fix"; it documents what was true at handoff.
+
 A development handoff for the Crunchies app — Archana Kothadiya's artisanal snacks business in Pune. This bundle contains the original design brief, the chosen wireframe variants from design review, a logo asset, and the engineering guidance needed to build production code.
 
 ## Contents
