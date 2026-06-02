@@ -214,7 +214,7 @@ export function TrendsTab() {
                           p.sparkline.filter((x): x is number => x !== null),
                         );
                         if (chip.dir === 'none') {
-                          return <span className="text-ink-3">—</span>;
+                          return <span className="text-ink-2">—</span>;
                         }
                         return (
                           <span className="text-ink">
@@ -265,7 +265,7 @@ export function TrendsTab() {
         <ReportSection title="Channel mix">
           <div className="flex items-stretch gap-2">
             {noSalesLabel && (
-              <p className="flex w-16 shrink-0 items-end text-meta text-ink-3">
+              <p className="flex w-16 shrink-0 items-end text-meta text-ink-2">
                 {noSalesLabel}
               </p>
             )}
