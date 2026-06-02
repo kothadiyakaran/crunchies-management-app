@@ -110,7 +110,7 @@ export function CustomersPage() {
               key={c.label}
               type="button"
               onClick={() => setFixedFilter(c.label)}
-              className={`h-8 rounded-pill border px-3 ${
+              className={`h-8 rounded-pill border px-2.5 ${
                 active ? 'border-brand-orange bg-brand-orange text-white' : 'border-ink-900/20 bg-paper text-ink-900'
               }`}
             >
@@ -125,7 +125,7 @@ export function CustomersPage() {
               key={ch.id}
               type="button"
               onClick={() => setChannelFilter(ch.id)}
-              className={`h-8 rounded-pill border px-3 ${
+              className={`h-8 rounded-pill border px-2.5 ${
                 active ? 'border-brand-orange bg-brand-orange text-white' : 'border-ink-900/20 bg-paper text-ink-900'
               }`}
             >
