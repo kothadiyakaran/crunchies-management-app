@@ -359,7 +359,14 @@ export function MonthTab() {
   );
   const headlineVariance = useMemo(() => {
     const flat = state.calibRowsByWeek.flat();
-    return absoluteVariancePct(flat);
+    const pct = absoluteVariancePct(flat);
+    let net = 0;
+    for (const r of flat) {
+      if (r.plan === null) continue;
+      net += r.demand - r.plan;
+    }
+    const direction: 'over' | 'under' = net >= 0 ? 'over' : 'under';
+    return { pct, direction };
   }, [state.calibRowsByWeek]);
 
   // Empty-state decision: this month has zero orders.
@@ -424,9 +431,16 @@ export function MonthTab() {
       {/* 1. Calibration summary (hero) */}
       <ReportSection title="Calibration">
         <div className="rounded-card border border-ink-900/10 bg-paper-elevated p-4 shadow-card">
-          <div className="text-title text-ink-900">
-            Plan vs demand variance:{' '}
-            {headlineVariance === null ? '—' : `±${headlineVariance}%`} this month
+          <div className="inline-flex items-center gap-1.5 rounded-badge bg-brand-muted px-2.5 py-1 text-body">
+            <span className="text-ink-2">Variance:</span>
+            {headlineVariance.pct === null ? (
+              <span className="text-ink">—</span>
+            ) : (
+              <>
+                <span className="font-semibold tabular-nums text-ink">{headlineVariance.pct}%</span>
+                <span className="text-brown">{headlineVariance.direction} plan</span>
+              </>
+            )}
           </div>
           {monthlyAgg.length > 0 ? (
             <div className="mt-3 overflow-x-auto">
