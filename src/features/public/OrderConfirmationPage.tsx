@@ -98,14 +98,14 @@ export function OrderConfirmationPage() {
       <main className="mx-auto max-w-md px-4 py-6">
         {/* Heading section */}
         <section className="flex flex-col items-center text-center">
-          <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-brand-orange">
+          <div className="mb-3 mt-6 flex h-16 w-16 items-center justify-center rounded-full bg-brand-orange">
             <Check className="h-9 w-9 text-white" strokeWidth={3} aria-hidden="true" />
           </div>
           <h2 className="text-title font-bold text-ink-900">Order placed.</h2>
           <p className="mt-1 text-body text-ink-700">Thank you, {firstName}.</p>
-          <p className="mt-2 text-subtitle font-semibold text-brand-orange">
+          <span className="mt-2 inline-block rounded-pill border border-rule bg-paper-2 px-3 py-1 font-mono text-body text-ink">
             {order.public_order_number}
-          </p>
+          </span>
         </section>
 
         {/* Pickup card */}
