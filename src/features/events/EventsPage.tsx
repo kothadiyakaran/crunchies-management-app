@@ -93,8 +93,8 @@ export function EventsPage() {
                     </span>
                   )}
                 </span>
-                <span className="text-body-sm text-ink-500">
-                  {relativeLabel(e.starts_on, e.ends_on, today)} →
+                <span className="shrink-0 rounded-badge bg-mustard-tint px-1.5 py-0.5 text-body-sm text-brown">
+                  {relativeLabel(e.starts_on, e.ends_on, today)}
                 </span>
               </div>
               <p className="mt-1 text-body-sm text-ink-500">
