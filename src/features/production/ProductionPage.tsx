@@ -59,7 +59,7 @@ export function ProductionPage() {
       <header className="flex items-baseline justify-between">
         <h1 ref={h1Ref} tabIndex={-1} className="text-title text-ink-900 focus:outline-none">Production</h1>
         <Link to="/products" className="text-body-sm text-ink-500 underline">
-          Manage products →
+          Edit catalogue →
         </Link>
       </header>
 
