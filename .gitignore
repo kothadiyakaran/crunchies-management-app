@@ -81,3 +81,8 @@ __pycache__/
 
 # Misc
 .cache/
+
+# Local-only design / feedback artifacts — kept on disk for reference, never committed
+/design_handoff_crunchies_polish_pass/
+/crunchies-design-critique-pack.zip
+/docs/feedback/
