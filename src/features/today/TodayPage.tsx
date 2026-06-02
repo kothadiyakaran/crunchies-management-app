@@ -23,7 +23,7 @@ function renderItemSummary(summary: string) {
       return (
         <span key={i}>
           {sep}
-          <span className="text-ink-3">{seg}</span>
+          <span className="text-ink-2">{seg}</span>
         </span>
       );
     }

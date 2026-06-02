@@ -176,7 +176,7 @@ export function CustomersPage() {
                     {q.isQuiet && ` · quiet ${Math.floor(q.daysSince / 7)}w`}
                   </div>
                 </div>
-                <span className={`w-[90px] shrink-0 text-right text-small ${lo.stale ? 'text-ink-3' : 'text-ink-2'}`}>
+                <span className="w-[90px] shrink-0 text-right text-small text-ink-2">
                   {lo.text}
                 </span>
               </Link>

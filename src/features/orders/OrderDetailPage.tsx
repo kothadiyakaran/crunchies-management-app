@@ -119,7 +119,7 @@ export function OrderDetailPage() {
             {order.source}
           </span>
           <span
-            className={`rounded-pill px-2 py-0.5 ${fulfilled ? 'bg-ok-soft text-ok-stamp' : 'bg-brand-muted text-brand'}`}
+            className={`rounded-pill px-2 py-0.5 ${fulfilled ? 'bg-ok-soft text-ok-stamp' : 'bg-brand-muted text-brand-deep'}`}
           >
             {fulfilled ? 'Fulfilled' : 'Pending'}
           </span>
@@ -129,7 +129,7 @@ export function OrderDetailPage() {
                 ? 'bg-ok-soft text-ok-stamp'
                 : order.payment_status === 'partial'
                   ? 'bg-mustard-tint text-brown'
-                  : 'bg-brand-muted text-brand'
+                  : 'bg-brand-muted text-brand-deep'
             }`}
           >
             {order.payment_status === 'paid'

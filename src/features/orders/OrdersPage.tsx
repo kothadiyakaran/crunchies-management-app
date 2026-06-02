@@ -108,7 +108,7 @@ export function OrdersPage() {
         <div className="mt-6 space-y-6">
           {groups.map((g) => (
             <section key={g.date}>
-              <h2 className="text-eyebrow-tight uppercase text-ink-3">{formatDayHeader(g.date, today)}</h2>
+              <h2 className="text-eyebrow-tight uppercase text-ink-2">{formatDayHeader(g.date, today)}</h2>
               <ul className="mt-2 space-y-2">
                 {g.orders.map((o) => (
                   <li key={o.id}>
@@ -123,7 +123,7 @@ export function OrdersPage() {
                       <div className="shrink-0 text-right">
                         <span className="text-body font-bold text-ink">{formatINR(o.total)}</span>
                         <span className="mt-1 flex justify-end gap-1">
-                          <span className={`rounded-pill px-2 py-0.5 text-eyebrow-tight ${o.fulfilled_at ? 'bg-ok-soft text-ok-stamp' : 'bg-brand-muted text-brand'}`}>
+                          <span className={`rounded-pill px-2 py-0.5 text-eyebrow-tight ${o.fulfilled_at ? 'bg-ok-soft text-ok-stamp' : 'bg-brand-muted text-brand-deep'}`}>
                             {o.fulfilled_at ? 'Fulfilled' : 'Pending'}
                           </span>
                           <span className={`rounded-pill px-2 py-0.5 text-eyebrow-tight ${
@@ -131,7 +131,7 @@ export function OrdersPage() {
                               ? 'bg-ok-soft text-ok-stamp'
                               : o.payment_status === 'partial'
                                 ? 'bg-mustard-tint text-brown'
-                                : 'bg-brand-muted text-brand'
+                                : 'bg-brand-muted text-brand-deep'
                           }`}>
                             {o.payment_status === 'paid' ? 'Paid' : o.payment_status === 'partial' ? 'Partial' : 'Unpaid'}
                           </span>

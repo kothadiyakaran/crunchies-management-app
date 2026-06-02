@@ -183,7 +183,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
         <span className="flex items-center gap-3">
           <span
             className={`flex h-6 w-6 items-center justify-center rounded-full text-label ${
-              active ? 'bg-brand text-white' : 'border border-ink-3 text-ink-3'
+              active ? 'bg-brand text-white' : 'border border-ink-2 text-ink-2'
             }`}
           >
             {complete ? '✓' : n}
@@ -193,7 +193,7 @@ export function AddOrderPage({ editingOrderId }: { editingOrderId?: string } = {
           </span>
         </span>
         {!active && (
-          <span className="ml-2 truncate text-meta text-ink-3">{summary}</span>
+          <span className="ml-2 truncate text-meta text-ink-2">{summary}</span>
         )}
       </button>
     );
