@@ -141,6 +141,16 @@ export function buildBillPdf(
   const setBold = () => pdf.setFont(fontFamily, 'bold');
   const setNormal = () => pdf.setFont(fontFamily, 'normal');
   const money = (n: number) => formatBillCurrency(n, fontHasRupee);
+  // P2-08: ₹ glyph pinned left of the cell, number right-aligned in the remaining width.
+  const moneyCell = (n: number, rightX: number, y: number, glyphX: number, prefix = '') => {
+    if (fontHasRupee) {
+      const num = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(n);
+      pdf.text(`${prefix}₹`, glyphX, y, { align: 'left' });
+      pdf.text(num, rightX, y, { align: 'right' });
+    } else {
+      pdf.text(`${prefix}${money(n)}`, rightX, y, { align: 'right' });
+    }
+  };
 
   // Double-border frame (outer + inner)
   pdf.setDrawColor(...INK_900);
@@ -241,8 +251,8 @@ export function buildBillPdf(
   input.items.forEach((it) => {
     pdf.text(it.name, colX[0]!, cursor);
     pdf.text(String(it.qty), colX[1]!, cursor, { align: 'right' });
-    pdf.text(money(it.unitPrice), colX[2]!, cursor, { align: 'right' });
-    pdf.text(money(it.lineTotal), colX[3]!, cursor, { align: 'right' });
+    moneyCell(it.unitPrice, colX[2]!, cursor, colX[2]! - 13);
+    moneyCell(it.lineTotal, colX[3]!, cursor, colX[3]! - 18);
     cursor += 6;
   });
 
@@ -254,10 +264,10 @@ export function buildBillPdf(
   setNormal();
   if (input.discountPercent > 0) {
     pdf.text('Subtotal', colX[2]!, cursor, { align: 'right' });
-    pdf.text(money(input.subtotal), colX[3]!, cursor, { align: 'right' });
+    moneyCell(input.subtotal, colX[3]!, cursor, colX[3]! - 20);
     cursor += 6;
     pdf.text(`Discount (${input.discountPercent}%)`, colX[2]!, cursor, { align: 'right' });
-    pdf.text(`-${money(discount)}`, colX[3]!, cursor, { align: 'right' });
+    moneyCell(discount, colX[3]!, cursor, colX[3]! - 20, '-');
     cursor += 6;
   }
   // single 1pt ink rule above the Total row (P1-09) — Total is the only bold body row
@@ -268,7 +278,7 @@ export function buildBillPdf(
   pdf.setFontSize(14);
   setBold();
   pdf.text('Total', colX[2]!, cursor, { align: 'right' });
-  pdf.text(money(total), colX[3]!, cursor, { align: 'right' });
+  moneyCell(total, colX[3]!, cursor, colX[3]! - 20);
   cursor += 14;
 
   // Payment status — asymmetric treatment by design (see ADR
