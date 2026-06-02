@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Check, Copy } from 'lucide-react';
 import { useDialogA11y } from '@/lib/a11y';
 import {
   createEvent,
@@ -475,23 +476,29 @@ export function EventDetailPage() {
         {kind === 'exhibition' && (
           <section className="rounded-card bg-paper-elevated p-4">
             <p className={labelSpan}>Public URL</p>
-            <p className="mt-2 break-all text-body text-ink-900">
-              {effectiveSlug ? (
-                <>{slug ? '' : 'Will be: '}<span className="font-mono">{publicUrl}</span></>
-              ) : (
-                <span className="text-ink-500">Enter a name and start date to preview the URL.</span>
-              )}
-            </p>
-
-            <div className="mt-3 flex gap-2">
+            {effectiveSlug ? (
               <button
                 type="button"
                 onClick={onCopyLink}
-                disabled={!publicUrl}
-                className="h-11 flex-1 rounded-btn border border-ink-900/10 bg-paper px-3 text-body font-semibold text-ink-900 disabled:opacity-50"
+                aria-label={copied ? 'Copied' : 'Copy public URL'}
+                className="mt-2 flex w-full items-center gap-2 rounded-input bg-paper-2 px-3 py-2 text-left"
               >
-                {copied ? 'Copied!' : 'Copy link'}
+                <span className="min-w-0 flex-1 break-all font-mono text-body text-ink-900">
+                  {slug ? '' : 'Will be: '}{publicUrl}
+                </span>
+                {copied ? (
+                  <Check size={18} className="shrink-0 text-brand-orange" aria-hidden="true" />
+                ) : (
+                  <Copy size={18} className="shrink-0 text-ink-500" aria-hidden="true" />
+                )}
               </button>
+            ) : (
+              <p className="mt-2 text-body text-ink-500">
+                Enter a name and start date to preview the URL.
+              </p>
+            )}
+
+            <div className="mt-3 flex gap-2">
               <button
                 type="button"
                 onClick={onWhatsAppShare}
