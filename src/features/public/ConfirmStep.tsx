@@ -110,7 +110,7 @@ export function ConfirmStep({
           type="button"
           onClick={onPlace}
           disabled={submitting}
-          className="h-12 flex-[2] rounded-btn bg-brand-orange text-body font-semibold text-white disabled:opacity-40"
+          className="h-12 flex-[2] rounded-btn bg-brand-orange text-body font-semibold text-white disabled:bg-brand-soft disabled:text-brown"
         >
           {submitting ? 'Placing…' : 'Place order'}
         </button>

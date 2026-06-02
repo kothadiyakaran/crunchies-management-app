@@ -107,7 +107,7 @@ export function ContactStep({
           type="button"
           onClick={onContinue}
           disabled={!canContinue}
-          className="h-12 flex-[2] rounded-btn bg-brand-orange text-body font-semibold text-white disabled:opacity-40"
+          className="h-12 flex-[2] rounded-btn bg-brand-orange text-body font-semibold text-white disabled:bg-brand-soft disabled:text-brown"
         >
           Continue →
         </button>
