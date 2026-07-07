@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, ShoppingBag, Users, Factory, BarChart3 } from 'lucide-react';
+import { Home, ShoppingBag, Users, Factory, ReceiptIndianRupee, BarChart3 } from 'lucide-react';
 import { clsx } from 'clsx';
 import {
   fetchUnseenExhibitionOrderCount,
@@ -11,7 +11,8 @@ const TABS = [
   { to: '/today', label: 'Today', Icon: Home },
   { to: '/orders', label: 'Orders', Icon: ShoppingBag },
   { to: '/customers', label: 'Customers', Icon: Users },
-  { to: '/production', label: 'Production', Icon: Factory },
+  { to: '/production', label: 'Make', Icon: Factory },
+  { to: '/purchases', label: 'Buy', Icon: ReceiptIndianRupee },
   { to: '/reports', label: 'Reports', Icon: BarChart3 },
 ] as const;
 
@@ -36,7 +37,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-5 border-t border-ink-900/10 bg-paper-elevated"
+      className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-6 border-t border-ink-900/10 bg-paper-elevated"
       aria-label="Primary"
     >
       {TABS.map(({ to, label, Icon }) => (
@@ -45,7 +46,7 @@ export function BottomNav() {
           to={to}
           className={({ isActive }) =>
             clsx(
-              'relative flex h-14 flex-col items-center justify-center gap-1 text-label uppercase',
+              'relative flex h-14 flex-col items-center justify-center gap-1 text-[9px] font-medium uppercase leading-[12px] tracking-[0.06em]',
               isActive ? 'text-brand-orange' : 'text-ink-500',
             )
           }

@@ -25,9 +25,9 @@ function renderAt(path: string) {
 }
 
 describe('BottomNav', () => {
-  it('renders all 5 tabs', () => {
+  it('renders all 6 tabs', () => {
     renderAt('/today');
-    ['Today', 'Orders', 'Customers', 'Production', 'Reports'].forEach((label) => {
+    ['Today', 'Orders', 'Customers', 'Make', 'Buy', 'Reports'].forEach((label) => {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     });
   });
