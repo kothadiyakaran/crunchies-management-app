@@ -141,3 +141,16 @@ Full schemas: `supabase/migrations/0001_*.sql` through `0009_*.sql`. Behavioural
 - **Don't change design tokens without user approval.** `tailwind.config.ts` is the source of truth. The Sprint-10 retune cleared WCAG AA (`ink-500 #6E655E`, `brand-orange #B8450F`); the 2026-06 polish pass **added** a semantic layer — `brand` DEFAULT/`soft`/`muted`/`deep`, `ink` DEFAULT/`2`/`3`, `paper-2`, `card`, `rule`, `mustard`, `brown`, `ok` (soft/stamp), `warn`, `danger`, `mustard-tint`; type tokens `amount`/`small`/`meta`/`eyebrow`/`eyebrow-tight`; `rounded-badge` — **purely additive, nothing redefined.** **AA traps (learned the hard way):** `ink-3` (#A29A92) is NOT AA-safe as readable text (~2.7:1) — use it only for placeholders / disabled labels; the Pending/Unpaid status chip uses `text-brand-deep` (not `text-brand`, which is 4.49:1 on `brand-muted`). Verify any token/colour change with `verify-a11y.py` (axe) — but note axe only scans each route's default tab/state.
 - **Don't skip the advisor + behaviour-shaped browser verify before declaring a sprint or substantial change done.** Green unit tests alone are insufficient.
 - **Don't add features beyond what the task requires.** No premature abstractions, no fallbacks for impossible states, no validation at internal boundaries.
+
+## Fable mode (persistent)
+
+> **Fable mode (persistent).** Reserve Fable for judgement — design, decisions,
+> ambiguity, outcome validation, sign-off — and for the execution that is cheaper
+> to keep than to delegate (where doing and deciding are inseparable, a wrong move
+> is costly, or specifying the task costs as much as doing it). Delegate the rest:
+> Opus (`do-opus`) for heavy/complex work, Sonnet (`do-sonnet`) for bulk/routine
+> work, Haiku (`do-haiku`) for menial low-blast-radius tasks only. If the session
+> model is Fable, orchestrate and delegate down; if it's Opus/Sonnet, delegate
+> judgement up to a Fable subagent (`fable-advisor`) when a call needs it, then
+> execute yourself. Don't over-delegate trivially cheap work. Full protocol: run
+> `/fable-mode`.
