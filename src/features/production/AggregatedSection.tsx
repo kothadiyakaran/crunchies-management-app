@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getAggregatedThisWeek, type AggregatedRow } from './api';
 
 export function AggregatedSection() {
@@ -35,6 +36,21 @@ export function AggregatedSection() {
               <span className="text-right text-base font-bold text-ink-2">{r.committed_qty}</span>
               <span className="text-right text-base font-bold text-ink-2">—</span>
             </div>
+            <Link
+              to="/purchases/new"
+              state={{
+                prefill: {
+                  vendorName: r.source_maker_name ?? '',
+                  itemName: r.name,
+                  qty: r.committed_qty,
+                  unit: r.unit,
+                  category: 'Made products',
+                },
+              }}
+              className="mt-1 inline-block text-small text-brand underline"
+            >
+              Log purchase →
+            </Link>
           </li>
         ))}
       </ul>
