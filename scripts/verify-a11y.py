@@ -44,6 +44,7 @@ ROUTES = [
     ("/orders", "orders", 'h1:has-text("Orders")'),
     ("/customers", "customers", 'h1:has-text("Customers")'),
     ("/production", "production", 'h1:has-text("Production")'),
+    ("/purchases", "purchases", 'h1:has-text("Purchases")'),
     ("/reports", "reports", 'h1:has-text("Reports")'),
     ("/settings", "settings", 'h1:has-text("Settings")'),
     ("/events", "events", 'h1:has-text("Events")'),
