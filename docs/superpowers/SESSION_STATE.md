@@ -84,3 +84,29 @@ Everything in this maintenance pass is shipped, live, and verified: **Parts A–
 - Next maintenance session: this file + `docs/v1-spec.md` §14 + `docs/superpowers/specs/` are the current record. Working rules (`npm run test:run`, Opus subagents, blast-radius smoke cadence, live-verify after push) are now in CLAUDE.md.
 
 Send **"resume task 7"** / **"resume Part E"** / a decision on the app bug. Working rules above still apply (`npm run test:run`, Opus subagents, chromium-while-iterating + matrix at the gate, live-verify after push).
+
+## 2026-07-07 — Purchases ("Buy") feature build — PAUSED at session limit (resets 5:10pm IST)
+
+Mom-requested feature; Karan approved direction + handed off (fable-mode, now persisted in CLAUDE.md).
+**Branch `feature/purchases` — NOT pushed. Working tree clean at pause.**
+
+- **Spec:** `docs/superpowers/specs/2026-07-07-purchases-design.md` (D1–D7: 6-tab nav Make/Buy, receipt model, category chips, from-other-makers shortcut, Month Spending section).
+- **Plan:** `docs/superpowers/plans/2026-07-07-purchases-implementation.md` (10 tasks).
+
+**Plan tasks DONE (commit each):**
+1. `0ad83ab` migration `0010_purchases.sql` — **WRITTEN + COMMITTED BUT NOT APPLIED** to live Supabase (no non-interactive DDL path; no service key / linked CLI). → **KARAN ACTION: paste 0010 into the Supabase dashboard SQL editor and run it.** Purely additive; safe to apply any time. All DB-touching smokes blocked until then.
+2. `0f50681` purchaseMath.ts + 7 unit tests (suite 302 green).
+3. `0824223` purchases/api.ts + hand-added database.types.ts blocks for the 0010 tables (types regen pattern discovered from commit 1c37c56) · `53bf5f2` follow-up: last-price hint picks newest purchased_on (backfill-safe).
+4. `6047d24` PurchasesPage (receipts/items views, month selector, search) + /purchases route.
+5. `6bed2bd` PurchaseDetailPage + confirm-guarded delete + /purchases/:id route.
+6. `49017a6` Log/Edit purchase form (VendorPicker, CategoryChipPicker, item rows w/ memory hint + suggestions, §D5 prefill contract) + /purchases/new + /purchases/:id/edit.
+
+**Plan tasks PENDING (in order):**
+7. Six-tab BottomNav (Make/Buy relabel, grid-cols-6, `text-[9px] tracking-[0.06em]` labels, 360px no-overflow evidence) + walking-skeleton TABS fixture + nav-label-click smoke updates. *Dispatch died before starting — no partial work.*
+8. AggregatedSection "Log purchase →" shortcut (router-state prefill; form side already built).
+9. Reports: `getSpendingSummary` in reports/api.ts + Month-tab "Spending" section (after Order summary; StackedBar reuse; left-over line).
+10. Smokes: a11y `/purchases` route + new `verify-purchases-flow.py` (needs migration applied).
+
+**Also pending:** spec-compliance review of plan tasks 4–6 (reviewer agent died at 6 tool calls — restart fresh); final gate (typecheck/tests/build + full smoke set + 3-browser matrix — architectural change); advisor review vs spec; wrap + report. Session task list: #4 in_progress (tasks 4–6 built, review outstanding), #5–#8 pending.
+
+**Resume:** re-dispatch plan Task 7 implementer + the Tasks 4–6 spec reviewer (prompts reconstructable from plan file), then 8 → 9 → 10 → final gate → advisor. Serialized subagents, do-opus, no push.
