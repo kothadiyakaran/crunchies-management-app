@@ -163,16 +163,21 @@ export async function getItemSuggestions(q: string): Promise<ItemEntry[]> {
 export async function getLastItemEntry(name: string): Promise<ItemEntry | null> {
   const trimmed = name.trim();
   if (trimmed.length === 0) return null;
+  // created_at recency can lie after a backfill of old receipts — fetch a
+  // handful of recent entries and pick the newest purchased_on among them.
   const { data, error } = await supabase
     .from('purchase_items')
     .select(ITEM_ENTRY_SELECT)
     .ilike('item_name', trimmed)
     .order('created_at', { ascending: false })
-    .limit(1);
+    .limit(12);
   if (error) throw new Error(error.message);
-  const rows = data as unknown as RawItemEntry[];
-  const first = rows[0];
-  return first ? toItemEntry(first) : null;
+  const entries = (data as unknown as RawItemEntry[]).map(toItemEntry);
+  let latest: ItemEntry | null = null;
+  for (const e of entries) {
+    if (!latest || e.purchased_on > latest.purchased_on) latest = e;
+  }
+  return latest;
 }
 
 export type PurchaseItemInput = {
