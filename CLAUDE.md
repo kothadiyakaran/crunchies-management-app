@@ -8,7 +8,7 @@ A PWA for Karan's mother (Archana) to manage her small artisanal snacks business
 
 **Roles:** Karan is the product/design partner and the only authenticated builder; Claude Code does the actual coding. Mom (Archana) is the primary authenticated user. Exhibition customers fill an anonymous per-event public form. There are no other users.
 
-**Status (2026-06-02): feature-complete, live, and in maintenance-only mode.** Phase 1 build (11 sprints, 0-10) + Phase 2 maintenance + a full UI polish pass are all shipped to `https://www.crunchies.app` (Vercel auto-deploy from `main`; PWA on mom's Android). **Do not make further changes unless mom requests one or a bug requires a fix** — no unsolicited features or redesigns.
+**Status (2026-07-07): feature-complete, live, and in maintenance-only mode.** Phase 1 build (11 sprints, 0-10) + Phase 2 maintenance + a full UI polish pass + the Purchases ("Buy") feature are all shipped to `https://www.crunchies.app` (Vercel auto-deploy from `main`; PWA on mom's Android). **Do not make further changes unless mom requests one or a bug requires a fix** — no unsolicited features or redesigns.
 - **Phase 2 maintenance:** inline add-customer fix, bill-preview canvas fix (Android WebView), reversibility (revert fulfilled/paid + delete complaint), discounts (reseller/customer/order), exhibition order↔event link.
 - **UI polish pass (2026-06-02):** an additive design-token layer + shared input/button primitives + ~40 per-screen visual refinements (focus rings, disabled states, status-chip tints, the Today / Production / Reports / Order-detail / Customers re-layouts, a warmer bill PDF). **Visual only — zero behaviour/data/route change.**
 - **Purchases "Buy" feature (2026-07-07, mom-requested):** receipt-model purchase log — vendors (inline-created), categories (seeded + chip-add custom, `ChannelChipPicker` pattern), line items with qty+unit+amount, item price memory ("Last: ₹…" hint + unit/category autofill), Items price-history view. Six-tab bottom nav (Production label → **Make**, new **Buy** tab → `/purchases`; page h1s keep the nouns). From-other-makers rows gained a "Log purchase →" prefill shortcut. Month report gained a **Spending** section (total, category StackedBar, "Left over" line). Migration `0010`. Spec: `docs/superpowers/specs/2026-07-07-purchases-design.md`.
@@ -48,7 +48,7 @@ npm run dev           # Vite dev server on :5173
 npm run build         # Production build to dist/
 npm run preview       # Serve dist/ on :4173 (use this for prod-build smokes)
 npm run typecheck     # tsc -b --noEmit — ALWAYS this, never bare `npx tsc`
-npm run test:run      # vitest run — ONE-SHOT full suite (279 tests across 39 files). Use this.
+npm run test:run      # vitest run — ONE-SHOT full suite (302 tests across 42 files). Use this.
 npm run test          # vitest WATCH mode — never exits. NOT the one-shot suite.
 npx tsc -b --force    # Bypass incremental cache after shared-type changes
 ```
