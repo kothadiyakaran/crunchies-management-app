@@ -8,6 +8,7 @@ import {
   type ItemSummary,
 } from './purchaseMath';
 import { formatINR, formatDayHeader } from '@/features/orders/orderFormatters';
+import { formatShortDate } from './purchaseFormatters';
 import {
   monthRange,
   previousMonth,
@@ -19,17 +20,6 @@ import { todayInTz } from '@/lib/utils';
 import { useRouteFocus } from '@/lib/a11y';
 
 type View = 'receipts' | 'items';
-
-const shortDateFmt = new Intl.DateTimeFormat('en-IN', {
-  day: '2-digit',
-  month: 'short',
-  timeZone: 'UTC',
-});
-
-function formatShortDate(ymd: string): string {
-  if (!ymd) return '';
-  return shortDateFmt.format(new Date(`${ymd}T12:00:00Z`));
-}
 
 function itemBlurb(r: PurchaseRow): string {
   const names = r.items.map((i) => i.item_name);
