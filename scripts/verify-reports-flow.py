@@ -23,13 +23,13 @@ Prereq: a dev server must be running on http://localhost:5173. Start it with:
 in a separate terminal, then run this script.
 """
 
+import argparse
 import os
 import pathlib
 import re
 import sys
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
-BASE = "http://localhost:5173"
 OUT_DIR = pathlib.Path("scripts/screenshots")
 
 
@@ -59,8 +59,8 @@ def load_creds() -> tuple[str, str]:
     sys.exit(2)
 
 
-def do_login(page, email: str, password: str) -> None:
-    page.goto(f"{BASE}/login")
+def do_login(page, base: str, email: str, password: str) -> None:
+    page.goto(f"{base}/login")
     page.wait_for_load_state("networkidle")
     page.locator('input[type="email"]').fill(email)
     page.locator('input[type="password"]').fill(password)
@@ -73,6 +73,15 @@ def do_login(page, email: str, password: str) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Reports flow smoke test")
+    parser.add_argument(
+        "--url",
+        default="http://localhost:5173",
+        help="Base URL of the running app (default: http://localhost:5173)",
+    )
+    args = parser.parse_args()
+    BASE = args.url.rstrip("/")
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     email, password = load_creds()
 
@@ -88,7 +97,7 @@ def main() -> int:
         )
 
         # 1) Login as mom
-        do_login(page, email, password)
+        do_login(page, BASE, email, password)
         print("OK login")
 
         # 2) /reports — header + 3 tabs
@@ -113,15 +122,21 @@ def main() -> int:
             return 1
         print("OK /reports header + 3 tabs (Week default)")
 
-        # 3) Week tab — period selector renders. Either "May" appears OR the
-        # "No calibration data" fallback is present.
+        # 3) Week tab — period selector renders. Either a month-name period label
+        # (formatWeekLabel, e.g. "Mon 29 Jun – Sun 05 Jul") appears OR the
+        # "No calibration data" fallback is present. Month-agnostic so the
+        # default-week assertion doesn't drift as the calendar moves.
         # Period selector has aria-label="Previous week" and "Next week" buttons.
         page.wait_for_selector('button[aria-label="Previous week"]', timeout=5000)
         page.wait_for_selector('button[aria-label="Next week"]', timeout=5000)
         body_text = page.locator("body").inner_text()
-        if "May" not in body_text and "No calibration data" not in body_text:
+        month_re = re.compile(
+            r"\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b"
+        )
+        if not month_re.search(body_text) and "No calibration data" not in body_text:
             print(
-                "FAIL Week tab: neither 'May' nor 'No calibration data' fallback present",
+                "FAIL Week tab: neither a month-name period label nor "
+                "'No calibration data' fallback present",
                 file=sys.stderr,
             )
             page.screenshot(path=str(OUT_DIR / "sprint8-week-default-failed.png"), full_page=True)

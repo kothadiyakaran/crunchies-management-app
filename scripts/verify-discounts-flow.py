@@ -366,11 +366,13 @@ def main() -> int:
             page.goto(f"{BASE}/orders/{order_id}")
             page.wait_for_load_state("networkidle")
             page.wait_for_selector('h2:has-text("Items")', timeout=10000)
-            # Paren-tolerant: the DOM text contains the literal "Discount (30%)".
-            page.wait_for_selector('text=/Discount\\s*\\(30%\\)/', timeout=8000)
+            # Since the P2-11 polish the detail renders a "Discount" label plus a
+            # separate "30% off" badge span (OrderDetailPage.tsx).
+            page.wait_for_selector('text="Discount"', timeout=8000)
+            page.wait_for_selector('text=/^30%\\s*off$/', timeout=8000)
             # A Total line is present (rendered in the discount block).
             page.wait_for_selector('text="Total"', timeout=5000)
-            print("OK order-detail shows 'Discount (30%)' + 'Total'")
+            print("OK order-detail shows 'Discount' + '30% off' + 'Total'")
 
             # Generate the bill and prove the discounted bill canvas rasterises.
             gen = page.get_by_role("button", name=re.compile(r"^Generate bill"))

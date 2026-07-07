@@ -18,13 +18,13 @@ What this asserts (against the running dev server at http://localhost:5173):
 Captures screenshots to scripts/screenshots/sprint6-*.png for visual review.
 """
 
+import argparse
 import os
 import pathlib
 import re
 import sys
 from playwright.sync_api import sync_playwright
 
-BASE = "http://localhost:5173"
 OUT_DIR = pathlib.Path("scripts/screenshots")
 
 
@@ -54,6 +54,15 @@ def load_creds() -> tuple[str, str]:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Customer flow smoke test")
+    parser.add_argument(
+        "--url",
+        default="http://localhost:5173",
+        help="Base URL of the running app (default: http://localhost:5173)",
+    )
+    args = parser.parse_args()
+    BASE = args.url.rstrip("/")
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     email, password = load_creds()
 

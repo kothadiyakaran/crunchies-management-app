@@ -298,8 +298,8 @@ def main() -> int:
 
             # Sanity: starts Pending + unpaid.
             pill.filter(has_text=re.compile(r"^Pending$")).first.wait_for(timeout=5000)
-            pill.filter(has_text=re.compile(r"^unpaid$")).first.wait_for(timeout=5000)
-            print("OK order opens Pending + unpaid")
+            pill.filter(has_text=re.compile(r"^Unpaid$")).first.wait_for(timeout=5000)
+            print("OK order opens Pending + Unpaid")
 
             # ---- Step 3: Mark fulfilled ----
             page.get_by_role("button", name=re.compile(r"^Mark fulfilled$")).click()
@@ -316,14 +316,14 @@ def main() -> int:
             # ---- Step 5: Mark paid ----
             page.get_by_role("button", name=re.compile(r"^Mark paid$")).click()
             page.get_by_role("button", name=re.compile(r"^Mark as unpaid$")).wait_for(timeout=10000)
-            pill.filter(has_text=re.compile(r"^paid$")).first.wait_for(timeout=5000)
-            print("OK Mark paid → 'Mark as unpaid' + payment pill 'paid'")
+            pill.filter(has_text=re.compile(r"^Paid$")).first.wait_for(timeout=5000)
+            print("OK Mark paid → 'Mark as unpaid' + payment pill 'Paid'")
 
             # ---- Step 6: Mark as unpaid (auto-accept confirm) ----
             page.get_by_role("button", name=re.compile(r"^Mark as unpaid$")).click()
             page.get_by_role("button", name=re.compile(r"^Mark paid$")).wait_for(timeout=10000)
-            pill.filter(has_text=re.compile(r"^unpaid$")).first.wait_for(timeout=5000)
-            print("OK Mark as unpaid → 'Mark paid' returns + payment pill 'unpaid'")
+            pill.filter(has_text=re.compile(r"^Unpaid$")).first.wait_for(timeout=5000)
+            print("OK Mark as unpaid → 'Mark paid' returns + payment pill 'Unpaid'")
 
             # ---- Step 7: complaint delete ----
             # Reload so the REST-inserted complaint renders (load() runs on mount).

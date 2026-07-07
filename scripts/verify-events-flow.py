@@ -360,9 +360,9 @@ def main() -> int:
             body_text = (anon_page.locator("body").inner_text() or "").replace("\n", " | ")[:300]
             print(f"FAIL 'Order placed.' heading not shown within 20s. Page: {body_text!r}", file=sys.stderr)
             return 1
-        # #YYYY-NNNN order number — find it under the orange brand-orange paragraph
-        # (the order number is in a <p> with text matching the pattern).
-        order_num_el = anon_page.locator('p').filter(has_text=re.compile(r"^#\d{4}-\d{4}$")).first
+        # #YYYY-NNNN order number — since the P2-10 polish it renders in a
+        # mono pill <span> (OrderConfirmationPage.tsx), not a <p>.
+        order_num_el = anon_page.locator('span').filter(has_text=re.compile(r"^#\d{4}-\d{4}$")).first
         try:
             order_number = (order_num_el.text_content(timeout=5000) or "").strip()
         except PWTimeout:
