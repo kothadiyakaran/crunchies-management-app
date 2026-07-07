@@ -442,6 +442,110 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          is_system: boolean
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      purchase_items: {
+        Row: {
+          amount: number
+          category_id: string
+          created_at: string
+          id: string
+          item_name: string
+          purchase_id: string
+          qty: number | null
+          unit: string | null
+        }
+        Insert: {
+          amount: number
+          category_id: string
+          created_at?: string
+          id?: string
+          item_name: string
+          purchase_id: string
+          qty?: number | null
+          unit?: string | null
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          created_at?: string
+          id?: string
+          item_name?: string
+          purchase_id?: string
+          qty?: number | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_items_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "purchases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchases: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          purchased_on: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          purchased_on: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          purchased_on?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchases_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seed_demand: {
         Row: {
           entered_at: string
@@ -467,6 +571,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vendors: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
     }
     Views: {
