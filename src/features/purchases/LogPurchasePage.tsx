@@ -24,7 +24,12 @@ type DraftItem = {
   amount: string;
   category_id: string | null;
   hint: ItemEntry | null;
+  // memory defaults (unit/category from the last purchase) apply only while true;
+  // false once mom picks a chip herself, and always false for hydrated edit rows
+  autofill: boolean;
 };
+
+type DraftPatch = Partial<DraftItem> | ((curr: DraftItem) => Partial<DraftItem>);
 
 type Prefill = {
   vendorName?: string;
@@ -35,7 +40,15 @@ type Prefill = {
 };
 
 function emptyItem(categoryId: string | null): DraftItem {
-  return { item_name: '', qty: '', unit: '', amount: '', category_id: categoryId, hint: null };
+  return {
+    item_name: '',
+    qty: '',
+    unit: '',
+    amount: '',
+    category_id: categoryId,
+    hint: null,
+    autofill: true,
+  };
 }
 
 function hintLine(e: ItemEntry): string {
@@ -53,7 +66,7 @@ function ItemRowEditor({
   index: number;
   item: DraftItem;
   canRemove: boolean;
-  onPatch: (patch: Partial<DraftItem>) => void;
+  onPatch: (patch: DraftPatch) => void;
   onRemove: () => void;
 }) {
   const debouncedName = useDebouncedValue(item.item_name, 300);
@@ -74,11 +87,11 @@ function ItemRowEditor({
           if (!cancelled) onPatch({ hint: null });
           return;
         }
-        onPatch({
+        onPatch((curr) => ({
           hint: entry,
-          unit: item.unit.trim() === '' ? (entry.unit ?? '') : item.unit,
-          category_id: entry.category_id,
-        });
+          ...(curr.autofill && curr.unit.trim() === '' ? { unit: entry.unit ?? '' } : {}),
+          ...(curr.autofill ? { category_id: entry.category_id } : {}),
+        }));
       })
       .catch(() => { if (!cancelled) onPatch({ hint: null }); });
     if (name.length >= 2) {
@@ -114,9 +127,13 @@ function ItemRowEditor({
             value={item.item_name}
             onChange={(e) => { onPatch({ item_name: e.target.value }); setShowSuggestions(true); }}
             onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setShowSuggestions(false)}
           />
           {showSuggestions && suggestions.length > 0 && (
-            <ul className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto rounded-card border border-ink-900/10 bg-paper-elevated shadow-sm">
+            <ul
+              onMouseDown={(e) => e.preventDefault()}
+              className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto rounded-card border border-ink-900/10 bg-paper-elevated shadow-sm"
+            >
               {suggestions.map((s) => (
                 <li key={s.item_name.toLowerCase()} className="border-b border-ink-900/10 last:border-b-0">
                   <button
@@ -162,7 +179,7 @@ function ItemRowEditor({
           onChange={(e) => onPatch({ unit: e.target.value })}
         />
         <input
-          inputMode="numeric"
+          inputMode="decimal"
           aria-label={`Amount for item ${index + 1}`}
           placeholder="₹"
           className="input-shell h-11"
@@ -173,7 +190,7 @@ function ItemRowEditor({
 
       <CategoryChipPicker
         value={item.category_id}
-        onChange={(id) => onPatch({ category_id: id })}
+        onChange={(id) => onPatch({ category_id: id, autofill: false })}
       />
 
       {item.hint && (
@@ -200,6 +217,7 @@ export function LogPurchasePage({ editingPurchaseId }: { editingPurchaseId?: str
       amount: '',
       category_id: null,
       hint: null,
+      autofill: true,
     },
   ]);
   const [note, setNote] = useState('');
@@ -218,7 +236,13 @@ export function LogPurchasePage({ editingPurchaseId }: { editingPurchaseId?: str
         const fallback = other?.id ?? cats[0]?.id ?? null;
         setDefaultCategoryId(fallback);
         setItems((curr) =>
-          curr.map((it) => (it.category_id === null ? { ...it, category_id: prefillCat?.id ?? fallback } : it)),
+          curr.map((it) =>
+            it.category_id === null
+              ? prefillCat
+                ? { ...it, category_id: prefillCat.id, autofill: false }
+                : { ...it, category_id: fallback }
+              : it,
+          ),
         );
       })
       .catch((e: Error) => setError(e.message));
@@ -246,6 +270,7 @@ export function LogPurchasePage({ editingPurchaseId }: { editingPurchaseId?: str
             amount: String(it.amount),
             category_id: it.category_id,
             hint: null,
+            autofill: false,
           })),
         );
         setHydrated(true);
@@ -256,8 +281,12 @@ export function LogPurchasePage({ editingPurchaseId }: { editingPurchaseId?: str
     })();
   }, [editingPurchaseId]);
 
-  function patchItem(i: number, patch: Partial<DraftItem>) {
-    setItems((curr) => curr.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
+  function patchItem(i: number, patch: DraftPatch) {
+    setItems((curr) =>
+      curr.map((it, idx) =>
+        idx === i ? { ...it, ...(typeof patch === 'function' ? patch(it) : patch) } : it,
+      ),
+    );
   }
   function addItem() {
     setItems((curr) => [...curr, emptyItem(defaultCategoryId)]);
