@@ -11,6 +11,7 @@ A PWA for Karan's mother (Archana) to manage her small artisanal snacks business
 **Status (2026-06-02): feature-complete, live, and in maintenance-only mode.** Phase 1 build (11 sprints, 0-10) + Phase 2 maintenance + a full UI polish pass are all shipped to `https://www.crunchies.app` (Vercel auto-deploy from `main`; PWA on mom's Android). **Do not make further changes unless mom requests one or a bug requires a fix** — no unsolicited features or redesigns.
 - **Phase 2 maintenance:** inline add-customer fix, bill-preview canvas fix (Android WebView), reversibility (revert fulfilled/paid + delete complaint), discounts (reseller/customer/order), exhibition order↔event link.
 - **UI polish pass (2026-06-02):** an additive design-token layer + shared input/button primitives + ~40 per-screen visual refinements (focus rings, disabled states, status-chip tints, the Today / Production / Reports / Order-detail / Customers re-layouts, a warmer bill PDF). **Visual only — zero behaviour/data/route change.**
+- **Purchases "Buy" feature (2026-07-07, mom-requested):** receipt-model purchase log — vendors (inline-created), categories (seeded + chip-add custom, `ChannelChipPicker` pattern), line items with qty+unit+amount, item price memory ("Last: ₹…" hint + unit/category autofill), Items price-history view. Six-tab bottom nav (Production label → **Make**, new **Buy** tab → `/purchases`; page h1s keep the nouns). From-other-makers rows gained a "Log purchase →" prefill shortcut. Month report gained a **Spending** section (total, category StackedBar, "Left over" line). Migration `0010`. Spec: `docs/superpowers/specs/2026-07-07-purchases-design.md`.
 - **Records:** `docs/superpowers/specs/` (Phase 2 decision records), `docs/superpowers/plans/2026-06-01-ui-critique-polish-pass.md` (polish-pass plan + finding map), `docs/superpowers/SESSION_STATE.md` (session log).
 
 ## Stack
@@ -30,7 +31,7 @@ A PWA for Karan's mother (Archana) to manage her small artisanal snacks business
 | `src/features/<lens>/` | Per-feature code (today, orders, customers, production, events, reports, settings, public). Each has `*Page.tsx` + `api.ts` + pure helpers + tests. |
 | `src/features/orders/billPdf.ts` | Pure bill generator. Uses dynamically-imported jsPDF via `loadJsPDF()`. |
 | `src/lib/` | Cross-cutting: supabase client, week math, a11y helpers, todayInTz |
-| `supabase/migrations/` | Sequential SQL migrations (0001-0009). All schema + RLS + RPCs live here. |
+| `supabase/migrations/` | Sequential SQL migrations (0001-0010). All schema + RLS + RPCs live here. |
 | `scripts/` | Playwright smokes (`verify-*.py`) + `dev-seed.sql` |
 | `docs/v1-spec.md` | Comprehensive feature spec (§1-§14) with implementation pointers |
 | `docs/BUILD_HISTORY.md` | Sprint-by-sprint Phase 1 narrative |
@@ -69,6 +70,7 @@ All scripts read `SMOKE_EMAIL` / `SMOKE_PASSWORD` from `.env.local` or process e
 | `verify-revert-flow.py` | Revert fulfilled/paid + delete complaint (reversibility). |
 | `verify-discounts-flow.py` | Discount prefill (reseller/customer) + per-order override + discounted bill. |
 | `verify-exhibition-repeat.py` | REST-only: repeat customer's cross-event confirmation resolves + anti-leak holds. |
+| `verify-purchases-flow.py` | Receipt create (2 items, categories) → month total → memory hint → edit → Items view → Reports Spending → delete. Self-cleaning. |
 
 **Which smokes to run (scope by blast radius — confirmed 2026-05-27):**
 - **chromium-only by default.** Mom's only runtime is the Android Chromium PWA. Run the firefox+webkit matrix **only** for cross-browser-sensitive diffs (PDF/canvas, service worker/PWA, CSS layout, Web Share/File APIs, focus/dialog). firefox/webkit otherwise surface only pre-existing teardown noise, already tolerated in `verify-launch-readiness.py`'s `CONSOLE_KNOWN_FLAKY_PATTERNS` (printed as WARN, doesn't fail the gate).
@@ -108,11 +110,15 @@ products ─── seed_demand
 
 channels ── customers.channel_id (system: Personal/Reseller/Exhibition; custom: chip-added)
 business_settings (single row, anon-readable subset via RPC)
+
+vendors ─── purchases ─── purchase_items ─── purchase_categories   (0010: the money-out
+                          (qty?, unit?, amount, category)            spine; authed-only,
+                                                                     zero anon surface)
 ```
 
 Full schemas: `supabase/migrations/0001_*.sql` through `0009_*.sql`. Behavioural spec (what each column drives): `docs/v1-spec.md` §2.
 
-**Phase 2 additions:** `channels.default_discount_percent` (Reseller=20), `customers.discount_percent` (nullable=inherit), `orders.discount_percent` (per-order snapshot) — migration `0008`. `orders.event_id` (FK→events, ties exhibition orders to their event) — migration `0009`.
+**Phase 2 additions:** `channels.default_discount_percent` (Reseller=20), `customers.discount_percent` (nullable=inherit), `orders.discount_percent` (per-order snapshot) — migration `0008`. `orders.event_id` (FK→events, ties exhibition orders to their event) — migration `0009`. Purchases spine (`vendors`, `purchase_categories` seeded Ingredients/Packaging/Made products/Fuel/Other, `purchases.purchased_on` **date**, `purchase_items`) — migration `0010`.
 
 ## Architecture pointers
 
@@ -123,6 +129,7 @@ Full schemas: `supabase/migrations/0001_*.sql` through `0009_*.sql`. Behavioural
 - **Discounts:** pure `orderTotal(subtotal, pct)` + `resolveDiscount({customerDiscount, channelDefault})` in `src/features/orders/discount.ts` (nearest-rupee; order > customer > channel-default > 0). Resolved at order creation and **snapshotted** to `orders.discount_percent`; the order form prefills it (editable). Every total site (order list/detail, customer outstanding, reports, bill) routes through `orderTotal`. `numeric` columns arrive from PostgREST as **strings** — coerce with `Number(...)`. Batch-entry orders intentionally default to 0%.
 - **Reversibility:** persistent secondary buttons on `OrderDetailPage` (`revertFulfilled`/`revertPaid` → null/'unpaid') + `deleteComplaint` in `ComplaintSheet`, each native-`confirm()`-guarded. Forward actions (Mark fulfilled/paid) stay one-tap.
 - **Exhibition order ↔ event:** `orders.event_id` (0009) links each exhibition order to its event. `public_get_order_by_ref`'s anti-leak matches `order.event_id == event.id` (not `customer.source_event_id`, which dedup-on-phone pins to the customer's first event) so repeat customers at a new event still see their confirmation.
+- **Purchases:** receipt totals are always computed (`receiptTotal` in `src/features/purchases/purchaseMath.ts`), never stored. Price memory: `getLastItemEntry` fetches recent inserts and picks the newest `purchased_on` (backfill-safe). The form's memory autofill (unit/category from the last purchase) applies only while a row's `autofill` flag is true — never on hydrated edit rows or after mom taps a category chip (advisor F1: the hint must default, not override). Nav tab labels are verbs (Make/Buy); page h1s stay nouns (Production/Purchases) — smokes assert the h1s. `getSpendingSummary` lives in `reports/api.ts` and reuses `categoryTotals` from purchases.
 - **Quiet customers:** pure `isQuiet()` in `src/features/customers/quiet.ts` (per-channel thresholds, Asia/Kolkata-day-normalised).
 - **Reports charts:** raw SVG only (`src/features/reports/charts/`). No recharts/d3 dependency.
 - **Refresh model:** refetch-on-tab-focus. No realtime subscriptions in v1 (one writer).

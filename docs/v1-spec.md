@@ -1652,8 +1652,11 @@ Per CLAUDE.md: small fixes/additions only, no major UX overhauls. Iteration tole
 - **Exhibition order ↔ event link** — `orders.event_id` (migration `0009`) fixes repeat customers ordering at a different event seeing "Order not found." on confirmation; `public_get_order_by_ref`'s anti-leak now matches `order.event_id`, not `customer.source_event_id`. `verify-exhibition-repeat.py`. (§10)
 - **Tooling** — events-flow smoke made deterministic + self-cleaning; `verify-launch-readiness.py` tolerates (but surfaces) pre-existing firefox/webkit teardown console noise. Smoke cadence is now blast-radius-scoped (CLAUDE.md "Which smokes to run").
 
+**Shipped (2026-07-07)** — spec in `docs/superpowers/specs/2026-07-07-purchases-design.md`:
+- **Purchases ("Buy") feature** — mom-requested money-out log, receipt model: vendors (inline-created), `purchase_categories` (seeded + chip-add), line items (qty?, unit?, amount, category), item price memory ("Last: ₹…" hint, unit/category autofill for fresh rows only), all-time Items price-history view, month-grouped Receipts view. Six-tab bottom nav (Production label → **Make**, new **Buy** tab); page h1s keep the nouns. Production's "From other makers" rows gained a "Log purchase →" prefill shortcut (§6 D — no longer read-only). Month report gained a **Spending** section (total + prior-month comparison + category split + "Left over: sales − purchases" line). Migration `0010`; `verify-purchases-flow.py`.
+
 **Parking lot (deferred from v1):**
-- Procurement workflow for aggregated products
+- ~~Procurement workflow for aggregated products~~ — the logging half shipped 2026-07-07 as the Purchases feature (+ from-other-makers shortcut); still deferred: BOM/shopping-list generation from the production plan, purchase↔product linkage
 - Customer merge UI
 - PWA push notifications (exhibition-form new-order alerts)
 - Per-product event lead-time
