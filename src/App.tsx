@@ -27,6 +27,7 @@ const ReportsPage = lazy(() => import('@/features/reports/ReportsPage').then((m)
 const ProductsPage = lazy(() => import('@/features/products/ProductsPage').then((m) => ({ default: m.ProductsPage })));
 const AddProductPage = lazy(() => import('@/features/products/AddProductPage').then((m) => ({ default: m.AddProductPage })));
 const EditProductPage = lazy(() => import('@/features/products/EditProductPage').then((m) => ({ default: m.EditProductPage })));
+const PurchasesPage = lazy(() => import('@/features/purchases/PurchasesPage').then((m) => ({ default: m.PurchasesPage })));
 const EventsPage = lazy(() => import('@/features/events/EventsPage').then((m) => ({ default: m.EventsPage })));
 const EventDetailPage = lazy(() => import('@/features/events/EventDetailPage').then((m) => ({ default: m.EventDetailPage })));
 const PublicOrderFormPage = lazy(() => import('@/features/public/PublicOrderFormPage').then((m) => ({ default: m.PublicOrderFormPage })));
@@ -88,6 +89,7 @@ export default function App() {
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/products/new" element={<AddProductPage />} />
           <Route path="/products/:id" element={<EditProductPage />} />
+          <Route path="/purchases" element={<PurchasesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
         <Route element={<PublicSuspense />}>
