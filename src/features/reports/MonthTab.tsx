@@ -36,7 +36,9 @@ import {
   getTopCustomers,
   getComplaintsInRange,
   getNewCustomersByChannel,
+  getSpendingSummary,
   type OrderSummary,
+  type SpendingSummary,
   type ChannelBreakdownRow,
   type CustomerBaseHealth,
   type ExhibitionRepeatRate,
@@ -154,6 +156,12 @@ function channelColor(name: string, index: number): string {
   return palette[index % palette.length] ?? '#5A5048';
 }
 
+/** Cycle spending categories through the existing chart-series hexes (no new tokens). */
+const CATEGORY_PALETTE = ['#B8450F', '#F4C56F', '#4A2912', '#5A5048', '#FFF7C2'];
+function categoryColor(index: number): string {
+  return CATEGORY_PALETTE[index % CATEGORY_PALETTE.length] ?? '#5A5048';
+}
+
 /** Percent change rounded to integer, or null when prior is zero. */
 function pctChange(curr: number, prior: number): number | null {
   if (prior === 0) return null;
@@ -249,6 +257,8 @@ type State = {
   calibRowsByWeek: CalibrationRow[][];
   summary: OrderSummary | null;
   priorSummary: OrderSummary | null;
+  spending: SpendingSummary | null;
+  priorSpending: SpendingSummary | null;
   channels: ChannelBreakdownRow[];
   newByChannel: ChannelSplitRow[];
   health: CustomerBaseHealth | null;
@@ -273,6 +283,8 @@ export function MonthTab() {
     calibRowsByWeek: [],
     summary: null,
     priorSummary: null,
+    spending: null,
+    priorSpending: null,
     channels: [],
     newByChannel: [],
     health: null,
@@ -303,6 +315,8 @@ export function MonthTab() {
         calibRowsByWeek,
         summary,
         priorSummary,
+        spending,
+        priorSpending,
         channels,
         newByChannel,
         health,
@@ -314,6 +328,8 @@ export function MonthTab() {
         Promise.all(weekStarts.map((w) => getCalibrationRowsForWeek(w))),
         getOrderSummary(start, endExclusive),
         getOrderSummary(priorRange.start, priorRange.endExclusive),
+        getSpendingSummary(start, endExclusive),
+        getSpendingSummary(priorRange.start, priorRange.endExclusive),
         getChannelBreakdown(start, endExclusive),
         getNewCustomersByChannel(start, endExclusive),
         getCustomerBaseHealth(yyyymm, today),
@@ -329,6 +345,8 @@ export function MonthTab() {
         calibRowsByWeek,
         summary,
         priorSummary,
+        spending,
+        priorSpending,
         channels,
         newByChannel,
         health,
@@ -542,6 +560,53 @@ export function MonthTab() {
             }
           />
         </div>
+      </ReportSection>
+
+      {/* 2b. Spending */}
+      <ReportSection title="Spending">
+        {state.spending && state.spending.by_category.length > 0 ? (
+          <>
+            <div className="rounded-card border border-ink-900/10 bg-paper-elevated p-3 shadow-card">
+              <div className="text-label uppercase text-ink-500">Total spend</div>
+              <div className="mt-1 text-title text-ink-900">
+                {formatINR(state.spending.total_spend)}
+              </div>
+              {state.priorSpending && state.priorSpending.total_spend > 0 && (
+                <div className="mt-1 text-body-sm text-ink-500">
+                  {fmtPct(
+                    pctChange(state.spending.total_spend, state.priorSpending.total_spend),
+                    `vs ${priorLabel}`,
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="mt-3">
+              <StackedBar
+                segments={state.spending.by_category.map((c, i) => ({
+                  label: c.name,
+                  value: c.total,
+                  color: categoryColor(i),
+                }))}
+                showLabels
+              />
+              <ul className="mt-2 text-body-sm text-ink-500">
+                {state.spending.by_category.map((c) => (
+                  <li key={c.name}>
+                    {c.name} · ₹{c.total.toLocaleString('en-IN')}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <p className="mt-3 text-body text-ink">
+              Left over: ₹{(summary.total_value - state.spending.total_spend).toLocaleString('en-IN')}
+            </p>
+            <p className="text-small text-ink-2">
+              Sales − purchases. Before gas, transport, and time.
+            </p>
+          </>
+        ) : (
+          <p className="text-body-sm text-ink-500">No purchases logged this month.</p>
+        )}
       </ReportSection>
 
       {/* 3. Channel breakdown */}

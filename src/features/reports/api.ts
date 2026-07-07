@@ -18,6 +18,7 @@
 import { supabase } from '@/lib/supabase';
 import { todayInTz } from '@/lib/utils';
 import { orderTotal } from '@/features/orders/discount';
+import { categoryTotals } from '@/features/purchases/purchaseMath';
 import {
   weekRange,
   monthRange,
@@ -189,6 +190,44 @@ export async function getOrderSummary(start: string, endExclusive: string): Prom
   }
 
   return { total_orders, total_value, fulfilled_count, outstanding_value, outstanding_count };
+}
+
+// ============================================================================
+// Spending summary — Month tab (Purchases feature).
+// ============================================================================
+
+export type SpendingSummary = {
+  total_spend: number;
+  by_category: { name: string; total: number }[];
+};
+
+export async function getSpendingSummary(
+  startInclusive: string,
+  endExclusive: string,
+): Promise<SpendingSummary> {
+  type Raw = {
+    purchased_on: string;
+    items: { amount: number; category: { name: string } | null }[] | null;
+  };
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('purchased_on, items:purchase_items(amount, category:purchase_categories(name))')
+    .gte('purchased_on', startInclusive)
+    .lt('purchased_on', endExclusive);
+  if (error) throw new Error(error.message);
+  const purchases = (data ?? []) as unknown as Raw[];
+
+  const flat: { amount: number; category_name: string }[] = [];
+  let total_spend = 0;
+  for (const p of purchases) {
+    for (const item of p.items ?? []) {
+      const amount = Number(item.amount);
+      total_spend += amount;
+      flat.push({ amount, category_name: item.category?.name ?? '(unknown)' });
+    }
+  }
+
+  return { total_spend, by_category: categoryTotals(flat) };
 }
 
 // ============================================================================

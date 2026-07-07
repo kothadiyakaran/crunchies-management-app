@@ -12,6 +12,7 @@ vi.mock('./api', () => ({
   getTopCustomers: vi.fn(),
   getComplaintsInRange: vi.fn(),
   getNewCustomersByChannel: vi.fn(),
+  getSpendingSummary: vi.fn(),
 }));
 vi.mock('@/lib/utils', () => ({ todayInTz: () => '2026-05-22' }));
 
@@ -44,6 +45,10 @@ beforeEach(() => {
   vi.mocked(api.getTopCustomers).mockResolvedValue([]);
   vi.mocked(api.getComplaintsInRange).mockResolvedValue([]);
   vi.mocked(api.getNewCustomersByChannel).mockResolvedValue([]);
+  vi.mocked(api.getSpendingSummary).mockResolvedValue({
+    total_spend: 0,
+    by_category: [],
+  });
 });
 
 describe('MonthTab', () => {
