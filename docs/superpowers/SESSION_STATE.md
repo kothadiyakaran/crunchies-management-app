@@ -124,3 +124,17 @@ Mom-requested feature; Karan approved direction + handed off (fable-mode, now pe
 ### Deployed + session closed (2026-07-07)
 
 Karan authorized merge + push: fast-forwarded `main` (`aedd8f0..dea3cf7`, 32 files, +3,148), pushed; Vercel production deployment READY at crunchies.app serving `dea3cf7`; `smoke-test-walking-skeleton.py` PASSED against live prod (6-tab nav + per-tab h1s verified). Migration 0010 was already live. Branch `feature/purchases` deleted post-merge. Nothing pending. Watch-item if mom mentions it: the Month report's "Left over" line goes negative in a stock-up month (labelled honestly; copy tweak if it bothers her).
+
+## 2026-08-15 — Exhibition QR flyer (mom-requested)
+
+Plan was written 2026-08-14 (session ended at limit before any code); recovered from `C:\Users\Karan\.claude-personal\plans\for-exhibitions-we-re-generating-mellow-flame.md` and built the next day. Branch `feat/exhibition-qr-flyer`.
+
+- **Spec:** `docs/superpowers/specs/2026-08-15-exhibition-qr-flyer.md`.
+- **What mom gets:** a "Share QR" button beside "Share via WhatsApp" on an exhibition event, opening a printable A4 flyer PDF — brand header, event name, venue, 110mm QR encoding `crunchies.app/order/<slug>`, plain URL beneath as manual fallback. Shares through the same Android share sheet as bills.
+- **Built by mirroring the bill-PDF pipeline** (`eventFlyerPdf.ts` / `EventFlyerModal.tsx` / reused `renderPdfFirstPage`). New dep `qrcode` + `@types/qrcode`, dynamic-imported into its own 25.78 kB chunk, zero main-bundle impact.
+- **Gate green:** typecheck · 307 tests / 43 files (was 302/42) · build · events-flow + a11y (0 violations, 8 routes + the dialog) + launch-readiness chromium, all on one identical :4173 prod build.
+- **Defect caught by the new a11y check and fixed:** the flyer's `max-h-[60vh]` scroll wrapper was keyboard-unreachable (`scrollable-region-focusable`) → `role="region"` + `aria-label` + `tabIndex={0}`.
+- **Two findings left unfixed, both out of scope under maintenance-only mode:**
+  1. `BillPreviewModal` has the identical scroll-wrapper pattern and very likely the same latent keyboard defect. No a11y scan has ever opened that dialog.
+  2. axe rule `label` (critical), 21 nodes on `EventDetailPage` — Lead weeks stepper + every Expected demand quantity input lack associated labels. Pre-existing; surfaced only because `/events/<id>` had never been in the a11y route list.
+- **Karan's manual step:** print the flyer and scan it with a phone camera against live prod.
