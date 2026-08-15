@@ -2,6 +2,8 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Check, Copy } from 'lucide-react';
 import { useDialogA11y } from '@/lib/a11y';
+import { useSettings } from '@/features/settings/SettingsContext';
+import { EventFlyerModal } from './EventFlyerModal';
 import {
   createEvent,
   updateEvent,
@@ -57,6 +59,7 @@ export function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id;
   const navigate = useNavigate();
+  const { settings } = useSettings();
 
   // Header
   const [name, setName] = useState('');
@@ -90,6 +93,7 @@ export function EventDetailPage() {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [savedToast, setSavedToast] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showFlyer, setShowFlyer] = useState(false);
 
   // Hydrate products list (always).
   useEffect(() => {
@@ -507,6 +511,14 @@ export function EventDetailPage() {
               >
                 Share via WhatsApp
               </button>
+              <button
+                type="button"
+                onClick={() => setShowFlyer(true)}
+                disabled={!publicUrl}
+                className="h-11 flex-1 rounded-btn border border-ink-900/10 bg-paper px-3 text-body font-semibold text-ink-900 disabled:opacity-50"
+              >
+                Share QR
+              </button>
             </div>
 
             <label className="mt-3 block">
@@ -654,6 +666,17 @@ export function EventDetailPage() {
           deleting={deleting}
           onCancel={() => !deleting && setConfirmDelete(false)}
           onConfirm={onConfirmDelete}
+        />
+      )}
+
+      {showFlyer && publicUrl && (
+        <EventFlyerModal
+          eventName={name}
+          venueLine={venueLine.trim() || null}
+          url={`https://${publicUrl}`}
+          slug={effectiveSlug}
+          settings={settings}
+          onClose={() => setShowFlyer(false)}
         />
       )}
     </div>
