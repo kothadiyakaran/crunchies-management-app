@@ -7,7 +7,12 @@ What this asserts (against the running dev server at http://localhost:5173):
      CDN <script>, run axe.run(), and assert zero violations of impact
      "serious" or "critical". Log moderate/minor counts to stdout for
      the audit record.
-  3. Optionally visit /order/<EVENT_SLUG> anonymously (no login) if a slug
+  3. Creates a throwaway exhibition event, opens its "Share QR" → "QR
+     flyer" dialog (EventFlyerModal), waits for the preview canvas to
+     rasterise, and scans with axe while the dialog is in the DOM — the
+     ROUTES loop above never sees it, since it doesn't exist until a click
+     opens it. Deletes the event afterwards via the app's own Delete flow.
+  4. Optionally visit /order/<EVENT_SLUG> anonymously (no login) if a slug
      is exported as SMOKE_EVENT_SLUG env var or written in .env.local.
      Skip silently if not available — the ADR will note this.
 
@@ -22,6 +27,8 @@ import os
 import pathlib
 import re
 import sys
+import time
+from datetime import datetime, timedelta, timezone
 from playwright.sync_api import sync_playwright
 
 # Windows cp1252 console can't encode some glyphs (→, ✓, etc.). Force UTF-8.
@@ -37,6 +44,18 @@ for _i, _arg in enumerate(sys.argv):
         break
 OUT_DIR = pathlib.Path("scripts/screenshots")
 AXE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.0/axe.min.js"
+
+# Asia/Kolkata is UTC+05:30, no DST.
+IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def today_ist_ymd() -> str:
+    return datetime.now(IST).strftime("%Y-%m-%d")
+
+
+def today_plus_ist_ymd(days: int) -> str:
+    return (datetime.now(IST) + timedelta(days=days)).strftime("%Y-%m-%d")
+
 
 # Routes to audit. Each entry: (path, label, wait_selector).
 ROUTES = [
@@ -107,14 +126,20 @@ def do_login(page, email: str, password: str) -> None:
     page.wait_for_load_state("networkidle")
 
 
-def run_axe(page) -> dict:
-    """Inject axe-core from CDN and execute axe.run() in page context."""
+def run_axe(page, context_selector: str | None = None) -> dict:
+    """Inject axe-core from CDN and execute axe.run() in page context.
+
+    context_selector, when given, scopes the scan to that DOM subtree
+    instead of the whole document — used for the QR flyer dialog so
+    pre-existing issues on the page behind it (not part of this feature)
+    aren't attributed to the new UI."""
     page.add_script_tag(url=AXE_CDN)
     # Pump one tick so axe attaches.
     page.wait_for_function("() => typeof window.axe !== 'undefined'", timeout=10000)
     return page.evaluate(
-        """async () => {
-            const result = await window.axe.run(document, {
+        """async (contextSelector) => {
+            const target = contextSelector ? document.querySelector(contextSelector) : document;
+            const result = await window.axe.run(target, {
                 resultTypes: ['violations'],
             });
             // Strip DOM nodes from the result so it serialises cleanly.
@@ -132,7 +157,8 @@ def run_axe(page) -> dict:
                     })),
                 })),
             };
-        }"""
+        }""",
+        context_selector,
     )
 
 
@@ -203,6 +229,74 @@ def main() -> int:
             s, m = summarise(label, result)
             total_serious += s
             total_moderate += m
+
+        # QR flyer dialog (EventDetailPage → "Share QR" → EventFlyerModal).
+        # axe only scans a route's default state, so the /events entry above
+        # never sees this dialog — it doesn't exist in the DOM until a click
+        # opens it. Self-cleaning: creates a throwaway exhibition event,
+        # scans with the dialog open, then deletes the event via the app's
+        # own Delete flow (no REST access needed).
+        print("\nAxe violations with QR flyer dialog open (authenticated):")
+        ts = int(time.time() * 1000)
+        ev_name = f"A11y Smoke Event {ts}"
+        event_created = False
+        try:
+            page.goto(f"{BASE}/events/new")
+            page.wait_for_load_state("networkidle")
+            page.wait_for_selector('h1:has-text("Add event")', timeout=5000)
+            page.locator('label:has(span:text("Name")) input').first.fill(ev_name)
+            page.locator('label:has(span:text("Starts on")) input[type="date"]').first.fill(
+                today_ist_ymd()
+            )
+            page.locator('label:has(span:text("Ends on")) input[type="date"]').first.fill(
+                today_plus_ist_ymd(5)
+            )
+            page.locator('input[type="number"]').first.fill("1")
+            page.locator('button[type="submit"]:has-text("Save event")').click()
+            page.wait_for_url(re.compile(r".*/events/[0-9a-f-]{36}$"), timeout=10000)
+            page.wait_for_load_state("networkidle")
+            event_created = True
+
+            share_qr_btn = page.locator("button", has_text=re.compile(r"^Share QR$"))
+            share_qr_btn.first.wait_for(timeout=5000)
+            share_qr_btn.first.click()
+            page.wait_for_selector('[role="dialog"] h2:has-text("QR flyer")', timeout=5000)
+            page.wait_for_selector('[role="dialog"] canvas', timeout=15000)
+            # Let pdfjs finish rasterising so axe scans the rendered (not
+            # "Generating…") state — matches the events-flow smoke's canvas wait.
+            page.wait_for_function(
+                """() => {
+                    const c = document.querySelector('[role="dialog"] canvas');
+                    return !!c && c.width > 0 && c.height > 0;
+                }""",
+                timeout=15000,
+            )
+
+            result = run_axe(page, '[role="dialog"]')
+            s, m = summarise("events-detail-qr-flyer-dialog", result)
+            total_serious += s
+            total_moderate += m
+
+            close_btn = page.locator('[role="dialog"] button[aria-label="Close QR flyer preview"]')
+            if close_btn.count() > 0:
+                close_btn.first.click()
+                page.wait_for_timeout(200)
+        except Exception as e:
+            page.screenshot(path=str(OUT_DIR / "a11y-qr-flyer-failed.png"), full_page=True)
+            print(f"  FAIL could not open/scan QR flyer dialog: {e}", file=sys.stderr)
+            total_serious += 1
+        finally:
+            if event_created:
+                try:
+                    # Defensive: close any dialog still open from a failure above.
+                    page.keyboard.press("Escape")
+                    page.wait_for_timeout(100)
+                    page.locator('button:has-text("Delete event")').first.click()
+                    page.locator('[role="dialog"] button', has_text=re.compile(r"^Delete$")).first.click()
+                    page.wait_for_url(re.compile(r".*/events$"), timeout=5000)
+                    print(f"  cleaned up smoke event {ev_name!r}")
+                except Exception as e:
+                    print(f"  WARN cleanup failed for {ev_name!r}: {e}")
 
         # Optional anonymous route
         if event_slug:

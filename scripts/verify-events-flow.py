@@ -6,7 +6,11 @@ What this asserts (against the running dev server at http://localhost:5173):
   2. /events renders header "Events", filter chips, "+ Add event" link.
   3. /events/new accepts a fresh event (exhibition, today→+5d, 1 lead week)
      and lands at /events/<uuid> with a populated slug.
-  4. The public form at /order/<slug> renders Step 1 of 3.
+  4b. Tapping "Share QR" on the event detail page opens the "QR flyer" dialog
+      and its preview <canvas> actually rasterises (non-zero width/height).
+      This is the only coverage of the `qrcode` package's dynamic-import
+      CJS/ESM interop under Vite — no unit test exercises the runtime import.
+  5. The public form at /order/<slug> renders Step 1 of 3.
   5. Tapping the first product's + button and Continue → reaches Step 2.
   6. Filling name + phone advances to Step 3 (confirm summary).
   7. Place order navigates to /order/<slug>/confirmed?ref=<uuid>
@@ -289,6 +293,75 @@ def main() -> int:
             return 1
         print(f"OK event saved id={event_id} slug={slug}")
         page.screenshot(path=str(OUT_DIR / "sprint7-event-detail.png"), full_page=True)
+
+        # 4b) "Share QR" → EventFlyerModal — assert the preview canvas actually
+        # rendered. qrcode.toDataURL() is loaded via dynamic import; if its
+        # CJS/ESM interop resolves wrong under Vite at runtime, the canvas
+        # never rasterises and this is the only check that would catch it
+        # (eventFlyerPdf.test.ts feeds buildEventFlyerPdf a fixture data-URL
+        # directly, so it never exercises loadQrCodeDataUrl at all).
+        share_qr_btn = page.locator("button", has_text=re.compile(r"^Share QR$"))
+        if share_qr_btn.count() == 0:
+            page.screenshot(path=str(OUT_DIR / "sprint7-qr-flyer-no-button.png"), full_page=True)
+            print("FAIL Share QR button not found on event detail page", file=sys.stderr)
+            return 1
+        share_qr_btn.first.click()
+
+        try:
+            page.wait_for_selector('[role="dialog"] h2:has-text("QR flyer")', timeout=5000)
+        except PWTimeout:
+            page.screenshot(path=str(OUT_DIR / "sprint7-qr-flyer-no-dialog.png"), full_page=True)
+            print("FAIL QR flyer dialog did not open", file=sys.stderr)
+            return 1
+
+        try:
+            page.wait_for_selector('[role="dialog"] canvas', timeout=15000)
+        except PWTimeout:
+            page.screenshot(path=str(OUT_DIR / "sprint7-qr-flyer-no-canvas.png"), full_page=True)
+            print("FAIL canvas never appeared in QR flyer modal", file=sys.stderr)
+            return 1
+
+        # Poll until the canvas has non-zero dimensions (pdfjs rasterisation
+        # complete) — same style as verify-bill-flow.py's canvas assertion.
+        qr_canvas_rendered = False
+        qr_dims = {"w": 0, "h": 0}
+        for _ in range(30):
+            qr_dims = page.locator('[role="dialog"] canvas').evaluate(
+                "c => ({ w: c.width, h: c.height })"
+            )
+            if qr_dims["w"] > 0 and qr_dims["h"] > 0:
+                qr_canvas_rendered = True
+                break
+            page.wait_for_timeout(500)
+
+        if not qr_canvas_rendered:
+            page.screenshot(path=str(OUT_DIR / "sprint7-qr-flyer-canvas-blank.png"), full_page=True)
+            print(
+                "FAIL QR flyer canvas has zero dimensions after 15s "
+                "(loadQrCodeDataUrl / buildEventFlyerPdf likely failed at runtime)",
+                file=sys.stderr,
+            )
+            return 1
+        print(f"OK QR flyer canvas rendered: {qr_dims['w']}×{qr_dims['h']} px")
+
+        # An error message can render in the modal (build/rasterise threw)
+        # even while a stale/blank canvas is technically "present" — check
+        # explicitly rather than trusting canvas presence alone.
+        qr_error = page.locator('[role="dialog"] p.text-status-danger-fg')
+        if qr_error.count() > 0:
+            err_text = qr_error.first.text_content() or ""
+            page.screenshot(path=str(OUT_DIR / "sprint7-qr-flyer-error.png"), full_page=True)
+            print(f"FAIL QR flyer modal shows an error: {err_text!r}", file=sys.stderr)
+            return 1
+
+        page.screenshot(path=str(OUT_DIR / "sprint7-qr-flyer.png"), full_page=True)
+
+        close_qr_btn = page.locator('[role="dialog"] button[aria-label="Close QR flyer preview"]')
+        if close_qr_btn.count() == 0:
+            print("FAIL Close QR flyer preview button not found", file=sys.stderr)
+            return 1
+        close_qr_btn.first.click()
+        page.wait_for_selector('[role="dialog"]', state="detached", timeout=5000)
 
         # 5) Public form — use a fresh anonymous browser context to be unambiguous
         anon_ctx = browser.new_context()
