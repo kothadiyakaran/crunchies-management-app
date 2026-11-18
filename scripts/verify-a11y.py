@@ -67,6 +67,7 @@ ROUTES = [
     ("/reports", "reports", 'h1:has-text("Reports")'),
     ("/settings", "settings", 'h1:has-text("Settings")'),
     ("/events", "events", 'h1:has-text("Events")'),
+    ("/calendar", "calendar", 'h1:has-text("Calendar")'),
 ]
 
 
