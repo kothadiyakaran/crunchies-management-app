@@ -223,6 +223,27 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_log: {
+        Row: {
+          id: string
+          kind: string
+          ref: string
+          sent_at: string
+        }
+        Insert: {
+          id?: string
+          kind: string
+          ref: string
+          sent_at?: string
+        }
+        Update: {
+          id?: string
+          kind?: string
+          ref?: string
+          sent_at?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           id: string
@@ -546,6 +567,36 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_seen_at: string
+          p256dh: string
+          user_agent: string | null
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_seen_at?: string
+          p256dh: string
+          user_agent?: string | null
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_seen_at?: string
+          p256dh?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       seed_demand: {
         Row: {
           entered_at: string
@@ -597,6 +648,7 @@ export type Database = {
     Functions: {
       allocate_bill_number: { Args: { p_order_id: string }; Returns: number }
       auth_is_admin: { Args: never; Returns: boolean }
+      get_vapid_public_key: { Args: never; Returns: string }
       next_public_order_number: { Args: { p_year?: number }; Returns: string }
       public_create_exhibition_order: {
         Args: {
@@ -617,6 +669,19 @@ export type Database = {
       refresh_customer_last_ordered_at: {
         Args: { p_customer_id: string }
         Returns: undefined
+      }
+      reminders_cron_secret: { Args: never; Returns: string }
+      reminders_get_vapid: {
+        Args: never
+        Returns: {
+          private_jwk: Json
+          public_jwk: Json
+          public_key: string
+        }[]
+      }
+      reminders_store_vapid: {
+        Args: { p_private_jwk: Json; p_public_jwk: Json; p_public_key: string }
+        Returns: string
       }
     }
     Enums: {
