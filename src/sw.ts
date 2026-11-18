@@ -29,6 +29,9 @@ self.addEventListener('push', (event) => {
       body: msg.body,
       tag: msg.tag,
       icon: '/icons/icon-192.png',
+      // Android paints the badge from its alpha channel only, so this is the
+      // icon's "C" arc as a solid shape on transparency, not the colour icon.
+      badge: '/icons/badge-96.png',
       data: { url: msg.url },
     }),
   );
