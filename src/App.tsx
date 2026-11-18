@@ -35,6 +35,7 @@ const EventsPage = lazy(() => import('@/features/events/EventsPage').then((m) =>
 const EventDetailPage = lazy(() => import('@/features/events/EventDetailPage').then((m) => ({ default: m.EventDetailPage })));
 const PublicOrderFormPage = lazy(() => import('@/features/public/PublicOrderFormPage').then((m) => ({ default: m.PublicOrderFormPage })));
 const OrderConfirmationPage = lazy(() => import('@/features/public/OrderConfirmationPage').then((m) => ({ default: m.OrderConfirmationPage })));
+const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage').then((m) => ({ default: m.CalendarPage })));
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 
 function PageSkeleton() {
@@ -97,6 +98,7 @@ export default function App() {
           <Route path="/purchases/:id" element={<PurchaseDetailPage />} />
           <Route path="/purchases/:id/edit" element={<EditPurchasePage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
         </Route>
         <Route element={<PublicSuspense />}>
           <Route path="/order/:slug" element={<PublicOrderFormPage />} />

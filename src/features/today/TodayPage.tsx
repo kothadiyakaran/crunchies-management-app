@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Settings as SettingsIcon } from 'lucide-react';
+import { CalendarDays, Settings as SettingsIcon } from 'lucide-react';
 import { useRouteFocus } from '@/lib/a11y';
 import {
   getProductionThisWeek,
@@ -86,13 +86,22 @@ export function TodayPage() {
             })}
           </p>
         </div>
-        <Link
-          to="/settings"
-          aria-label="Settings"
-          className="flex h-9 w-9 items-center justify-center rounded-btn-sm text-ink-700"
-        >
-          <SettingsIcon size={20} aria-hidden="true" />
-        </Link>
+        <div className="flex gap-1">
+          <Link
+            to="/calendar"
+            aria-label="Calendar"
+            className="flex h-9 w-9 items-center justify-center rounded-btn-sm text-ink-700"
+          >
+            <CalendarDays size={20} aria-hidden="true" />
+          </Link>
+          <Link
+            to="/settings"
+            aria-label="Settings"
+            className="flex h-9 w-9 items-center justify-center rounded-btn-sm text-ink-700"
+          >
+            <SettingsIcon size={20} aria-hidden="true" />
+          </Link>
+        </div>
       </header>
 
       {error && <p className="mt-4 text-body-sm text-status-danger-fg">{error}</p>}
