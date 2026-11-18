@@ -13,8 +13,8 @@ const ORDERS: CalendarOrder[] = [
     payment_status: 'unpaid',
     customer_name: 'Sharma Stores',
     items: [
-      { product_name: 'Chakli', unit: 'kg', qty: 2 },
-      { product_name: 'Chivda', unit: 'kg', qty: 1 },
+      { product_name: 'Chakli', unit: '250 gm', qty: 2 },
+      { product_name: 'Chivda', unit: '200gm', qty: 1 },
     ],
     item_summary: '2 Chakli, 1 Chivda',
   },
@@ -25,8 +25,8 @@ const ORDERS: CalendarOrder[] = [
     fulfilled_at: '2026-11-24',
     payment_status: 'paid',
     customer_name: 'Meena',
-    items: [{ product_name: 'Chakli', unit: 'kg', qty: 0.5 }],
-    item_summary: '0.5 Chakli',
+    items: [{ product_name: 'Chakli', unit: '250 gm', qty: 1 }],
+    item_summary: '1 Chakli',
   },
 ];
 const EVENTS: CalendarEvent[] = [{ id: 'e1', name: 'Diwali Mela', starts_on: '2026-11-23', ends_on: '2026-11-25' }];
@@ -71,9 +71,9 @@ describe('CalendarPage', () => {
     expect(screen.getByText('Meena')).toBeInTheDocument();
     expect(screen.getByText(/Diwali Mela/)).toBeInTheDocument();
     expect(screen.getByText(/day 2 of 3/)).toBeInTheDocument();
-    // To make counts pending orders only: Meena's fulfilled 0.5 kg is excluded
+    // To make counts pending orders only: Meena's fulfilled pack is excluded
     const toMake = screen.getByText('To make').nextElementSibling as HTMLElement;
-    expect(toMake.textContent).toBe('Chakli 2 kg · Chivda 1 kg');
+    expect(toMake.textContent).toBe('Chakli 2 × 250 gm · Chivda 1 × 200 gm');
     expect(screen.getByRole('link', { name: /Sharma Stores/ })).toHaveAttribute('href', '/orders/o1');
     expect(screen.getByRole('button', { name: 'Tue 24 November, 1 order due, event' })).toBeInTheDocument();
   });

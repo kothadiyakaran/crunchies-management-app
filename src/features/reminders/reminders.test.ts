@@ -5,8 +5,10 @@ import {
   buildWeeklyPlanPayload,
   eventLeadPayloads,
   formatQty,
+  formatTotal,
   leadDate,
   nextWorkingDays,
+  packSize,
   productTotals,
   shortWeekday,
   type DueOrder,
@@ -25,7 +27,7 @@ function order(
     ordered_at,
     target_fulfilment_date: day,
     customer_name: customer,
-    items: items.map(([product_name, qty, unit]) => ({ product_name, qty, unit: unit ?? 'kg' })),
+    items: items.map(([product_name, qty, unit]) => ({ product_name, qty, unit: unit ?? '250 gm' })),
   };
 }
 
@@ -83,17 +85,42 @@ describe('leadDate', () => {
   });
 });
 
+describe('packSize', () => {
+  it('normalises hand-typed gram sizes and passes others through', () => {
+    expect(packSize('250 gm')).toBe('250 gm');
+    expect(packSize('200gm')).toBe('200 gm');
+    expect(packSize('125')).toBe('125 gm');
+    expect(packSize(' 500 g ')).toBe('500 gm');
+    expect(packSize('1 kg')).toBe('1 kg');
+    expect(packSize('box')).toBe('box');
+  });
+});
+
 describe('productTotals', () => {
-  it('sums per product, sorts by qty desc then name', () => {
+  it('sums packs per product and pack size, sorts by qty desc then name', () => {
     const totals = productTotals([
-      order('a', '2026-11-24', 'A', [['Chakli', 2], ['Chivda', 1]]),
-      order('b', '2026-11-24', 'B', [['Chakli', 0.5], ['Bhakarwadi', 1]]),
+      order('a', '2026-11-24', 'A', [['Chakli', 2], ['Chivda', 1, '200 gm']]),
+      order('b', '2026-11-24', 'B', [['Chakli', 1], ['Bhakarwadi', 1], ['Chakli', 1, '500 gm']]),
     ]);
     expect(totals).toEqual([
-      { product_name: 'Chakli', unit: 'kg', qty: 2.5 },
-      { product_name: 'Bhakarwadi', unit: 'kg', qty: 1 },
-      { product_name: 'Chivda', unit: 'kg', qty: 1 },
+      { product_name: 'Chakli', unit: '250 gm', qty: 3 },
+      { product_name: 'Bhakarwadi', unit: '250 gm', qty: 1 },
+      { product_name: 'Chakli', unit: '500 gm', qty: 1 },
+      { product_name: 'Chivda', unit: '200 gm', qty: 1 },
     ]);
+  });
+
+  it('treats "125" and "125 gm" as the same pack', () => {
+    const totals = productTotals([
+      order('a', '2026-11-24', 'A', [['Chirote', 2, '125']]),
+      order('b', '2026-11-24', 'B', [['Chirote', 1, '125 gm']]),
+    ]);
+    expect(totals).toEqual([{ product_name: 'Chirote', unit: '125 gm', qty: 3 }]);
+  });
+
+  it('formats a total as packs × size', () => {
+    expect(formatTotal({ product_name: 'Chakli', unit: '250 gm', qty: 4 })).toBe('Chakli 4 × 250 gm');
+    expect(formatTotal({ product_name: 'Chakli', unit: '', qty: 4 })).toBe('Chakli 4');
   });
 });
 
@@ -103,9 +130,9 @@ describe('buildOrdersPayload', () => {
 
   it('matches the spec example', () => {
     const p = buildOrdersPayload(run, [
-      order('1', '2026-11-24', 'Sharma Stores', [['Chakli', 2], ['Chivda', 1]], '2026-11-20T04:00:00Z'),
-      order('2', '2026-11-24', 'Meena', [['Chakli', 0.5]], '2026-11-21T04:00:00Z'),
-      order('3', '2026-11-25', 'Joshi Kirana', [['Shankarpali', 500, 'g']], '2026-11-21T05:00:00Z'),
+      order('1', '2026-11-24', 'Sharma Stores', [['Chakli', 2], ['Chivda', 1, '200 gm']], '2026-11-20T04:00:00Z'),
+      order('2', '2026-11-24', 'Meena', [['Chakli', 1]], '2026-11-21T04:00:00Z'),
+      order('3', '2026-11-25', 'Joshi Kirana', [['Shankarpali', 5, '125 gm']], '2026-11-21T05:00:00Z'),
     ]);
     expect(p).toEqual({
       kind: 'orders',
@@ -113,8 +140,8 @@ describe('buildOrdersPayload', () => {
       title: 'Tue: 2 orders · Wed: 1 order',
       body: [
         'Tue — Sharma Stores, Meena · Wed — Joshi Kirana',
-        'Tue: Chakli 2.5 kg, Chivda 1 kg',
-        'Wed: Shankarpali 500 g',
+        'Tue: Chakli 3 × 250 gm, Chivda 1 × 200 gm',
+        'Wed: Shankarpali 5 × 125 gm',
       ].join('\n'),
       url: '/calendar?date=2026-11-24',
     });
@@ -123,7 +150,7 @@ describe('buildOrdersPayload', () => {
   it('omits a day with no orders and links to the first listed day', () => {
     const p = buildOrdersPayload(run, [order('3', '2026-11-25', 'Joshi Kirana', [['Chakli', 1]])]);
     expect(p?.title).toBe('Wed: 1 order');
-    expect(p?.body).toBe('Wed — Joshi Kirana\nWed: Chakli 1 kg');
+    expect(p?.body).toBe('Wed — Joshi Kirana\nWed: Chakli 1 × 250 gm');
     expect(p?.url).toBe('/calendar?date=2026-11-25');
   });
 
@@ -158,7 +185,7 @@ describe('buildOrdersPayload', () => {
     const p = buildOrdersPayload(run, [
       order('1', '2026-11-24', 'A', [['P1', 7], ['P2', 6], ['P3', 5], ['P4', 4], ['P5', 3], ['P6', 2], ['P7', 1]]),
     ]);
-    expect(p?.body.split('\n')[1]).toBe('Tue: P1 7 kg, P2 6 kg, P3 5 kg, P4 4 kg, P5 3 kg +2 more');
+    expect(p?.body.split('\n')[1]).toBe('Tue: P1 7 × 250 gm, P2 6 × 250 gm, P3 5 × 250 gm, P4 4 × 250 gm, P5 3 × 250 gm +2 more');
   });
 });
 

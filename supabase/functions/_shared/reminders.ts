@@ -77,16 +77,37 @@ export function leadDate(ev: ReminderEvent): string | null {
   return weekdayOf(d) === 0 ? addDays(d, -1) : d;
 }
 
-export function productTotals(orders: DueOrder[]): { product_name: string; unit: string; qty: number }[] {
-  const byName = new Map<string, { product_name: string; unit: string; qty: number }>();
+/**
+ * products.unit holds a pack size typed by hand ("250 gm", "200gm", "125").
+ * Bare numbers and squashed "gm" are grams in this business; anything else
+ * passes through trimmed.
+ */
+export function packSize(unit: string): string {
+  const m = unit.trim().match(/^(\d+(?:\.\d+)?)\s*(gm|g|gms|grams?)?$/i);
+  return m ? `${m[1]} gm` : unit.trim();
+}
+
+export type ProductTotal = { product_name: string; unit: string; qty: number };
+
+/** Packs needed per product and pack size (the same name can come in several sizes). */
+export function productTotals(orders: DueOrder[]): ProductTotal[] {
+  const byKey = new Map<string, ProductTotal>();
   for (const o of orders) {
     for (const it of o.items) {
-      const cur = byName.get(it.product_name);
+      const unit = packSize(it.unit);
+      const key = `${it.product_name.trim().toLowerCase()}|${unit.toLowerCase()}`;
+      const cur = byKey.get(key);
       if (cur) cur.qty += Number(it.qty);
-      else byName.set(it.product_name, { product_name: it.product_name, unit: it.unit, qty: Number(it.qty) });
+      else byKey.set(key, { product_name: it.product_name.trim(), unit, qty: Number(it.qty) });
     }
   }
-  return [...byName.values()].sort((a, b) => b.qty - a.qty || a.product_name.localeCompare(b.product_name));
+  return [...byKey.values()].sort(
+    (a, b) => b.qty - a.qty || a.product_name.localeCompare(b.product_name) || a.unit.localeCompare(b.unit),
+  );
+}
+
+export function formatTotal(t: ProductTotal): string {
+  return t.unit ? `${t.product_name} ${formatQty(t.qty)} × ${t.unit}` : `${t.product_name} ${formatQty(t.qty)}`;
 }
 
 function customersInOrder(orders: DueOrder[]): string[] {
@@ -121,7 +142,7 @@ export function buildOrdersPayload(runDate: string, orders: DueOrder[]): PushPay
 
   const productLines = days.map((d) => {
     const totals = productTotals(d.orders);
-    const shown = totals.slice(0, MAX_PRODUCTS_PER_DAY).map((t) => `${t.product_name} ${formatQty(t.qty)} ${t.unit}`);
+    const shown = totals.slice(0, MAX_PRODUCTS_PER_DAY).map(formatTotal);
     const more = totals.length - shown.length;
     return `${shortWeekday(d.day)}: ${shown.join(', ')}${more > 0 ? ` +${more} more` : ''}`;
   });

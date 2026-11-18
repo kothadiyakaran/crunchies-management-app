@@ -236,9 +236,10 @@ export function CalendarPage() {
                 <h3 className="text-eyebrow-tight uppercase text-ink-2">To make</h3>
                 <p className="mt-1 text-body text-ink">
                   {toMake.map((t, i) => (
-                    <span key={t.product_name}>
+                    <span key={`${t.product_name}|${t.unit}`}>
                       {i > 0 && ' · '}
-                      {t.product_name} <span className="font-bold">{formatQty(t.qty)}</span> {t.unit}
+                      {t.product_name} <span className="font-bold">{formatQty(t.qty)}</span>
+                      {t.unit && ` × ${t.unit}`}
                     </span>
                   ))}
                 </p>

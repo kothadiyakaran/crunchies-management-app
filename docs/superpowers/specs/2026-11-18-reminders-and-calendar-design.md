@@ -45,8 +45,8 @@ Karan chose this format; the reasoning matters for edits. A web notification has
 ```
 title: Tue: 2 orders · Wed: 1 order
 body:  Tue — Sharma Stores, Meena · Wed — Joshi Kirana
-       Tue: Chakli 2.5 kg, Chivda 1 kg
-       Wed: Shankarpali 500 g
+       Tue: Chakli 3 × 250 gm, Chivda 1 × 200 gm
+       Wed: Shankarpali 5 × 125 gm
 ```
 
 Rules:
@@ -54,7 +54,7 @@ Rules:
 - A day with no pending orders is omitted entirely (title becomes `Wed: 1 order`).
 - "1 order" / "N orders" pluralisation.
 - Customers within a day are unique, ordered by their earliest `ordered_at`. Across both days the customer line caps at 8 names, then `+N more`.
-- Product totals sum `order_items.qty` per product per day, formatted `{name} {qty} {unit}` with `products.unit`; quantities print without trailing zeros. Products within a day sort by descending qty, then name. Each day line caps at 5 products, then `+N more`.
+- `products.unit` is a hand-typed pack size ("250 gm", "200gm", "125"), and `order_items.qty` counts packs; live data checked 2026-11-18. The same product name exists in several pack sizes (Chakli 250 gm and 500 gm), so totals group by name **and** normalised pack size (`packSize`: bare numbers and "200gm" become "200 gm"; anything else is trimmed and kept). A total prints as `Chakli 4 × 250 gm`; quantities print without trailing zeros. Products within a day sort by descending qty, then name. Each day line caps at 5 products, then `+N more`. The calendar's "To make" line uses the same grouping and format.
 
 ### Architecture
 
