@@ -8,6 +8,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       manifest: false,
       includeAssets: [
         'icons/icon.svg',
@@ -19,9 +22,8 @@ export default defineConfig({
         'icons/icon-192-maskable.png',
         'icons/icon-512-maskable.png',
       ],
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        navigateFallbackDenylist: [/^\/order\//],
       },
     }),
   ],
