@@ -70,6 +70,18 @@ export function nextWorkingDays(ymd: string, n: number): string[] {
   return days;
 }
 
+/**
+ * Days an orders reminder covers: every day after `ymd` up to and including
+ * the 2nd working day. Sunday isn't a working day, but orders can still be
+ * due on it, so a Friday run covers Sat+Sun+Mon.
+ */
+export function reminderWindow(ymd: string): string[] {
+  const last = nextWorkingDays(ymd, 2)[1] ?? ymd;
+  const days: string[] = [];
+  for (let d = addDays(ymd, 1); d <= last; d = addDays(d, 1)) days.push(d);
+  return days;
+}
+
 /** Day the event's prep reminder becomes due; Sundays move to the Saturday before. */
 export function leadDate(ev: ReminderEvent): string | null {
   if (ev.lead_weeks <= 0) return null;
@@ -120,7 +132,7 @@ function plural(n: number): string {
 }
 
 export function buildOrdersPayload(runDate: string, orders: DueOrder[]): PushPayload | null {
-  const days = nextWorkingDays(runDate, 2)
+  const days = reminderWindow(runDate)
     .map((day) => ({ day, orders: orders.filter((o) => o.target_fulfilment_date === day) }))
     .filter((d) => d.orders.length > 0);
   const first = days[0];

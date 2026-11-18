@@ -29,7 +29,6 @@ self.addEventListener('push', (event) => {
       body: msg.body,
       tag: msg.tag,
       icon: '/icons/icon-192.png',
-      badge: '/icons/favicon-32.png',
       data: { url: msg.url },
     }),
   );
@@ -44,14 +43,21 @@ self.addEventListener('notificationclick', (event) => {
       const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       const existing = windows.find((w) => new URL(w.url).origin === self.location.origin);
       if (existing) {
+        // Focus first: Chrome only allows focus() shortly after the tap, and
+        // navigate() can take longer than that on a slow connection.
         try {
-          // navigate() rejects for a window this worker doesn't control.
-          await existing.navigate(target);
           await existing.focus();
-          return;
         } catch {
-          // fall through to a fresh window
+          await self.clients.openWindow(target);
+          return;
         }
+        try {
+          await existing.navigate(target);
+        } catch {
+          // navigate() rejects for a window this worker doesn't control; the
+          // app stays focused where it was.
+        }
+        return;
       }
       await self.clients.openWindow(target);
     })(),

@@ -20,11 +20,20 @@ import { listCalendarEvents, listCalendarOrders, type CalendarEvent, type Calend
 const WEEKDAY_HEADERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const;
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 
+function isRealDate(s: string): boolean {
+  if (!YMD.test(s)) return false;
+  try {
+    return addDays(s, 0) === s;
+  } catch {
+    return false;
+  }
+}
+
 export function CalendarPage() {
   const today = todayInTz();
   const [searchParams, setSearchParams] = useSearchParams();
   const param = searchParams.get('date');
-  const selected = param && YMD.test(param) ? param : today;
+  const selected = param && isRealDate(param) ? param : today;
   const month = monthOf(selected);
   const grid = useMemo(() => monthGrid(month), [month]);
   const from = grid[0] ?? selected;
@@ -39,20 +48,26 @@ export function CalendarPage() {
   const focusAfterMove = useRef(false);
   useRouteFocus(h1Ref);
 
+  // Only the newest request may write state; a slow response for a month the
+  // user already left would otherwise paint the wrong data into the grid.
+  const latestRequest = useRef(0);
   const load = useCallback(async () => {
+    const request = ++latestRequest.current;
     try {
       const [os, evs] = await Promise.all([listCalendarOrders(from, to), listCalendarEvents(from, to)]);
+      if (request !== latestRequest.current) return;
       setOrders(os);
       setEvents(evs);
       setError(null);
     } catch (e) {
-      setError((e as Error).message);
+      if (request === latestRequest.current) setError((e as Error).message);
     } finally {
-      setLoading(false);
+      if (request === latestRequest.current) setLoading(false);
     }
   }, [from, to]);
 
   useEffect(() => {
+    setLoading(true);
     void load();
     const onVisible = () => {
       if (document.visibilityState === 'visible') void load();

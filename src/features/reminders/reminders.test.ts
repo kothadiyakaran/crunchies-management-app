@@ -9,6 +9,7 @@ import {
   leadDate,
   nextWorkingDays,
   packSize,
+  reminderWindow,
   productTotals,
   shortWeekday,
   type DueOrder,
@@ -69,6 +70,15 @@ describe('nextWorkingDays (Mon–Sat)', () => {
   it('Fri → Sat, Mon', () => expect(nextWorkingDays('2026-11-27', 2)).toEqual(['2026-11-28', '2026-11-30']));
   it('Sat → Mon, Tue', () => expect(nextWorkingDays('2026-11-28', 2)).toEqual(['2026-11-30', '2026-12-01']));
   it('Sun → Mon, Tue', () => expect(nextWorkingDays('2026-11-29', 2)).toEqual(['2026-11-30', '2026-12-01']));
+});
+
+describe('reminderWindow (through the 2nd working day, Sundays included)', () => {
+  it('Mon → Tue, Wed', () => expect(reminderWindow('2026-11-23')).toEqual(['2026-11-24', '2026-11-25']));
+  it('Thu → Fri, Sat', () => expect(reminderWindow('2026-11-26')).toEqual(['2026-11-27', '2026-11-28']));
+  it('Fri → Sat, Sun, Mon', () =>
+    expect(reminderWindow('2026-11-27')).toEqual(['2026-11-28', '2026-11-29', '2026-11-30']));
+  it('Sat → Sun, Mon, Tue', () =>
+    expect(reminderWindow('2026-11-28')).toEqual(['2026-11-29', '2026-11-30', '2026-12-01']));
 });
 
 describe('leadDate', () => {
@@ -186,6 +196,17 @@ describe('buildOrdersPayload', () => {
       order('1', '2026-11-24', 'A', [['P1', 7], ['P2', 6], ['P3', 5], ['P4', 4], ['P5', 3], ['P6', 2], ['P7', 1]]),
     ]);
     expect(p?.body.split('\n')[1]).toBe('Tue: P1 7 × 250 gm, P2 6 × 250 gm, P3 5 × 250 gm, P4 4 × 250 gm, P5 3 × 250 gm +2 more');
+  });
+});
+
+describe('buildOrdersPayload with a Sunday in the window', () => {
+  it('a Saturday run lists a Sunday order first', () => {
+    const p = buildOrdersPayload('2026-11-28', [
+      order('1', '2026-11-29', 'Sunday Co', [['Chakli', 1]]),
+      order('2', '2026-12-01', 'Tuesday Co', [['Chakli', 2]]),
+    ]);
+    expect(p?.title).toBe('Sun: 1 order · Tue: 1 order');
+    expect(p?.url).toBe('/calendar?date=2026-11-29');
   });
 });
 

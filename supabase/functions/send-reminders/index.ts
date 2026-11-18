@@ -9,7 +9,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import * as webpush from 'jsr:@negrel/webpush@0.5.0';
-import { buildRunPayloads, nextWorkingDays, type DueOrder, type PushPayload } from '../_shared/reminders.ts';
+import { buildRunPayloads, reminderWindow, type DueOrder, type PushPayload } from '../_shared/reminders.ts';
 
 const CONTACT = 'https://www.crunchies.app';
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
@@ -39,14 +39,20 @@ function todayIST(): string {
   }).format(new Date());
 }
 
-async function ensureKeys(): Promise<{ keys: CryptoKeyPair; publicKey: string }> {
+async function storedKeys(): Promise<{ keys: CryptoKeyPair; publicKey: string } | null> {
   const { data, error } = await admin.rpc('reminders_get_vapid');
   if (error) throw new Error(`reminders_get_vapid: ${error.message}`);
   const row = (data as { public_key: string; public_jwk: JsonWebKey; private_jwk: JsonWebKey }[] | null)?.[0];
-  if (row) {
-    const keys = await webpush.importVapidKeys({ publicKey: row.public_jwk, privateKey: row.private_jwk });
-    return { keys, publicKey: row.public_key };
-  }
+  if (!row) return null;
+  const keys = await webpush.importVapidKeys({ publicKey: row.public_jwk, privateKey: row.private_jwk });
+  return { keys, publicKey: row.public_key };
+}
+
+// Only the ensure-keys action creates a pair. If run() minted one, every
+// existing subscription would start failing with 403 until each phone reopened.
+async function ensureKeys(): Promise<{ keys: CryptoKeyPair; publicKey: string }> {
+  const stored = await storedKeys();
+  if (stored) return stored;
   const keys = await webpush.generateVapidKeys({ extractable: true });
   const exported = await webpush.exportVapidKeys(keys);
   const publicKey = await webpush.exportApplicationServerKey(keys);
@@ -69,7 +75,7 @@ type RawOrder = {
 };
 
 async function loadInputs(date: string) {
-  const window = nextWorkingDays(date, 2);
+  const window = reminderWindow(date);
   const [ordersRes, eventsRes] = await Promise.all([
     admin
       .from('orders')
@@ -131,7 +137,9 @@ async function run(body: { date?: string; dryRun?: boolean; force?: boolean }) {
   // With no devices, don't consume one-off event alerts in the log.
   if (!subs || subs.length === 0) return { date, payloads: payloads.length, sent: 0, removed: 0, errors: [], note: 'no subscriptions' };
 
-  const { keys } = await ensureKeys();
+  const stored = await storedKeys();
+  if (!stored) throw new Error('subscriptions exist but no VAPID key is stored');
+  const { keys } = stored;
   const server = await webpush.ApplicationServer.new({ contactInformation: CONTACT, vapidKeys: keys });
   let sent = 0;
   const removed = new Set<string>();
@@ -139,7 +147,9 @@ async function run(body: { date?: string; dryRun?: boolean; force?: boolean }) {
 
   for (const p of payloads) {
     if (!body.force && !(await claim(p))) continue;
-    const message = JSON.stringify({ title: p.title, body: p.body, url: p.url, tag: p.kind });
+    const tag = p.kind === 'event_lead' ? `event_lead:${p.ref}` : p.kind;
+    const message = JSON.stringify({ title: p.title, body: p.body, url: p.url, tag });
+    const sentBefore = sent;
     for (const s of subs) {
       if (removed.has(s.id)) continue;
       try {
@@ -156,6 +166,11 @@ async function run(body: { date?: string; dryRun?: boolean; force?: boolean }) {
           errors.push(`${p.kind} → ${new URL(s.endpoint).host}: ${status || (e as Error).message}`);
         }
       }
+    }
+    // Nothing delivered: release the claim so a re-run (or tomorrow, for an
+    // event alert) can try again instead of losing it for good.
+    if (sent === sentBefore && !body.force) {
+      await admin.from('notification_log').delete().eq('kind', p.kind).eq('ref', p.ref);
     }
   }
   return { date, payloads: payloads.length, sent, removed: removed.size, errors };

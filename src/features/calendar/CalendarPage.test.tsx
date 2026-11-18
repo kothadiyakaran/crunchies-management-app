@@ -78,6 +78,31 @@ describe('CalendarPage', () => {
     expect(screen.getByRole('button', { name: 'Tue 24 November, 1 order due, event' })).toBeInTheDocument();
   });
 
+  it('falls back to today for an impossible date', async () => {
+    renderAt('/calendar?date=2026-13-45');
+    expect(screen.getByRole('heading', { name: 'Wed 18 November' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Nothing due.')).toBeInTheDocument());
+  });
+
+  it('ignores a slow response for a month the user already left', async () => {
+    const api = await import('./api');
+    const list = vi.mocked(api.listCalendarOrders);
+    let releaseNovember: (v: CalendarOrder[]) => void = () => {};
+    list.mockImplementationOnce(() => new Promise((r) => (releaseNovember = r)));
+    const user = userEvent.setup();
+    renderAt('/calendar?date=2026-11-24');
+    expect(screen.getByText('Loading…')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Next month' }));
+    await waitFor(() => expect(screen.getByText('Nothing due.')).toBeInTheDocument());
+    // The stale November response happens to include a 1 Dec order that the
+    // fresh December fetch does not; it must not be applied.
+    releaseNovember([{ ...ORDERS[0]!, id: 'late', customer_name: 'Late Co', target_fulfilment_date: '2026-12-01' }]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.getByTestId('loc').textContent).toBe('?date=2026-12-01');
+    expect(screen.queryByText('Late Co')).not.toBeInTheDocument();
+    expect(screen.getByText('Nothing due.')).toBeInTheDocument();
+  });
+
   it('defaults to today and shows an empty day', async () => {
     renderAt('/calendar');
     expect(screen.getByRole('heading', { name: 'Wed 18 November' })).toBeInTheDocument();
