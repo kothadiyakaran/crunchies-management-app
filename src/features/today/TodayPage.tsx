@@ -9,6 +9,7 @@ import {
 import { composeWithPlan, type ProductionWeekRowFull } from '@/features/production/planLayer';
 import { listTodayPendingOrders, type OrderListItem } from '@/features/orders/api';
 import { QuietCustomerNudge } from '@/features/customers/QuietCustomerNudge';
+import { RemindersNudge } from '@/features/reminders/RemindersNudge';
 import { weekStartFor } from '@/lib/week';
 import { todayInTz } from '@/lib/utils';
 
@@ -103,6 +104,8 @@ export function TodayPage() {
           </Link>
         </div>
       </header>
+
+      <RemindersNudge />
 
       {error && <p className="mt-4 text-body-sm text-status-danger-fg">{error}</p>}
 

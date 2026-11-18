@@ -13,6 +13,7 @@ import { useSettings } from './SettingsContext';
 import { updateSettings, type BusinessInfo } from './api';
 import { cleanPhone, isValidIndianMobile } from '@/features/public/phoneValidation';
 import { useRouteFocus } from '@/lib/a11y';
+import { RemindersCard } from '@/features/reminders/RemindersCard';
 
 const EMAIL_RE = /.+@.+\..+/;
 
@@ -263,6 +264,8 @@ export function SettingsPage() {
           </div>
         </form>
       )}
+
+      <RemindersCard headingClassName={sectionH} />
 
       <section className="mt-8 border-t border-rule pt-6">
         <h2 className={sectionH}>Account</h2>
