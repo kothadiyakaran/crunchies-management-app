@@ -13,13 +13,14 @@ A PWA for Karan's mother (Archana) to manage her small artisanal snacks business
 - **UI polish pass (2026-06-02):** an additive design-token layer + shared input/button primitives + ~40 per-screen visual refinements (focus rings, disabled states, status-chip tints, the Today / Production / Reports / Order-detail / Customers re-layouts, a warmer bill PDF). **Visual only — zero behaviour/data/route change.**
 - **Purchases "Buy" feature (2026-07-07, mom-requested):** receipt-model purchase log — vendors (inline-created), categories (seeded + chip-add custom, `ChannelChipPicker` pattern), line items with qty+unit+amount, item price memory ("Last: ₹…" hint + unit/category autofill), Items price-history view. Six-tab bottom nav (Production label → **Make**, new **Buy** tab → `/purchases`; page h1s keep the nouns). From-other-makers rows gained a "Log purchase →" prefill shortcut. Month report gained a **Spending** section (total, category StackedBar, "Left over" line). Migration `0010`. Spec: `docs/superpowers/specs/2026-07-07-purchases-design.md`.
 - **Exhibition QR flyer (2026-08-15, mom-requested):** "Share QR" button on an exhibition event's Public URL card → printable A4 flyer PDF (brand header, event name, venue, 110mm QR encoding the existing public order URL, plain URL beneath as manual fallback). Mirrors the bill-PDF pipeline; new dep `qrcode`, dynamic-imported into its own chunk. No backend, RPC, migration, or data-model change. Spec: `docs/superpowers/specs/2026-08-15-exhibition-qr-flyer.md`.
+- **Reminders + Calendar (2026-11-18, mom-requested; branch `feature/reminders-calendar`, migration + Edge Function already live, app code awaiting Karan's phone test and push):** Web Push at 10:00 IST Mon–Sat — orders due through the 2nd working day (customers line, then per-day pack totals), a Monday planning nudge, an exhibition lead-date alert — sent by Edge Function `send-reminders` from pg_cron. `/calendar` month view (Monday-first, per-day pending counts, overdue tint, event band, day panel with "To make" + orders), reached from a calendar icon on Today; the notification deep-links to `/calendar?date=`. Settings "Reminders on this phone" card + a one-time Today nudge. Migration `0011`. Spec: `docs/superpowers/specs/2026-11-18-reminders-and-calendar-design.md`. Restock hints from purchase patterns were considered and deferred (not enough data; reasons in the spec).
 - **Records:** `docs/superpowers/specs/` (Phase 2 decision records), `docs/superpowers/plans/2026-06-01-ui-critique-polish-pass.md` (polish-pass plan + finding map), `docs/superpowers/SESSION_STATE.md` (session log).
 
 ## Stack
 
 - **Frontend:** Vite + React 18 + TypeScript (strict, `noUncheckedIndexedAccess`), Tailwind 3 with brand tokens in `tailwind.config.ts`, react-router-dom, jsPDF (lazy-loaded on bill-tap)
 - **Backend:** Supabase Postgres + Auth + RLS. SECURITY DEFINER RPCs for the anon-callable public-form surface (anon has zero direct table access). Migrations live in `supabase/migrations/`.
-- **PWA:** Vite plugin generates service worker; manifest in `public/`.
+- **PWA:** vite-plugin-pwa in `injectManifest` mode compiling `src/sw.ts` (precache + SPA fallback + push handlers); manifest in `public/`.
 - **Deploy:** Vercel from `main`. Custom domain `crunchies.app`.
 - **Test:** Vitest + RTL for units; Playwright behaviour smokes in `scripts/verify-*.py`.
 
@@ -32,7 +33,7 @@ A PWA for Karan's mother (Archana) to manage her small artisanal snacks business
 | `src/features/<lens>/` | Per-feature code (today, orders, customers, production, events, reports, settings, public). Each has `*Page.tsx` + `api.ts` + pure helpers + tests. |
 | `src/features/orders/billPdf.ts` | Pure bill generator. Uses dynamically-imported jsPDF via `loadJsPDF()`. |
 | `src/lib/` | Cross-cutting: supabase client, week math, a11y helpers, todayInTz |
-| `supabase/migrations/` | Sequential SQL migrations (0001-0010). All schema + RLS + RPCs live here. |
+| `supabase/migrations/` | Sequential SQL migrations (0001-0011). All schema + RLS + RPCs live here. |
 | `scripts/` | Playwright smokes (`verify-*.py`) + `dev-seed.sql` |
 | `docs/v1-spec.md` | Comprehensive feature spec (§1-§14) with implementation pointers |
 | `docs/BUILD_HISTORY.md` | Sprint-by-sprint Phase 1 narrative |
@@ -49,7 +50,7 @@ npm run dev           # Vite dev server on :5173
 npm run build         # Production build to dist/
 npm run preview       # Serve dist/ on :4173 (use this for prod-build smokes)
 npm run typecheck     # tsc -b --noEmit — ALWAYS this, never bare `npx tsc`
-npm run test:run      # vitest run — ONE-SHOT full suite (302 tests across 42 files). Use this.
+npm run test:run      # vitest run — ONE-SHOT full suite (369 tests across 48 files). Use this.
 npm run test          # vitest WATCH mode — never exits. NOT the one-shot suite.
 npx tsc -b --force    # Bypass incremental cache after shared-type changes
 ```
@@ -70,8 +71,9 @@ All scripts read `SMOKE_EMAIL` / `SMOKE_PASSWORD` from `.env.local` or process e
 | `verify-inline-add-customer.py` | Inline "+ New customer" during order entry (no page reload). |
 | `verify-revert-flow.py` | Revert fulfilled/paid + delete complaint (reversibility). |
 | `verify-discounts-flow.py` | Discount prefill (reseller/customer) + per-order override + discounted bill. |
-| `verify-exhibition-repeat.py` | REST-only: repeat customer's cross-event confirmation resolves + anti-leak holds. |
-| `verify-purchases-flow.py` | Receipt create (2 items, categories) → month total → memory hint → edit → Items view → Reports Spending → delete. Self-cleaning. |
+| `verify-exhibition-repeat.py` | REST-only: repeat customer's cross-event confirmation resolves + anti-leak holds. Its `--url` is the **Supabase** URL (defaults from `.env.local`) — run it with no args. |
+| `verify-purchases-flow.py` | Receipt create (2 items, categories) → month total → memory hint → edit → Items view → Reports Spending → delete. Self-cleaning. **Known false failure:** step 7 expects the month's Spending total to read 525, so it fails in any month where mom has logged real purchases. |
+| `verify-calendar-flow.py` | Today → calendar icon; `?date=` deep link; day panel lists a throwaway order + "To make" line; order → back keeps the day; arrow keys + month nav; Settings reminders card. Self-cleaning. |
 
 **Which smokes to run (scope by blast radius — confirmed 2026-05-27):**
 - **chromium-only by default.** Mom's only runtime is the Android Chromium PWA. Run the firefox+webkit matrix **only** for cross-browser-sensitive diffs (PDF/canvas, service worker/PWA, CSS layout, Web Share/File APIs, focus/dialog). firefox/webkit otherwise surface only pre-existing teardown noise, already tolerated in `verify-launch-readiness.py`'s `CONSOLE_KNOWN_FLAKY_PATTERNS` (printed as WARN, doesn't fail the gate).
@@ -117,9 +119,9 @@ vendors ─── purchases ─── purchase_items ─── purchase_categori
                                                                      zero anon surface)
 ```
 
-Full schemas: `supabase/migrations/0001_*.sql` through `0009_*.sql`. Behavioural spec (what each column drives): `docs/v1-spec.md` §2.
+Full schemas: `supabase/migrations/0001_*.sql` through `0011_*.sql`. Behavioural spec (what each column drives): `docs/v1-spec.md` §2.
 
-**Phase 2 additions:** `channels.default_discount_percent` (Reseller=20), `customers.discount_percent` (nullable=inherit), `orders.discount_percent` (per-order snapshot) — migration `0008`. `orders.event_id` (FK→events, ties exhibition orders to their event) — migration `0009`. Purchases spine (`vendors`, `purchase_categories` seeded Ingredients/Packaging/Made products/Fuel/Other, `purchases.purchased_on` **date**, `purchase_items`) — migration `0010`.
+**Phase 2 additions:** `channels.default_discount_percent` (Reseller=20), `customers.discount_percent` (nullable=inherit), `orders.discount_percent` (per-order snapshot) — migration `0008`. `orders.event_id` (FK→events, ties exhibition orders to their event) — migration `0009`. Purchases spine (`vendors`, `purchase_categories` seeded Ingredients/Packaging/Made products/Fuel/Other, `purchases.purchased_on` **date**, `purchase_items`) — migration `0010`. Reminders (`push_subscriptions`, `notification_log` send log, `private.vapid_keys`, Vault secret `reminders_cron_secret`, pg_cron job `send-reminders`) — migration `0011`.
 
 ## Architecture pointers
 
@@ -132,6 +134,8 @@ Full schemas: `supabase/migrations/0001_*.sql` through `0009_*.sql`. Behavioural
 - **Exhibition order ↔ event:** `orders.event_id` (0009) links each exhibition order to its event. `public_get_order_by_ref`'s anti-leak matches `order.event_id == event.id` (not `customer.source_event_id`, which dedup-on-phone pins to the customer's first event) so repeat customers at a new event still see their confirmation.
 - **Purchases:** receipt totals are always computed (`receiptTotal` in `src/features/purchases/purchaseMath.ts`), never stored. Price memory: `getLastItemEntry` fetches recent inserts and picks the newest `purchased_on` (backfill-safe). The form's memory autofill (unit/category from the last purchase) applies only while a row's `autofill` flag is true — never on hydrated edit rows or after mom taps a category chip (advisor F1: the hint must default, not override). Nav tab labels are verbs (Make/Buy); page h1s stay nouns (Production/Purchases) — smokes assert the h1s. `getSpendingSummary` lives in `reports/api.ts` and reuses `categoryTotals` from purchases.
 - **Exhibition QR flyer:** `events/eventFlyerPdf.ts` (pure builder + `loadQrCodeDataUrl`) and `events/EventFlyerModal.tsx` clone the bill trio and reuse `renderPdfFirstPage` unchanged. `qrcode` is CommonJS — `await import('qrcode')` then `QRCode.toDataURL(...)` works only because Vite's interop copies own properties onto the namespace, not just onto `.default`; no unit test can cover that, so the canvas assertion in `verify-events-flow.py` is the only guard. `verify-a11y.py` opens the dialog and scans it scoped to `[role="dialog"]`; every other scan there stays full-document.
+- **Reminders:** the pure rules (reminder window, lead date, pack-size totals, notification text) live in `supabase/functions/_shared/reminders.ts`, import-free so both Deno and the app (`@shared` alias) use it; the calendar's "To make" uses the same totals. `products.unit` is a hand-typed **pack size** ("250 gm", "200gm", "125") and `order_items.qty` counts packs; totals group by name + normalised pack. Edge Function `send-reminders` runs with `verify_jwt=false` and authenticates in-function (cron: `x-cron-secret` vs Vault; `ensure-keys`: user JWT). Claim-before-send on `notification_log` makes runs idempotent; a payload that reaches no device releases its claim. VAPID keys are generated once by `ensure-keys` and never by a run. **No secret ever leaves the DB.** Test without spamming: `net.http_post` from SQL with `{"action":"run","dryRun":true,"date":"YYYY-MM-DD"}` (secret read inside SQL), then read `net._http_response`. pg_net keeps responses ~6h — check the first live runs there. Deploying the function means passing `index.ts` + `../_shared/reminders.ts` to MCP `deploy_edge_function`.
+- **Service worker:** `src/sw.ts` must keep parity with the old generated worker (same precache globs, `index.html` fallback with `/^\/order\//` denylisted, `skipWaiting` + `clientsClaim` + `cleanupOutdatedCaches`); any change to it needs the 3-browser launch-readiness run plus a real-phone check. Typechecked by its own `tsconfig.sw.json` (WebWorker lib); excluded from the app project.
 - **Quiet customers:** pure `isQuiet()` in `src/features/customers/quiet.ts` (per-channel thresholds, Asia/Kolkata-day-normalised).
 - **Reports charts:** raw SVG only (`src/features/reports/charts/`). No recharts/d3 dependency.
 - **Refresh model:** refetch-on-tab-focus. No realtime subscriptions in v1 (one writer).
