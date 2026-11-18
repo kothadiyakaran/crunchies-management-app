@@ -1655,10 +1655,15 @@ Per CLAUDE.md: small fixes/additions only, no major UX overhauls. Iteration tole
 **Shipped (2026-07-07)** — spec in `docs/superpowers/specs/2026-07-07-purchases-design.md`:
 - **Purchases ("Buy") feature** — mom-requested money-out log, receipt model: vendors (inline-created), `purchase_categories` (seeded + chip-add), line items (qty?, unit?, amount, category), item price memory ("Last: ₹…" hint, unit/category autofill for fresh rows only), all-time Items price-history view, month-grouped Receipts view. Six-tab bottom nav (Production label → **Make**, new **Buy** tab); page h1s keep the nouns. Production's "From other makers" rows gained a "Log purchase →" prefill shortcut (§6 D — no longer read-only). Month report gained a **Spending** section (total + prior-month comparison + category split + "Left over: sales − purchases" line). Migration `0010`; `verify-purchases-flow.py`.
 
+**Built (2026-11-18; on branch `feature/reminders-calendar`, migration + Edge Function live)** — spec in `docs/superpowers/specs/2026-11-18-reminders-and-calendar-design.md`:
+- **Reminders (Web Push)** — mom-requested. 10:00 IST Mon–Sat: pending orders due through the 2nd working day (customers, then per-day pack totals), a Monday planning nudge, an exhibition lead-date alert. pg_cron → Edge Function `send-reminders`; turned on per phone from Settings or a one-time Today card. Migration `0011`.
+- **Calendar** — `/calendar` month view of orders by target date plus events, with a day panel ("To make" totals + orders). Opened from Today's header; the notification deep-links into it. `verify-calendar-flow.py`.
+
 **Parking lot (deferred from v1):**
 - ~~Procurement workflow for aggregated products~~ — the logging half shipped 2026-07-07 as the Purchases feature (+ from-other-makers shortcut); still deferred: BOM/shopping-list generation from the production plan, purchase↔product linkage
 - Customer merge UI
-- PWA push notifications (exhibition-form new-order alerts)
+- PWA push for exhibition-form new-order alerts (the push pipeline now exists — reminders, 2026-11-18 — so this is a new notification kind, not new infrastructure)
+- Restock hints from purchase patterns (considered 2026-11-18, deferred until ~a year of purchase data; approach in the reminders spec)
 - Per-product event lead-time
 - Year-over-year retrospective comparisons
 - Sparkline trends per row

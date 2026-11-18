@@ -138,3 +138,15 @@ Plan was written 2026-08-14 (session ended at limit before any code); recovered 
   1. `BillPreviewModal` has the identical scroll-wrapper pattern and very likely the same latent keyboard defect. No a11y scan has ever opened that dialog.
   2. axe rule `label` (critical), 21 nodes on `EventDetailPage` — Lead weeks stepper + every Expected demand quantity input lack associated labels. Pre-existing; surfaced only because `/events/<id>` had never been in the a11y route list.
 - **Karan's manual step:** print the flyer and scan it with a phone camera against live prod.
+
+## 2026-11-18 — Reminders (push) + Calendar (mom-requested)
+
+Branch `feature/reminders-calendar`. Brainstormed with Karan (choices recorded in the spec), then built autonomously.
+
+- **Spec:** `docs/superpowers/specs/2026-11-18-reminders-and-calendar-design.md`. **Plan:** `docs/superpowers/plans/2026-11-18-reminders-and-calendar.md`.
+- **Already live (Karan authorised):** migration `0011` (applied via MCP) and Edge Function `send-reminders` (v3). Mom sees nothing yet: no device is subscribed, so the 10:00 cron run returns "no subscriptions".
+- **Found in live data while building:** `products.unit` is a hand-typed pack size and the same product name exists in several sizes, so reminder and calendar totals group by name + normalised pack ("Chakli 4 × 250 gm").
+- **Advisor (fresh-context review; Opus — Karan had switched the advisor model): SHIP-WITH-FIXES → fixed in `bc67980`.** Sunday-due orders were never reminded (40 of 464 historically) → the window now runs through the 2nd working day; notification tap focuses before navigating; calendar ignores stale month fetches and invalid `?date=`; an undelivered payload releases its claim; the run never generates VAPID keys; per-event tags; no badge. Left as operational notes: nothing alerts if the cron run fails (check `net._http_response` for the first runs); a first-visit Settings timeout on brand-new devices.
+- **Gate:** typecheck · 369 tests / 48 files · build (81-entry precache) · full smoke set + launch-readiness on chromium/firefox/webkit · a11y 0 violations incl. `/calendar`. `verify-purchases-flow.py` failed on its Spending step for a reason that predates this branch: it expects a month total of 525 and mom has ₹12,240 of real November purchases. `verify-exhibition-repeat.py` passes when run with no args (its `--url` is the Supabase URL).
+- **Fable mode turned off** for this project (CLAUDE.md section removed); the advisor rule was reworded (fresh-context review + device verification; neither substitutes for the other).
+- **Pending — Karan:** the phone test on the Vercel preview (steps in the hand-off message), then review and push `main`. After the phone test, turn reminders off on the preview, or delete its `push_subscriptions` row, and re-enable on crunchies.app; otherwise taps open the preview URL.
